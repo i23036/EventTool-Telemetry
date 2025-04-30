@@ -1,0 +1,6 @@
+@ET_Backend_HostAddress = http://localhost:5199
+
+GET {{ET_Backend_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
