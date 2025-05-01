@@ -1,1 +1,39 @@
-﻿
+﻿@page "/Register"
+
+<PageTitle>Registrieren</PageTitle>
+
+<h3>Registrierung</h3>
+
+<div>
+    <p>Bitte melden Sie sich mit einem neuen Account an, oder erstellen einen über den Butto "Registrieren".</p>
+    <div>
+        <div>
+            <label for="mail">Vorname:</label>
+            <InputText id="mail" @bind-Value="eMail" class="form-control" />
+
+            <label for="firstName">Nachname:</label>
+            <InputText id="firstName" @bind-Value="firstName" class="form-control" />
+        </div>
+        <div>
+            <label for="lastName">E-Mail:</label>
+            <InputText id="lastName" @bind-Value="lastName" class="form-control" />
+
+            <label for="password">Passwort:</label>
+            <InputText id="password" @bind-Value="password" class="form-control" />
+        </div>
+    </div>
+    <div>
+        <button>Anmelden</button>
+        <button>Registieren</button>
+    </div>
+
+</div>
+
+@code {
+    public string firstName;
+    public string lastName;
+    public string eMail;
+    public string password;
+}
+
+

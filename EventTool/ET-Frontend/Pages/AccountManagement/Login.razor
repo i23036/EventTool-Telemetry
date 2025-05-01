@@ -1,1 +1,39 @@
-﻿
+﻿@page "/Login"
+
+@inject NavigationManager Navigation
+
+<PageTitle>Anmelden</PageTitle>
+
+<h3>Anmeldung</h3>
+
+<div>
+    <p>Bitte melden Sie sich mit einem neuen Account an, oder erstellen einen über den Butto "Registrieren".</p>
+    <div>
+        <div>
+            <label for="lastName">E-Mail:</label>
+            <InputText id="lastName" @bind-Value="lastName" class="form-control" />
+
+            <label for="password">Passwort:</label>
+            <InputText id="password" @bind-Value="password" class="form-control" />
+        </div>
+    </div>
+    <div>
+        <button>Anmelden</button>
+        <button @onclick="toRegister">Registieren</button>
+    </div>
+    
+</div>
+
+@code{
+    public string firstName;
+    public string lastName;
+    public string eMail;
+    public string password;
+
+    public void toRegister()
+    {
+        Navigation.NavigateTo("/Register");
+    }
+}
+
+
