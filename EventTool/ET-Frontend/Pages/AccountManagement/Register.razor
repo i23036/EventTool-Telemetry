@@ -21,6 +21,10 @@
             <label for="password">Passwort:</label>
             <InputText id="password" @bind-Value="password" class="form-control" />
         </div>
+        <div>
+            <label for="repeatPassword">Passwort:</label>
+            <InputText id="repeatPassword" @bind-Value="repeatPassword" class="form-control" />
+        </div>
     </div>
     <div>
         <button>Anmelden</button>
@@ -34,6 +38,7 @@
     public string lastName;
     public string eMail;
     public string password;
+    public string repeatPassword;
 }
 
 
