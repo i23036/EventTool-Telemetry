@@ -1,5 +1,6 @@
 ﻿@page "/Register"
 @inject NavigationManager Navigation
+@using System.ComponentModel.DataAnnotations
 
 <section class="bg-light py-3 py-md-5 vh-100 d-flex align-items-center">
     <div class="container">
@@ -12,39 +13,53 @@
                         </div>
                         <h2 class="fs-4 fw-normal text-center text-secondary mb-4">Registrieren Sie sich</h2>
 
-                        <form onsubmit="return false">
+                        <EditForm Model="registerModel" OnValidSubmit="toRegister">
+                            <DataAnnotationsValidator />
+
                             <div class="row gy-2 overflow-hidden">
                                 <div class="col-12">
-                                    <div class="form-floating mb-3">
-                                        <InputText @bind-Value="firstName" class="form-control" id="firstName" placeholder="Vorname" />
+                                    <div class="form-floating mb-1">
+                                        <InputText @bind-Value="registerModel.FirstName" class="form-control" id="firstName" placeholder="Vorname" />
                                         <label for="firstName">Vorname</label>
                                     </div>
+                                    <div class="text-danger small ms-1">
+                                        <ValidationMessage For="@(() => registerModel.FirstName)" />
+                                    </div>
                                 </div>
 
                                 <div class="col-12">
-                                    <div class="form-floating mb-3">
-                                        <InputText @bind-Value="lastName" class="form-control" id="lastName" placeholder="Nachname" />
+                                    <div class="form-floating mb-1">
+                                        <InputText @bind-Value="registerModel.LastName" class="form-control" id="lastName" placeholder="Nachname" />
                                         <label for="lastName">Nachname</label>
                                     </div>
-                                </div>
-
-                                <div class="col-12">
-                                    <div class="form-floating mb-3">
-                                        <InputText @bind-Value="eMail" class="form-control" id="email" placeholder="name@example.com" />
-                                        <label for="email">E-Mail</label>
+                                    <div class="text-danger small ms-1">
+                                        <ValidationMessage For="@(() => registerModel.LastName)" />
                                     </div>
                                 </div>
 
                                 <div class="col-12">
-                                    <div class="form-floating mb-3">
-                                        <InputText @bind-Value="password" class="form-control" type="password" id="password" placeholder="Passwort" />
+                                    <div class="form-floating mb-1">
+                                        <InputText @bind-Value="registerModel.Email" class="form-control" id="email" placeholder="name@example.com" />
+                                        <label for="email">E-Mail</label>
+                                    </div>
+                                    <div class="text-danger small ms-1">
+                                        <ValidationMessage For="@(() => registerModel.Email)" />
+                                    </div>
+                                </div>
+
+                                <div class="col-12">
+                                    <div class="form-floating mb-1">
+                                        <InputText @bind-Value="registerModel.Password" class="form-control" type="password" id="password" placeholder="Passwort" />
                                         <label for="password">Passwort</label>
+                                    </div>
+                                    <div class="text-danger small ms-1">
+                                        <ValidationMessage For="@(() => registerModel.Password)" />
                                     </div>
                                 </div>
 
                                 <div class="col-12">
                                     <div class="d-grid my-3">
-                                        <button type="button" class="btn btn-primary btn-lg" @onclick="toRegister">Registrieren</button>
+                                        <button type="submit" class="btn btn-primary btn-lg">Registrieren</button>
                                     </div>
                                 </div>
 
@@ -55,7 +70,7 @@
                                     </p>
                                 </div>
                             </div>
-                        </form>
+                        </EditForm>
 
                     </div>
                 </div>
@@ -65,20 +80,33 @@
 </section>
 
 @code {
-    public string firstName;
-    public string lastName;
-    public string eMail;
-    public string password;
+    private RegisterModel registerModel = new();
 
-    public void toLogin()
+    private void toLogin()
     {
         Navigation.NavigateTo("/login");
     }
 
-    public void toRegister()
+    private void toRegister()
     {
-        // Hier dann vllt was mitm registieren machen
+        // Wird nur aufgerufen, wenn das Formular gültig ist
+        Console.WriteLine($"Registrierung: {registerModel.FirstName} {registerModel.LastName}, {registerModel.Email}");
+    }
+
+    public class RegisterModel
+    {
+        [Required(ErrorMessage = "Vorname ist erforderlich.")]
+        public string FirstName { get; set; }
+
+        [Required(ErrorMessage = "Nachname ist erforderlich.")]
+        public string LastName { get; set; }
+
+        [Required(ErrorMessage = "E-Mail ist erforderlich.")]
+        [EmailAddress(ErrorMessage = "Ungültige E-Mail-Adresse.")]
+        public string Email { get; set; }
+
+        [Required(ErrorMessage = "Passwort ist erforderlich.")]
+        [MinLength(6, ErrorMessage = "Passwort muss mindestens 6 Zeichen lang sein.")]
+        public string Password { get; set; }
     }
 }
-
-
