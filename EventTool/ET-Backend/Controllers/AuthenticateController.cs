@@ -34,5 +34,7 @@ namespace ET_Backend.Controllers
             }
         }
 
+        // TODO: Registrierung
+
     }
 }

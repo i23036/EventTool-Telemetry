@@ -6,6 +6,8 @@ public interface IAccountRepository
 {
     public Task<bool> AccountExists(String eMail);
 
+    public Task<Account> CreateAccount(String eMail, Models.Organization organization, Role role);
+
     public Task<Account> GetAccount(String eMail);
 
     public Task<String> GetPasswordHash(String eMail);
