@@ -14,14 +14,16 @@ public interface IAccountRepository
     /// <returns>Ein Task mit einem booleschen Wert: true, wenn das Konto existiert.</returns>
     public Task<bool> AccountExists(String eMail);
 
+<<<<<<< HEAD
+    public Task<Account> CreateAccount(String eMail, Models.Organization organization, Role role);
 
-	public Task<Account> CreateAccount(String eMail, Models.Organization organization, Role role);
-
+=======
     /// <summary>
     /// Ruft das Konto zur angegebenen E-Mail-Adresse ab.
     /// </summary>
     /// <param name="eMail">Die E-Mail-Adresse des Kontos.</param>
     /// <returns>Ein Task mit dem <see cref="Account"/>-Objekt.</returns>
+>>>>>>> 32259d710df0cc5d49face0a3d692265b87206b6
     public Task<Account> GetAccount(String eMail);
 
     /// <summary>
