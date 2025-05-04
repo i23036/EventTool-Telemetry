@@ -29,7 +29,7 @@ builder.Services.AddTransient<IDbConnection>(_ =>
 // c) Repository
 builder.Services.AddScoped<IAccountRepository, AccountRepository>();
 //builder.Services.AddScoped<IUserRepository, UserRepository>();
-//builder.Services.AddScoped<IOrganizationRepository, OrganizationRepository>();
+builder.Services.AddScoped<IOrganizationRepository, OrganizationRepository>();
 
 
 // d) JWT-Authentifizierung
@@ -72,12 +72,20 @@ app.UseHttpsRedirection();
 using (var conn = app.Services.GetRequiredService<IDbConnection>())
 {
     conn.Execute(@"
+
+      CREATE TABLE IF NOT EXISTS Organizations (
+        Name        TEXT    NOT NULL,
+        Description TEXT,
+        Domain      TEXT    PRIMARY KEY
+      );
+
       CREATE TABLE IF NOT EXISTS Accounts (
         Email        TEXT    PRIMARY KEY,
         Organization INTEGER NOT NULL,
         Role         INTEGER NOT NULL,
         PasswordHash TEXT    NOT NULL
-      );");
+      );
+    ");
 }
 
 

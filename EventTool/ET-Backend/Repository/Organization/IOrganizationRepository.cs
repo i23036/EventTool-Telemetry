@@ -37,4 +37,15 @@ public interface IOrganizationRepository
     /// <param name="domain">Die Domain der Organisation.</param>
     /// <returns>Ein Task mit dem <see cref="Models.Organization"/>-Objekt.</returns>
     public Task<Models.Organization> GetOrganization(String domain);
+
+    /// <summary>
+    /// Ruft alle Organisationen aus der Datenbank ab.
+    /// </summary>
+    Task<IEnumerable<Models.Organization>> GetAllAsync();
+
+    /// <summary>
+    /// Löscht die Organisation mit der angegebenen Domain.
+    /// </summary>
+    Task<bool> DeleteOrganization(string domain);
+
 }
