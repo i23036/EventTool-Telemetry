@@ -6,6 +6,10 @@ using ET_Backend.Repository.Event;
 using ET_Backend.Repository.Organization;
 using ET_Backend.Repository.Processes;
 
+using ET_Backend.Services.Helper.Authentication;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // 1) Service-Registrierung (vor Build)
@@ -33,6 +37,12 @@ builder.Services.AddScoped<IAccountRepository, AccountRepository>();
 // … hier kommen ggf. noch weitere Services …
 
 
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer();
+
+builder.Services.ConfigureOptions<JwtOptionsSetup>();
+builder.Services.ConfigureOptions<JwtBaererOptionsSetup>();
+
 var app = builder.Build();
 
 
@@ -59,6 +69,9 @@ using (var conn = app.Services.GetRequiredService<IDbConnection>())
         CreatedAt TEXT NOT NULL
       );");
 }
+app.UseAuthentication();
+
+app.UseAuthorization();
 
 // c) Controller-Routing
 app.MapControllers();

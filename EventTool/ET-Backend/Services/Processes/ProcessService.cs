@@ -1,6 +1,6 @@
 ﻿namespace ET_Backend.Services.Processes;
 
-public class ProcessService
+public class ProcessService : IProcessService
 {
 
 }

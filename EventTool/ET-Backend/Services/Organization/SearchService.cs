@@ -1,6 +1,6 @@
 ﻿namespace ET_Backend.Services.Organization;
 
-public class SearchService
+public class SearchService : ISearchService
 {
 
 }
