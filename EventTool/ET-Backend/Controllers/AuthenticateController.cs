@@ -6,17 +6,37 @@ using Microsoft.AspNetCore.Mvc;
 // For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
 namespace ET_Backend.Controllers
+
 {
+    /// <summary>
+    /// Bietet Endpunkte zur Authentifizierung von Benutzern.
+    /// </summary>
+
     [Route("api/authenticate")]
     [ApiController]
     public class AuthenticateController : ControllerBase
     {
         private IAuthenticateService _authenticateService;
+
+        /// <summary>
+        /// Initialisiert eine neue Instanz des <see cref="AuthenticateController"/>.
+        /// </summary>
+        /// <param name="authenticateService">Service zur Benutzer-Authentifizierung.</param>
+        
         public AuthenticateController(IAuthenticateService authenticateService)
         {
             _authenticateService = authenticateService;
         }
 
+        /// <summary>
+        /// Authentifiziert einen Benutzer anhand der übergebenen Anmeldedaten.
+        /// </summary>
+        /// <param name="value">Ein Objekt mit E-Mail und Passwort.</param>
+        /// <returns>
+        /// Gibt bei Erfolg ein Token zurück, andernfalls eine BadRequest-Antwort mit Fehlermeldung.
+        /// </returns>
+        /// <response code="200">Benutzer erfolgreich authentifiziert.</response>
+        /// <response code="400">Authentifizierung fehlgeschlagen.</response>
 
         // POST api/<AuthenticateController>
         [HttpPost("login")]

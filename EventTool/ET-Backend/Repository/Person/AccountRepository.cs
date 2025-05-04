@@ -3,11 +3,19 @@ using Dapper;
 using ET_Backend.Models;
 
 namespace ET_Backend.Repository.Person;
+/// <summary>
+/// Implementierung des Repositories für den Zugriff auf Kontodaten.
+/// </summary>
 
 public class AccountRepository(IDbConnection db) : IAccountRepository
 {
     private readonly IDbConnection _db = db;
 
+    /// <summary>
+    /// Prüft, ob ein Konto mit der angegebenen E-Mail-Adresse existiert.
+    /// </summary>
+    /// <param name="eMail">Die E-Mail-Adresse, nach der gesucht werden soll.</param>
+    /// <returns>Ein Task mit einem booleschen Ergebnis: true, wenn das Konto existiert.</returns>
     public async Task<bool> AccountExists(String eMail)
     {
         const string sql = @"
@@ -19,6 +27,11 @@ public class AccountRepository(IDbConnection db) : IAccountRepository
         return count > 0;
     }
 
+    /// <summary>
+    /// Ruft das Konto zur angegebenen E-Mail-Adresse ab.
+    /// </summary>
+    /// <param name="eMail">Die E-Mail-Adresse des Kontos.</param>
+    /// <returns>Ein Task, der das entsprechende <see cref="Account"/>-Objekt zurückgibt.</returns>
     public async Task<Account> GetAccount(string eMail)
     {
         const string sql = @"
@@ -32,6 +45,11 @@ public class AccountRepository(IDbConnection db) : IAccountRepository
         return await _db.QuerySingleOrDefaultAsync<Account>(sql, new { EMail = eMail });
     }
 
+    /// <summary>
+    /// Ruft den Passwort-Hash eines Kontos anhand der E-Mail-Adresse ab.
+    /// </summary>
+    /// <param name="eMail">Die E-Mail-Adresse des Kontos.</param>
+    /// <returns>Ein Task mit dem Passwort-Hash als Zeichenkette.</returns>
     public async Task<string> GetPasswordHash(string eMail)
     {
         const string sql = @"
