@@ -1,15 +1,44 @@
+using Microsoft.Data.Sqlite;
+using System.Data;
+using Dapper;
+using ET_Backend.Repository.Person;
+using ET_Backend.Repository.Event;
+using ET_Backend.Repository.Organization;
+using ET_Backend.Repository.Processes;
+
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+// 1) Service-Registrierung (vor Build)
 
+// a) Controllers + Swagger
 builder.Services.AddControllers();
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+// b) Dapper + SQLite: IDbConnection
+//    Transient: jede Anfrage eine neue Connection
+var cs = builder.Configuration.GetConnectionString("Default")
+         ?? "Data Source=bitworks.db";
+builder.Services.AddTransient<IDbConnection>(_ =>
+    new SqliteConnection(cs));
+
+// c) Repository
+builder.Services.AddScoped<IAccountRepository, AccountRepository>();
+//builder.Services.AddScoped<IUserRepository, UserRepository>();
+//builder.Services.AddScoped<IEventRepository, EventRepository>();
+//builder.Services.AddScoped<IOrganizationRepository, OrganizationRepository>();
+//builder.Services.AddScoped<IProcessRepository, ProcessRepository>();
+//builder.Services.AddScoped<IProcessStepRepository, ProcessStepRepository>();
+
+// … hier kommen ggf. noch weitere Services …
+
+
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+
+// 2) Pipeline- & Schema-Setup (nach Build, vor Run)
+
+// a) Swagger-Middleware
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -17,9 +46,22 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-
 app.UseAuthorization();
 
+// b) Schema-Initialisierung mit Dapper
+using (var conn = app.Services.GetRequiredService<IDbConnection>())
+{
+    conn.Execute(@"
+      CREATE TABLE IF NOT EXISTS Accounts (
+        Id TEXT PRIMARY KEY,
+        Email TEXT NOT NULL,
+        PasswordHash TEXT NOT NULL,
+        CreatedAt TEXT NOT NULL
+      );");
+}
+
+// c) Controller-Routing
 app.MapControllers();
+
 
 app.Run();
