@@ -54,6 +54,16 @@ namespace ET_Backend.Controllers
             }
         }
 
+        /// <summary>
+        /// Registriert einen neuen Benutzer und loggt ihn direkt ein.
+        /// </summary>
+        /// <param name="value">Ein Objekt mit Vorname, Nachname, E-Mail und Passwort.</param>
+        /// <returns>
+        /// Gibt bei Erfolg das JWT-Token des neu registrierten Benutzers zurück,
+        /// andernfalls eine Problem-Antwort mit Fehlerbeschreibung.
+        /// </returns>
+        /// <response code="200">Benutzer erfolgreich registriert und eingeloggt.</response>
+        /// <response code="500">Registrierung fehlgeschlagen – z. B. Benutzer existiert bereits.</response>
         // POST api/<AuthenticateController>
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] RegisterDto value)
