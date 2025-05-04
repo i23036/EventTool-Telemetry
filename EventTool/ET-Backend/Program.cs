@@ -5,7 +5,6 @@ using ET_Backend.Repository.Person;
 using ET_Backend.Repository.Event;
 using ET_Backend.Repository.Organization;
 using ET_Backend.Repository.Processes;
-
 using ET_Backend.Services.Helper.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
@@ -29,19 +28,16 @@ builder.Services.AddTransient<IDbConnection>(_ =>
 // c) Repository
 builder.Services.AddScoped<IAccountRepository, AccountRepository>();
 //builder.Services.AddScoped<IUserRepository, UserRepository>();
-//builder.Services.AddScoped<IEventRepository, EventRepository>();
 //builder.Services.AddScoped<IOrganizationRepository, OrganizationRepository>();
-//builder.Services.AddScoped<IProcessRepository, ProcessRepository>();
-//builder.Services.AddScoped<IProcessStepRepository, ProcessStepRepository>();
-
-// … hier kommen ggf. noch weitere Services …
 
 
+// d) JWT-Authentifizierung
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer();
 
 builder.Services.ConfigureOptions<JwtOptionsSetup>();
 builder.Services.ConfigureOptions<JwtBaererOptionsSetup>();
+
 
 var app = builder.Build();
 
@@ -56,24 +52,24 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-app.UseAuthorization();
 
 // b) Schema-Initialisierung mit Dapper
 using (var conn = app.Services.GetRequiredService<IDbConnection>())
 {
     conn.Execute(@"
       CREATE TABLE IF NOT EXISTS Accounts (
-        Id TEXT PRIMARY KEY,
-        Email TEXT NOT NULL,
-        PasswordHash TEXT NOT NULL,
-        CreatedAt TEXT NOT NULL
+        Email        TEXT    PRIMARY KEY,
+        Organization INTEGER NOT NULL,
+        Role         INTEGER NOT NULL,
+        PasswordHash TEXT    NOT NULL
       );");
 }
-app.UseAuthentication();
 
+
+app.UseAuthentication();
 app.UseAuthorization();
 
-// c) Controller-Routing
+
 app.MapControllers();
 
 
