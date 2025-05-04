@@ -1,6 +1,6 @@
 ﻿namespace ET_Backend.Repository.Processes;
 
-public class ProcessRepository
+public class ProcessRepository : IProcessRepository
 {
 
 }

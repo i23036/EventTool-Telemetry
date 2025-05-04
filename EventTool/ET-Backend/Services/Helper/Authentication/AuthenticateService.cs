@@ -62,7 +62,22 @@ public class AuthenticateService : IAuthenticateService
         }
     }
 
-
+    /// <summary>
+    /// Registriert einen neuen Benutzer mit zugehörigem Benutzerkonto, wenn eine passende Organisation existiert.
+    /// </summary>
+    /// <param name="firstname">Der Vorname des Benutzers.</param>
+    /// <param name="lastname">Der Nachname des Benutzers.</param>
+    /// <param name="eMail">Die E-Mail-Adresse des Benutzers.</param>
+    /// <param name="password">Das Passwort des Benutzers (im Klartext, wird intern verarbeitet).</param>
+    /// <returns>
+    /// Ein <see cref="Result{T}"/> mit einer Erfolgs- oder Fehlermeldung als Zeichenkette.
+    /// <list type="bullet">
+    /// <item><description><c>Ok("User added successfully")</c> – wenn alles funktioniert hat</description></item>
+    /// <item><description><c>Fail("User already exists")</c> – wenn die E-Mail bereits registriert ist</description></item>
+    /// <item><description><c>Fail("No organization exists for this E-Mail")</c> – wenn keine passende Organisation existiert</description></item>
+    /// <item><description><c>Fail("Database failure")</c> – wenn ein Eintrag in DB fehlschlägt</description></item>
+    /// </list>
+    /// </returns>
     public async Task<Result<String>> RegisterUser(String firstname, String lastname, String eMail, String password)
     {
         if (! await _accountRepository.AccountExists(eMail))

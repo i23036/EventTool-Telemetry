@@ -1,6 +1,6 @@
 ﻿namespace ET_Backend.Repository.Event;
 
-public class EventRepository
+public class EventRepository : IEventRepository
 {
 
 }
