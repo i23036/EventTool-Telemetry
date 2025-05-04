@@ -1,13 +1,14 @@
 ﻿@page "/"
 
 @inject NavigationManager Navigation
+@layout HomeLayout
 
 
 <PageTitle>Home</PageTitle>
 
-<h1>Hello, world!</h1>
+<h1>@organisationName</h1>
 
-Welcome to your new app.
+
 
 <NavLink href="/Login" Match="NavLinkMatch.All">
     Login
@@ -15,5 +16,5 @@ Welcome to your new app.
 
 
 @code{
-
+    public string organisationName = "test Orga"; // nur für erste Darstellung
 }
