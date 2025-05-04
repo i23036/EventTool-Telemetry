@@ -27,6 +27,12 @@ public class AccountRepository(IDbConnection db) : IAccountRepository
         return count > 0;
     }
 
+
+    public Task<bool> CreateAccount(String eMail, Models.Organization organization, Role role)
+    {
+        throw new NotImplementedException();
+    }
+
     /// <summary>
     /// Ruft das Konto zur angegebenen E-Mail-Adresse ab.
     /// </summary>
