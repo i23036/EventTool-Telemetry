@@ -15,7 +15,7 @@ public interface IAccountRepository
     public Task<bool> AccountExists(String eMail);
 
 
-	public Task<Account> CreateAccount(String eMail, Models.Organization organization, Role role);
+	public Task<bool> CreateAccount(String eMail, Models.Organization organization, Role role);
 
     /// <summary>
     /// Ruft das Konto zur angegebenen E-Mail-Adresse ab.

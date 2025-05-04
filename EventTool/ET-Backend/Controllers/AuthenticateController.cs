@@ -54,7 +54,26 @@ namespace ET_Backend.Controllers
             }
         }
 
-        // TODO: Registrierung
+        // POST api/<AuthenticateController>
+        [HttpPost("register")]
+        public async Task<IActionResult> Register([FromBody] RegisterDto value)
+        {
+            Result<String> result = await _authenticateService.RegisterUser(
+                value.Firstname, 
+                value.Lastname, 
+                value.EMail, 
+                value.Password
+                );
+
+            if (result.IsSuccess)
+            {
+                return await Login(new LoginDto(value.EMail, value.Password));
+            }
+            else
+            {
+                return Problem(result.Value);
+            }
+        }
 
     }
 }

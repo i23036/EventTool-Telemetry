@@ -15,4 +15,6 @@ public interface IAuthenticateService
     /// Ein <see cref="Result{T}"/> mit einem JWT-Token bei Erfolg oder einer Fehlermeldung bei Misserfolg.
     /// </returns>
     public Task<Result<string>> LoginUser(string eMail, string password);
+
+    public Task<Result<string>> RegisterUser(String firstname, String lastname, String eMail, String password);
 }

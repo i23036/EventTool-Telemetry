@@ -1,3 +1,3 @@
 ﻿namespace ET_Backend.DTOs;
 
-public record RegisterDto(String firstname, String lastname, String eMail, String password);
+public record RegisterDto(String Firstname, String Lastname, String EMail, String Password);

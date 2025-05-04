@@ -2,6 +2,7 @@
 using System.Security.Claims;
 using System.Text;
 using ET_Backend.Models;
+using ET_Backend.Repository.Organization;
 using ET_Backend.Repository.Person;
 using FluentResults;
 using Microsoft.Extensions.Options;
@@ -13,17 +14,22 @@ namespace ET_Backend.Services.Helper.Authentication;
 /// </summary>
 public class AuthenticateService : IAuthenticateService
 {
-    private IAccountRepository _repository;
+    private IAccountRepository _accountRepository;
+    private IUserRepository _userRepository;
+    private IOrganizationRepository _organizationRepository;
     private JwtOptions _jwtOptions;
 
     /// <summary>
     /// Erstellt eine neue Instanz des <see cref="AuthenticateService"/>.
     /// </summary>
-    /// <param name="repository">Das Repository für Benutzerkonten.</param>
+    /// <param name="accountRepository">Das Repository für Benutzerkonten.</param>
     /// <param name="jwtOptions">Konfiguration für das JWT-Token.</param>
-    public AuthenticateService(IAccountRepository repository, IOptions<JwtOptions> jwtOptions)
+    public AuthenticateService(IAccountRepository accountRepository, IUserRepository userRepository, 
+        IOrganizationRepository organizationRepository, IOptions<JwtOptions> jwtOptions)
     {
-        _repository = repository;
+        _accountRepository = accountRepository;
+        _userRepository = userRepository;
+        _organizationRepository = organizationRepository;
         _jwtOptions = jwtOptions.Value;
     }
 
@@ -37,12 +43,12 @@ public class AuthenticateService : IAuthenticateService
     /// </returns>
     public async Task<Result<string>> LoginUser(string eMail, string password)
     {
-        if (await _repository.AccountExists(eMail))
+        if (await _accountRepository.AccountExists(eMail))
         {
-            string passwordHash = await _repository.GetPasswordHash(eMail);
+            string passwordHash = await _accountRepository.GetPasswordHash(eMail);
             if (passwordHash == password)
             {
-                string token = GenerateJwtToken(await _repository.GetAccount(eMail));
+                string token = GenerateJwtToken(await _accountRepository.GetAccount(eMail));
                 return Result.Ok(token);
             }
             else
@@ -55,6 +61,41 @@ public class AuthenticateService : IAuthenticateService
             return Result.Fail<string>("User does not exist");
         }
     }
+
+
+    public async Task<Result<String>> RegisterUser(String firstname, String lastname, String eMail, String password)
+    {
+        if (! await _accountRepository.AccountExists(eMail))
+        {
+            String eMailDomain = ""; // TODO
+
+            if (await _organizationRepository.OrganizationExists(eMailDomain))
+            {
+                List<bool> success = new List<bool>();
+                success.Add(await _userRepository.CreateUser(firstname, lastname, password));
+                Models.Organization organization = await _organizationRepository.GetOrganization(eMailDomain);
+                success.Add(await _accountRepository.CreateAccount(eMail, organization, Role.Member));
+
+                if (success.Contains(false))
+                {
+                    return Result.Fail("Database failure");
+                }
+                else
+                {
+                    return Result.Ok("User added successfully");
+                }
+            }
+            else
+            {
+                return Result.Fail("No organization exists for this E-Mail");
+            }
+        }
+        else
+        {
+            return Result.Fail("User already exists");
+        }
+    }
+
 
     /// <summary>
     /// Generiert ein JWT-Token für ein Benutzerkonto.
