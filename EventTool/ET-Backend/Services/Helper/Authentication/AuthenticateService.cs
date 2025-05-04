@@ -82,7 +82,7 @@ public class AuthenticateService : IAuthenticateService
     {
         if (! await _accountRepository.AccountExists(eMail))
         {
-            String eMailDomain = ""; // TODO
+            String eMailDomain = eMail.Substring(eMail.LastIndexOf('@') + 1);
 
             if (await _organizationRepository.OrganizationExists(eMailDomain))
             {
