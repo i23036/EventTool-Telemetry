@@ -1,5 +1,5 @@
 ﻿using ET_Backend.DTOs;
-using ET_Backend.Services.Helper;
+using ET_Backend.Services.Helper.Authentication;
 using FluentResults;
 using Microsoft.AspNetCore.Mvc;
 

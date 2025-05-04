@@ -1,6 +1,6 @@
 ﻿namespace ET_Backend.Services.Administration;
 
-public class LogService
+public class LogService : ILogService
 {
 
 }

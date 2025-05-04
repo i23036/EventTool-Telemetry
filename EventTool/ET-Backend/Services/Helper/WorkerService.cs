@@ -1,6 +1,6 @@
 ﻿namespace ET_Backend.Services.Helper;
 
-public class WorkerService
+public class WorkerService : IWorkerService
 {
 
 }
