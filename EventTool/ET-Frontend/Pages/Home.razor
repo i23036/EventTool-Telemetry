@@ -5,45 +5,72 @@
 
 <PageTitle>Home</PageTitle>
 
-<div class="d-flex align-items-center justify-content-between p-4 bg-light">
-    <div class="d-flex align-content-center">
-        <MudPaper Class="d-flex align-items-center mr-3" Elevation="0">
-            <img src="images/BitWorksSimpel-Gro.png" alt="BitWorks Logo" width="55" height="55" />
-        </MudPaper>
-        <div class="d-flex display-6 align-items-center">
-            <p class="m-0">@organisationName</p>
+<div class="flex-md-column align-content-between justify-content-center w-100 h-100">
+    <div class="d-flex align-items-center justify-content-between p-4 bg-light">
+        <div class="d-flex align-content-center">
+            <MudPaper Class="d-flex align-items-center mr-3" Elevation="0">
+                <img src="images/BitWorksSimpel-Gro.png" alt="BitWorks Logo" width="55" height="55" />
+            </MudPaper>
+            <div class="d-flex display-6 align-items-center">
+                <p class="m-0">@organisationName</p>
+            </div>
+        </div>
+        <div class="d-flex align-content-center justify-content-end w-25">
+            <MudAvatar Color="Color.Primary" Size="Size.Medium">U</MudAvatar>
         </div>
     </div>
-    <div class="d-flex align-content-center justify-content-end w-25">
-        <MudAvatar Color="Color.Primary" Size="Size.Medium">M</MudAvatar>
+
+    <div class="flex-md-column align-content-between justify-content-center w-100 h-100">
+        <MudPaper Width="100%" Height="100%">
+            <MudTabs class="h-100" Elevation="2" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-6 h-100">
+                <NavLink href="/Login" class="btn-primary">
+                    Login
+                </NavLink>
+                <MudTabPanel Text="Events">
+                    <MudText Typo="Typo.h4" Class="mb-3">Events</MudText>
+                    <MudDataGrid Items="@Elements.Take(4)">
+                        <Columns>
+                            <PropertyColumn Property="x => x.name" Title="Name" />
+                            <PropertyColumn Property="x => x.description" Title="Beschreibung" />
+                            <PropertyColumn Property="x => x.registeredUsers" Title="Teilnehmer" />
+                            <PropertyColumn Property="x => x.maxUsers" Title="Maximale Teilnehmer" />
+                            <TemplateColumn CellClass="d-flex justify-end">
+                                <CellTemplate>
+                                    <MudStack Row>
+                                        <MudButton Size="@Size.Small" Variant="@Variant.Filled" Color="@Color.Primary">Anmelden</MudButton>
+                                    </MudStack>
+                                </CellTemplate>
+                            </TemplateColumn>
+                        </Columns>
+                    </MudDataGrid>
+
+                </MudTabPanel>
+                <MudTabPanel Text="Organisation">
+                    <MudText>Organisation</MudText>
+                </MudTabPanel>
+                <MudTabPanel Text="Vorlagen">
+                    <MudText>Events</MudText>
+                    <MudText>Prozesse</MudText>
+                    <MudText>Prozessschritte</MudText>
+                </MudTabPanel>
+            </MudTabs>
+        </MudPaper>
     </div>
 </div>
 
-
-<div class="d-flex align-content-center justify-content-center w-100">
-    <MudPaper Width="100%" >
-        <MudTabs Elevation="2" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-6">
-            <MudTabPanel Text="Tab One">
-                <NavLink href="/Login" Match="NavLinkMatch.All">
-                    Login
-                </NavLink>
-
-                <MudText>Content One</MudText>
-            </MudTabPanel>
-            <MudTabPanel Text="Tab Two">
-                <MudText>Content Two</MudText>
-            </MudTabPanel>
-            <MudTabPanel Text="Tab Three">
-                <MudText>Content Three</MudText>
-            </MudTabPanel>
-            <MudTabPanel Text="Tab Disabled" Disabled="true">
-                <MudText>Content Disabled</MudText>
-            </MudTabPanel>
-        </MudTabs>
-    </MudPaper>    
-</div>
 
 
 @code{
     public string organisationName = "test Orga"; // nur für erste Darstellung
+    public record Event(string name, string description, int registeredUsers, int maxUsers);
+    private IEnumerable<Event> Elements;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Elements = new List<Event>
+        {
+            new Event("Grillfest", "lecker!", 5, 10),
+            new Event("Sommerfest", "heiß!", 40, 150)
+        };
+    }
 }
