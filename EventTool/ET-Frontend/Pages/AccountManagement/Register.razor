@@ -58,6 +58,16 @@
                                 </div>
 
                                 <div class="col-12">
+                                    <div class="form-floating mb-1">
+                                        <InputText @bind-Value="registerModel.RepPassword" class="form-control" type="password" id="repPassword" placeholder="Passwort" />
+                                        <label for="repPassword">Wiederholtes Passwort</label>
+                                    </div>
+                                    <div class="text-danger small ms-1">
+                                        <ValidationMessage For="@(() => registerModel.RepPassword)" />
+                                    </div>
+                                </div>
+
+                                <div class="col-12">
                                     <div class="d-grid my-3">
                                         <button type="submit" class="btn btn-primary btn-lg">Registrieren</button>
                                     </div>
@@ -108,5 +118,8 @@
         [Required(ErrorMessage = "Passwort ist erforderlich.")]
         [MinLength(6, ErrorMessage = "Passwort muss mindestens 6 Zeichen lang sein.")]
         public string Password { get; set; }
+
+        [Required(ErrorMessage = "Wiedeholtes Passwort ist erforderlich.")]
+        public string RepPassword { get; set; }
     }
 }
