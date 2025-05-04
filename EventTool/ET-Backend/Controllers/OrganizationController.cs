@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 
 // For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
@@ -40,6 +41,7 @@ namespace ET_Backend.Controllers
         /// <param name="value">Die Informationen zur Organisation.</param>
         // POST api/<OrganizationController>
         [HttpPost]
+        [Authorize(Policy = "OwnerOnly")]
         public void Post([FromBody] string value)
         {
         }
@@ -61,6 +63,7 @@ namespace ET_Backend.Controllers
         /// <param name="id">Die ID der zu löschenden Organisation.</param>
         // DELETE api/<OrganizationController>/5
         [HttpDelete("{id}")]
+        [Authorize(Policy = "OwnerOnly")]
         public void Delete(int id)
         {
         }

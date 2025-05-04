@@ -8,6 +8,7 @@ using ET_Backend.Repository.Processes;
 using ET_Backend.Services.Helper.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
+using System.Net;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -37,6 +38,20 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
 builder.Services.ConfigureOptions<JwtOptionsSetup>();
 builder.Services.ConfigureOptions<JwtBaererOptionsSetup>();
+
+// e) AdminOnly-Policy zum Organisationen anlegen und löschen
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("AdminOnly", policy =>
+        policy.RequireAssertion(context =>
+        {
+            var http = (Microsoft.AspNetCore.Http.HttpContext?)context.Resource;
+            if (http == null) return false;
+            var ip = http.Connection.RemoteIpAddress;
+            return IPAddress.IsLoopback(ip);
+        })
+    );
+});
 
 
 var app = builder.Build();
