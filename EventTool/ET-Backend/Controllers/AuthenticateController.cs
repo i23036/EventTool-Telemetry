@@ -1,43 +1,38 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using ET_Backend.DTOs;
+using ET_Backend.Services.Helper;
+using FluentResults;
+using Microsoft.AspNetCore.Mvc;
 
 // For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
 namespace ET_Backend.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api/authenticate")]
     [ApiController]
     public class AuthenticateController : ControllerBase
     {
-        // GET: api/<AuthenticateController>
-        [HttpGet]
-        public IEnumerable<string> Get()
+        private IAuthenticateService _authenticateService;
+        public AuthenticateController(IAuthenticateService authenticateService)
         {
-            return new string[] { "value1", "value2" };
+            _authenticateService = authenticateService;
         }
 
-        // GET api/<AuthenticateController>/5
-        [HttpGet("{id}")]
-        public string Get(int id)
-        {
-            return "value";
-        }
 
         // POST api/<AuthenticateController>
-        [HttpPost]
-        public void Post([FromBody] string value)
+        [HttpPost("login")]
+        public async Task<IActionResult> Login([FromBody] LoginDto value)
         {
+            Result<String> result = await _authenticateService.LoginUser(value.eMail, value.password);
+
+            if (result.IsSuccess)
+            {
+                return Ok(result.Value);
+            }
+            else
+            {
+                return BadRequest(result.Value);
+            }
         }
 
-        // PUT api/<AuthenticateController>/5
-        [HttpPut("{id}")]
-        public void Put(int id, [FromBody] string value)
-        {
-        }
-
-        // DELETE api/<AuthenticateController>/5
-        [HttpDelete("{id}")]
-        public void Delete(int id)
-        {
-        }
     }
 }

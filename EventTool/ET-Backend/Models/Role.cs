@@ -2,5 +2,8 @@
 
 public enum Role
 {
-    
+    Owner, 
+    Organizer, 
+    Member, 
+    Guest
 }
