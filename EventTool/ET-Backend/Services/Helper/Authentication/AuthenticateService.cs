@@ -8,18 +8,33 @@ using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 
 namespace ET_Backend.Services.Helper.Authentication;
-
+/// <summary>
+/// Service zur Authentifizierung von Benutzern und Generierung von JWTs.
+/// </summary>
 public class AuthenticateService : IAuthenticateService
 {
     private IAccountRepository _repository;
     private JwtOptions _jwtOptions;
 
+    /// <summary>
+    /// Erstellt eine neue Instanz des <see cref="AuthenticateService"/>.
+    /// </summary>
+    /// <param name="repository">Das Repository für Benutzerkonten.</param>
+    /// <param name="jwtOptions">Konfiguration für das JWT-Token.</param>
     public AuthenticateService(IAccountRepository repository, IOptions<JwtOptions> jwtOptions)
     {
         _repository = repository;
         _jwtOptions = jwtOptions.Value;
     }
 
+    /// <summary>
+    /// Versucht, einen Benutzer zu authentifizieren und gibt ein JWT zurück, wenn erfolgreich.
+    /// </summary>
+    /// <param name="eMail">Die E-Mail-Adresse des Benutzers.</param>
+    /// <param name="password">Das Passwort des Benutzers.</param>
+    /// <returns>
+    /// Ein <see cref="Result{T}"/> mit dem JWT als Zeichenkette bei Erfolg oder einer Fehlermeldung.
+    /// </returns>
     public async Task<Result<string>> LoginUser(string eMail, string password)
     {
         if (await _repository.AccountExists(eMail))
@@ -41,6 +56,11 @@ public class AuthenticateService : IAuthenticateService
         }
     }
 
+    /// <summary>
+    /// Generiert ein JWT-Token für ein Benutzerkonto.
+    /// </summary>
+    /// <param name="account">Das Benutzerkonto, für das das Token erstellt wird.</param>
+    /// <returns>Ein gültiges JWT als Zeichenkette.</returns>
     private string GenerateJwtToken(Account account)
     {
         Claim[] claims = new Claim[]
