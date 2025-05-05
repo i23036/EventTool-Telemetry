@@ -12,15 +12,9 @@ assignees: []
 ## 🛠️ Teilaufgaben
 - [ ] Frontend:
 - [ ] Backend:
-- [ ] Schnittstelle verknüpfen
+
 - [ ] Tests schreiben
 - [ ] Review
-
-## 📅 KW-Ziel
-<!-- z. B. KW18 -->
-
-## 📂 Epic
-<!-- z. B. Epic: Registrierung -->
 
 ## 🔗 Referenzen
 <!-- Link zur Storyplanung, PlantUML, etc. -->
