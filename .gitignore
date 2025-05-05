@@ -402,3 +402,30 @@ FodyWeavers.xsd
 
 # JetBrains Rider
 *.sln.iml
+/EventTool/docfx/_site/styles/main.js
+/EventTool/docfx/_site/styles/docfx.css
+/EventTool/docfx/_site/styles/docfx.js
+/EventTool/docfx/_site/styles/docfx.vendor.min.css
+/EventTool/docfx/_site/styles/docfx.vendor.min.css.map
+/EventTool/docfx/_site/styles/docfx.vendor.min.js
+/EventTool/docfx/_site/styles/docfx.vendor.min.js.map
+/EventTool/docfx/_site/styles/glyphicons-halflings-regular-ACNUA6UY.ttf
+/EventTool/docfx/_site/styles/glyphicons-halflings-regular-JOUF32XT.woff
+/EventTool/docfx/_site/styles/glyphicons-halflings-regular-PIHUWCJO.eot
+/EventTool/docfx/_site/styles/glyphicons-halflings-regular-QXYEM3FU.svg
+/EventTool/docfx/_site/styles/glyphicons-halflings-regular-W4DYDFZM.woff2
+/EventTool/docfx/_site/styles/main.css
+/EventTool/docfx/_site/styles/search-worker.min.js
+/EventTool/docfx/_site/styles/search-worker.min.js.map
+/EventTool/docfx/_site/favicon.ico
+/EventTool/docfx/_site/index.html
+/EventTool/docfx/_site/logo.svg
+/EventTool/docfx/_site/manifest.json
+/EventTool/docfx/_site/search-stopwords.json
+/EventTool/docfx/_site/xrefmap.yml
+/EventTool/docfx
+/.gitignore
+/.gitignore
+/EventTool/ET-Backend/ET-Backend.csproj
+/.gitignore
+/.gitignore
