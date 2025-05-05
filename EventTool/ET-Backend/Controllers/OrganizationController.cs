@@ -10,7 +10,7 @@ namespace ET_Backend.Controllers
     /// <summary>
     /// Bietet API-Endpunkte zur Verwaltung von Organisationen.
     /// </summary>
-    [Route("api/v1/organizations")]
+    [Route("api/organizations")]
     [ApiController]
     public class OrganizationController : ControllerBase
     {

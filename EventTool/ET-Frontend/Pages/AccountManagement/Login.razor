@@ -1,1 +1,82 @@
-﻿
+﻿@page "/login"
+@inject NavigationManager Navigation
+
+@using MudBlazor
+@using System.ComponentModel.DataAnnotations
+
+<MudContainer MaxWidth="MaxWidth.Small" Class="d-flex align-center justify-center" Style="height: 100vh;">
+    <MudCard Class="pa-6" Elevation="4">
+        <MudCardContent>
+
+            <div class="text-center mb-4">
+                <MudPaper Class="d-flex justify-center mb-3" Elevation="0">
+                    <img src="images/BitWorksSimpel-Gro.png" alt="BitWorks Logo" width="120" height="120" />
+                </MudPaper>
+            </div>
+
+            <MudText Typo="Typo.h5" Align="Align.Center" Class="mb-4">Melden Sie sich an</MudText>
+
+            <MudForm @ref="_form" Model="@loginModel" OnValidSubmit="toLogin">
+                <MudTextField @bind-Value="loginModel.Email"
+                              Label="E-Mail"
+                              Required="true"
+                              For="@(() => loginModel.Email)"
+                              RequiredError="E-Mail ist erforderlich."
+                              Variant="Variant.Filled"
+                              Margin="Margin.Dense"
+                              Class="mb-3" />
+
+                <MudTextField @bind-Value="loginModel.Password"
+                              Label="Passwort"
+                              InputType="InputType.Password"
+                              Required="true"
+                              For="@(() => loginModel.Password)"
+                              RequiredError="Passwort ist erforderlich."
+                              Variant="Variant.Filled"
+                              Margin="Margin.Dense"
+                              Class="mb-3" />
+
+                <MudButton Type="ButtonType.Submit"
+                           Variant="Variant.Filled"
+                           Color="Color.Primary"
+                           Class="mt-2"
+                           FullWidth>
+                    Anmelden
+                </MudButton>
+            </MudForm>
+
+            <MudText Typo="Typo.body2" Align="Align.Center" Class="mt-4">
+                Sie haben noch kein Konto?
+                <MudLink OnClick="toRegister" Class="ms-1">Registrieren</MudLink>
+            </MudText>
+
+        </MudCardContent>
+    </MudCard>
+</MudContainer>
+
+@code {
+    private MudForm _form;
+    private LoginModel loginModel = new();
+
+    private void toLogin()
+    {
+        Console.WriteLine($"Login mit: {loginModel.Email}, {loginModel.Password}");
+        // Beispielnavigation:
+        // Navigation.NavigateTo("/dashboard");
+    }
+
+    private void toRegister()
+    {
+        Navigation.NavigateTo("/register");
+    }
+
+    public class LoginModel
+    {
+        [Required(ErrorMessage = "E-Mail ist erforderlich.")]
+        [EmailAddress(ErrorMessage = "Ungültige E-Mail-Adresse.")]
+        public string Email { get; set; }
+
+        [Required(ErrorMessage = "Passwort ist erforderlich.")]
+        public string Password { get; set; }
+    }
+}

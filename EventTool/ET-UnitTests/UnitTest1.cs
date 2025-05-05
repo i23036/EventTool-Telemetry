@@ -4,7 +4,7 @@ using FluentResults;
 using Microsoft.AspNetCore.Mvc;
 using System.Threading.Tasks;
 using ET_Backend.Controllers;
-using ET_Backend.DTOs;
+using ET.Shared.DTOs;
 using ET_Backend.Services.Helper.Authentication;
 
 

@@ -1,4 +1,4 @@
-﻿using ET_Backend.DTOs;
+﻿using ET.Shared.DTOs;
 using ET_Backend.Services.Helper.Authentication;
 using FluentResults;
 using Microsoft.AspNetCore.Mvc;
@@ -42,7 +42,7 @@ namespace ET_Backend.Controllers
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginDto value)
         {
-            Result<String> result = await _authenticateService.LoginUser(value.eMail, value.password);
+            Result<String> result = await _authenticateService.LoginUser(value.EMail, value.Password);
 
             if (result.IsSuccess)
             {
