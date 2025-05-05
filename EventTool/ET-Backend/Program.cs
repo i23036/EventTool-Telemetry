@@ -1,7 +1,7 @@
 using Microsoft.Data.Sqlite;
 using System.Data;
 using Dapper;
-using ET_Backend.DTOs;
+using ET.Shared.DTOs;
 using ET_Backend.Repository.Person;
 using ET_Backend.Repository.Event;
 using ET_Backend.Repository.Organization;
