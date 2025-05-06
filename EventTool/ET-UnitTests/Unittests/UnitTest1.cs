@@ -8,7 +8,7 @@ using ET.Shared.DTOs;
 using ET_Backend.Services.Helper.Authentication;
 
 
-namespace ET_UnitTests
+namespace ET_UnitTests.Unittests
 {
     public class UnitTest1
     {
