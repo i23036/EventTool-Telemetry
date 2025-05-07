@@ -1,0 +1,29 @@
+name: Deploy ET-Backend to Azure App Service
+
+on:
+  push:
+    branches:
+      - 'release/**'        # nur wöchentliche Release-Branches
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Publish API
+        run: >
+          dotnet publish EventTool/ET-Backend/ET-Backend.csproj
+          -c Release
+          -o publish
+
+      - name: Deploy to App Service
+        uses: azure/webapps-deploy@v3
+        with:
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+          package: publish
