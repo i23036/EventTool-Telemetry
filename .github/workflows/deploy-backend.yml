@@ -2,8 +2,10 @@ name: Deploy ET-Backend to Azure App Service
 
 on:
   push:
-    branches:
-      - 'release/**'        # nur wöchentliche Release-Branches
+    branches: ['release/**']
+    paths:
+     - 'EventTool/ET-Backend/**'
+     - '.github/workflows/deploy-backend.yml'
 
 jobs:
   backend:
