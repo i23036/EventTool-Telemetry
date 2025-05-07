@@ -18,10 +18,8 @@ jobs:
 
       - name: Publish Blazor WASM
         run: >
-          dotnet publish EventTool/ET-Frontend/ET-Frontend.csproj
-          -c Release
-          -o EventTool/ET-Frontend/bin/Release/net8.0/publish
-
+          dotnet publish EventTool/ET-Frontend/ET-Frontend.csproj -c Release
+     
       - name: Deploy to Azure Static Web Apps
         uses: Azure/static-web-apps-deploy@v1
         with:
