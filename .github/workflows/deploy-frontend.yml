@@ -28,4 +28,4 @@ jobs:
           action: upload
           app_location:      EventTool/ET-Frontend
           api_location:      ""              # keine Functions
-          output_location:   EventTool/ET-Frontend/bin/Release/net8.0/publish/wwwroot
+          output_location:   EventTool/ET-Frontend/bin/Release/net8.0/wwwroot
