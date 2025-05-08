@@ -1,7 +1,9 @@
 ﻿@page "/register"
 @inject NavigationManager Navigation
+@inject ServiceClient _ServiceClient
 @using System.ComponentModel.DataAnnotations
 @using MudBlazor
+<!--@using ET.Shared.DTOs;-->
 
 <MudContainer MaxWidth="MaxWidth.Small" Class="d-flex align-center justify-center" Style="height: 100vh;">
     <MudCard Class="pa-6" Elevation="4">
@@ -22,62 +24,63 @@
 
                 <!-- Vorname -->
                 <MudTextField @bind-Value="registerModel.FirstName"
-                              Label="Vorname"
-                              For="@(() => registerModel.FirstName)"
-                              Required="true"
-                              RequiredError="Vorname ist erforderlich."
-                              Variant="Variant.Filled"
-                              Margin="Margin.Dense"
-                              Class="mb-3" />
+                Label="Vorname"
+                For="@(() => registerModel.FirstName)"
+                Required="true"
+                RequiredError="Vorname ist erforderlich."
+                Variant="Variant.Filled"
+                Margin="Margin.Dense"
+                Class="mb-3" />
 
                 <!-- Nachname -->
                 <MudTextField @bind-Value="registerModel.LastName"
-                              Label="Nachname"
-                              For="@(() => registerModel.LastName)"
-                              Required="true"
-                              RequiredError="Nachname ist erforderlich."
-                              Variant="Variant.Filled"
-                              Margin="Margin.Dense"
-                              Class="mb-3" />
+                Label="Nachname"
+                For="@(() => registerModel.LastName)"
+                Required="true"
+                RequiredError="Nachname ist erforderlich."
+                Variant="Variant.Filled"
+                Margin="Margin.Dense"
+                Class="mb-3" />
 
                 <!-- E-Mail -->
                 <MudTextField @bind-Value="registerModel.Email"
-                              Label="E-Mail"
-                              For="@(() => registerModel.Email)"
-                              Required="true"
-                              RequiredError="E-Mail ist erforderlich."
-                              Variant="Variant.Filled"
-                              Margin="Margin.Dense"
-                              Class="mb-3" />
+                Label="E-Mail"
+                For="@(() => registerModel.Email)"
+                Required="true"
+                RequiredError="E-Mail ist erforderlich."
+                Variant="Variant.Filled"
+                Margin="Margin.Dense"
+                Class="mb-3" />
 
                 <!-- Passwort -->
                 <MudTextField @bind-Value="registerModel.Password"
-                              Label="Passwort"
-                              InputType="InputType.Password"
-                              For="@(() => registerModel.Password)"
-                              Required="true"
-                              RequiredError="Passwort ist erforderlich."
-                              Variant="Variant.Filled"
-                              Margin="Margin.Dense"
-                              Class="mb-3" />
+                Label="Passwort"
+                InputType="InputType.Password"
+                For="@(() => registerModel.Password)"
+                Required="true"
+                RequiredError="Passwort ist erforderlich."
+                Variant="Variant.Filled"
+                Margin="Margin.Dense"
+                Class="mb-3" />
 
                 <!-- Passwort wiederholen -->
                 <MudTextField @bind-Value="registerModel.RepPassword"
-                              Label="Passwort wiederholen"
-                              InputType="InputType.Password"
-                              For="@(() => registerModel.RepPassword)"
-                              Required="true"
-                              RequiredError="Wiederholtes Passwort ist erforderlich."
-                              Variant="Variant.Filled"
-                              Margin="Margin.Dense"
-                              Class="mb-3" />
+                Label="Passwort wiederholen"
+                InputType="InputType.Password"
+                For="@(() => registerModel.RepPassword)"
+                Required="true"
+                RequiredError="Wiederholtes Passwort ist erforderlich."
+                Variant="Variant.Filled"
+                Margin="Margin.Dense"
+                Class="mb-3" />
 
                 <!-- Registrierungsbutton -->
                 <MudButton Type="ButtonType.Submit"
-                           Variant="Variant.Filled"
-                           Color="Color.Primary"
-                           Class="mt-2"
-                           FullWidth>
+                Variant="Variant.Filled"
+                OnClick="toRegister"
+                Color="Color.Primary"
+                Class="mt-2"
+                FullWidth>
                     Registrieren
                 </MudButton>
 
@@ -118,8 +121,15 @@
     /// </summary>
     private void toRegister()
     {
-        Console.WriteLine($"Registrierung: {registerModel.FirstName} {registerModel.LastName}, {registerModel.Email}");
-        // Beispiel: Navigation.NavigateTo("/dashboard");
+        RegisterDto userRegDTO = new RegisterDto();
+        userRegDTO.Firstname = registerModel.FirstName;
+        userRegDTO.Lastname = registerModel.LastName;
+        userRegDTO.EMail = registerModel.Email;
+        userRegDTO.Password = registerModel.Password;
+
+        _ServiceClient.RegisterAsync(userRegDTO);
+        // Console.WriteLine($"Registrierung mit DTO: {userRegDTO}");
+        // z. B. Navigation.NavigateTo("/dashboard");
     }
 
     /// <summary>

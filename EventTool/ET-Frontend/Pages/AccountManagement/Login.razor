@@ -1,8 +1,9 @@
 ﻿@page "/login"
 @inject NavigationManager Navigation
-
+@inject ServiceClient _ServiceClient
 @using MudBlazor
 @using System.ComponentModel.DataAnnotations
+<!--@using ET.Shared.DTOs;-->
 
 <MudContainer MaxWidth="MaxWidth.Small" Class="d-flex align-center justify-center" Style="height: 100vh;">
     <MudCard Class="pa-6" Elevation="4">
@@ -22,31 +23,32 @@
             <MudForm @ref="_form" Model="@loginModel" OnValidSubmit="toLogin">
                 <!-- E-Mail-Eingabe -->
                 <MudTextField @bind-Value="loginModel.Email"
-                              Label="E-Mail"
-                              Required="true"
-                              For="@(() => loginModel.Email)"
-                              RequiredError="E-Mail ist erforderlich."
-                              Variant="Variant.Filled"
-                              Margin="Margin.Dense"
-                              Class="mb-3" />
+                Label="E-Mail"
+                Required="true"
+                For="@(() => loginModel.Email)"
+                RequiredError="E-Mail ist erforderlich."
+                Variant="Variant.Filled"
+                Margin="Margin.Dense"
+                Class="mb-3" />
 
                 <!-- Passwort-Eingabe -->
                 <MudTextField @bind-Value="loginModel.Password"
-                              Label="Passwort"
-                              InputType="InputType.Password"
-                              Required="true"
-                              For="@(() => loginModel.Password)"
-                              RequiredError="Passwort ist erforderlich."
-                              Variant="Variant.Filled"
-                              Margin="Margin.Dense"
-                              Class="mb-3" />
+                Label="Passwort"
+                InputType="InputType.Password"
+                Required="true"
+                For="@(() => loginModel.Password)"
+                RequiredError="Passwort ist erforderlich."
+                Variant="Variant.Filled"
+                Margin="Margin.Dense"
+                Class="mb-3" />
 
                 <!-- Anmeldebutton -->
                 <MudButton Type="ButtonType.Submit"
-                           Variant="Variant.Filled"
-                           Color="Color.Primary"
-                           Class="mt-2"
-                           FullWidth>
+                Variant="Variant.Filled"
+                OnClick="toLogin"
+                Color="Color.Primary"
+                Class="mt-2"
+                FullWidth>
                     Anmelden
                 </MudButton>
             </MudForm>
@@ -77,7 +79,15 @@
     /// </summary>
     private void toLogin()
     {
-        Console.WriteLine($"Login mit: {loginModel.Email}, {loginModel.Password}");
+        LoginDto userLogDTO = new LoginDto();
+        userLogDTO.EMail = loginModel.Email;
+        userLogDTO.Password = loginModel.Password;
+
+        _ServiceClient.LoginAsync(userLogDTO);
+
+
+        // Console.WriteLine($"Login mit: {loginModel.Email}, {loginModel.Password}");
+
         // Beispielnavigation:
         // Navigation.NavigateTo("/dashboard");
     }
