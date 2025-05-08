@@ -39,6 +39,7 @@
 
                 <MudButton Type="ButtonType.Submit"
                 Variant="Variant.Filled"
+                OnClick="toLogin"
                 Color="Color.Primary"
                 Class="mt-2"
                 FullWidth>
@@ -66,6 +67,7 @@
         userLogDTO.Password = loginModel.Password;
 
         _ServiceClient.LoginAsync(userLogDTO);
+
 
         // Console.WriteLine($"Login mit: {loginModel.Email}, {loginModel.Password}");
 
