@@ -46,7 +46,50 @@
 
                 </MudTabPanel>
                 <MudTabPanel Text="Organisation">
-                    <MudText>Organisation</MudText>
+                    <MudText Typo="Typo.h4" Class="mb-3">Mitglieder</MudText>
+
+
+
+                    <MudDataGrid T="Mitglied" Items="@Mitglieder" Dense="true">
+                        <Columns>
+                            <PropertyColumn Property="x => x.LastName" Title="Nachname" />
+                            <PropertyColumn Property="x => x.Email" Title="E-Mail" />
+
+
+
+                            <TemplateColumn Title="Rolle">
+                                <CellTemplate Context="ctx">
+                                    <MudSelect T="Role"
+                                               Dense="true"
+                                               @bind-Value="ctx.Item.Role">
+                                        <MudSelectItem Value="Role.Owner">Owner</MudSelectItem>
+                                        <MudSelectItem Value="Role.Mitglied">Mitglied</MudSelectItem>
+                                        <MudSelectItem Value="Role.Organisator">Organisator</MudSelectItem>
+                                    </MudSelect>
+
+                                </CellTemplate>
+                            </TemplateColumn>
+
+
+                            <TemplateColumn Title="">
+                                <CellTemplate Context="ctx">
+                                    <MudButton Variant="Variant.Filled"
+                                               Color="Color.Error"
+                                               Size="Size.Small"
+                                               OnClick="@(() => EntferneMitglied(ctx.Item))">
+                                        Entfernen
+                                    </MudButton>
+                                </CellTemplate>
+                            </TemplateColumn>
+                        </Columns>
+                    </MudDataGrid>
+
+                </MudTabPanel>
+
+                <MudTabPanel Text="Vorlagen">
+                    <MudText>Events</MudText>
+                    <MudText>Prozesse</MudText>
+                    <MudText>Prozessschritte</MudText>
                 </MudTabPanel>
                 <MudTabPanel Text="Vorlagen">
                     <MudText>Events</MudText>
@@ -63,7 +106,29 @@
 @code{
     public string organisationName = "test Orga"; // nur für erste Darstellung
     public record Event(string name, string description, int registeredUsers, int maxUsers);
+    public enum Role { Owner, Mitglied, Organisator }
+
+    
+    public class Mitglied
+    {
+        public Role Role { get; set; }
+        public string LastName { get; set; }
+        public string Email { get; set; }
+
+        public Mitglied() { }
+
+        public Mitglied(string lastName, string email, Role role)
+        {
+            LastName = lastName;
+            Email = email;
+            Role = role;
+        }
+    }
+
+
     private IEnumerable<Event> Elements;
+    private List<Mitglied> Mitglieder;
+
 
     protected override async Task OnInitializedAsync()
     {
@@ -72,5 +137,28 @@
             new Event("Grillfest", "lecker!", 5, 10),
             new Event("Sommerfest", "heiß!", 40, 150)
         };
+
+        Mitglieder = new List<Mitglied>
+        {
+        new Mitglied("Reich", "Reich@example.com", Role.Owner),
+        new Mitglied("Jonas", "Jonas@example.com", Role.Organisator),
+        new Mitglied("Müller", "mueller@example.com", Role.Mitglied)
+        };
+    
+    }
+
+    private Task UpdateRolle(Mitglied mitglied, Role neueRolle)
+    {
+        mitglied.Role = neueRolle;
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+
+
+
+    private void EntferneMitglied(Mitglied mitglied)
+    {
+        Mitglieder.Remove(mitglied);
     }
 }
