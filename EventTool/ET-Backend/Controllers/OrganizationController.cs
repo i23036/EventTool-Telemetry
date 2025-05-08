@@ -2,6 +2,9 @@
 using Microsoft.AspNetCore.Mvc;
 using ET_Backend.Models;
 using ET_Backend.Repository.Organization;
+using ET_Backend.Services.Organization;
+using ET.Shared.DTOs;
+using FluentResults;
 
 // For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
@@ -10,14 +13,17 @@ namespace ET_Backend.Controllers
     /// <summary>
     /// Bietet API-Endpunkte zur Verwaltung von Organisationen.
     /// </summary>
-    [Route("api/organizations")]
+    [Route("api/organization")]
     [ApiController]
     public class OrganizationController : ControllerBase
     {
-        private readonly IOrganizationRepository _repo;
+        private IOrganizationService _organizationService;
 
-        public OrganizationController(IOrganizationRepository repo)
-            => _repo = repo;
+        public OrganizationController(IOrganizationService organizationService)
+        {
+            _organizationService = organizationService;
+        }
+
 
         /// <summary>
         /// Ruft alle Organisationen oder Beispielwerte ab.
@@ -25,21 +31,20 @@ namespace ET_Backend.Controllers
         /// <returns>Eine Liste von Beispiel-Organisationswerten.</returns>
         // GET api/v1/organizations
         [HttpGet]
-        public async Task<IEnumerable<Organization>> GetAll()
-            => await _repo.GetAllAsync();
-
-        /// <summary>
-        /// Ruft eine bestimmte Organisation anhand der ID ab.
-        /// </summary>
-        /// <param name="id">Die ID der Organisation.</param>
-        /// <returns>Der Organisationswert als Zeichenkette.</returns>
-        // GET api/v1/organizations/{domain}
-        [HttpGet("{domain}")]
-        public async Task<IActionResult> Get(string domain)
+        public async Task<ActionResult<List<Organization>>> GetAllOrganizations()
         {
-            var org = await _repo.GetOrganization(domain);
-            return org is null ? NotFound() : Ok(org);
+            Result<List<Organization>> result = await _organizationService.GetAllOrganizations();
+
+            if (result.IsSuccess)
+            {
+                return Ok(result.Value);
+            }
+            else
+            {
+                return BadRequest(result.Value);
+            }
         }
+
 
         /// <summary>
         /// Erstellt eine neue Organisation.
@@ -48,38 +53,40 @@ namespace ET_Backend.Controllers
         // POST api/v1/organizations
         [HttpPost]
         [Authorize(Policy = "AdminOnly")]
-        public async Task<IActionResult> Post([FromBody] Organization org)
+        public async Task<IActionResult> CreateOrganization([FromBody] OrganizationDto value)
         {
-            if (await _repo.OrganizationExists(org.Domain))
-                return Conflict($"Domain '{org.Domain}' already exists.");
+            Result result = await _organizationService.CreateOrganization(value.Name, value.Domain, value.Description);
 
-            var created = await _repo.CreateOrganization(org.Name, org.Description, org.Domain);
-            return created ? CreatedAtAction(nameof(Get), new { domain = org.Domain }, org)
-                : BadRequest("Could not create organization");
+            if (result.IsSuccess)
+            {
+                return Ok();
+            }
+            else
+            {
+                return BadRequest();
+            }
         }
 
-        /// <summary>
-        /// Aktualisiert eine vorhandene Organisation anhand der ID.
-        /// </summary>
-        /// <param name="id">Die ID der zu aktualisierenden Organisation.</param>
-        /// <param name="value">Die neuen Daten der Organisation.</param>
-        // PUT api/<OrganizationController>/5
-        [HttpPut("{id}")]
-        public void Put(int id, [FromBody] string value)
-        {
-        }
 
         /// <summary>
         /// Löscht eine bestimmte Organisation anhand der ID.
         /// </summary>
-        /// <param name="id">Die ID der zu löschenden Organisation.</param>
+        /// <param name="domain">Die ID der zu löschenden Organisation.</param>
         // DELETE api/v1/organizations/{domain}
         [HttpDelete("{domain}")]
         [Authorize(Policy = "AdminOnly")]
-        public async Task<IActionResult> Delete(string domain)
+        public async Task<IActionResult> DeleteOrganization(string domain)
         {
-            var deleted = await _repo.DeleteOrganization(domain);
-            return deleted ? NoContent() : NotFound();
+            Result result = await _organizationService.DeleteOrganization(domain);
+
+            if (result.IsSuccess)
+            {
+                return Ok();
+            }
+            else
+            {
+                return BadRequest();
+            }
         }
     }
 }

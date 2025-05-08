@@ -63,7 +63,7 @@ namespace ET_Backend.Controllers
         /// andernfalls eine Problem-Antwort mit Fehlerbeschreibung.
         /// </returns>
         /// <response code="200">Benutzer erfolgreich registriert und eingeloggt.</response>
-        /// <response code="500">Registrierung fehlgeschlagen – z. B. Benutzer existiert bereits.</response>
+        /// <response code="400">Registrierung fehlgeschlagen – z. B. Benutzer existiert bereits.</response>
         // POST api/<AuthenticateController>
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] RegisterDto value)
@@ -81,7 +81,7 @@ namespace ET_Backend.Controllers
             }
             else
             {
-                return Problem(result.Value);
+                return BadRequest(result.Value);
             }
         }
 
