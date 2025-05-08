@@ -23,9 +23,9 @@
             <MudForm Model="@registerModel" @ref="_form" OnValidSubmit="toRegister">
 
                 <!-- Vorname -->
-                <MudTextField @bind-Value="registerModel.FirstName"
+                <MudTextField @bind-Value="registerModel.firstName"
                 Label="Vorname"
-                For="@(() => registerModel.FirstName)"
+                For="@(() => registerModel.firstName)"
                 Required="true"
                 RequiredError="Vorname ist erforderlich."
                 Variant="Variant.Filled"
@@ -33,9 +33,9 @@
                 Class="mb-3" />
 
                 <!-- Nachname -->
-                <MudTextField @bind-Value="registerModel.LastName"
+                <MudTextField @bind-Value="registerModel.lastName"
                 Label="Nachname"
-                For="@(() => registerModel.LastName)"
+                For="@(() => registerModel.lastName)"
                 Required="true"
                 RequiredError="Nachname ist erforderlich."
                 Variant="Variant.Filled"
@@ -43,9 +43,9 @@
                 Class="mb-3" />
 
                 <!-- E-Mail -->
-                <MudTextField @bind-Value="registerModel.Email"
+                <MudTextField @bind-Value="registerModel.eMail"
                 Label="E-Mail"
-                For="@(() => registerModel.Email)"
+                For="@(() => registerModel.eMail)"
                 Required="true"
                 RequiredError="E-Mail ist erforderlich."
                 Variant="Variant.Filled"
@@ -53,10 +53,10 @@
                 Class="mb-3" />
 
                 <!-- Passwort -->
-                <MudTextField @bind-Value="registerModel.Password"
+                <MudTextField @bind-Value="registerModel.password"
                 Label="Passwort"
                 InputType="InputType.Password"
-                For="@(() => registerModel.Password)"
+                For="@(() => registerModel.password)"
                 Required="true"
                 RequiredError="Passwort ist erforderlich."
                 Variant="Variant.Filled"
@@ -64,10 +64,10 @@
                 Class="mb-3" />
 
                 <!-- Passwort wiederholen -->
-                <MudTextField @bind-Value="registerModel.RepPassword"
+                <MudTextField @bind-Value="registerModel.repPassword"
                 Label="Passwort wiederholen"
                 InputType="InputType.Password"
-                For="@(() => registerModel.RepPassword)"
+                For="@(() => registerModel.repPassword)"
                 Required="true"
                 RequiredError="Wiederholtes Passwort ist erforderlich."
                 Variant="Variant.Filled"
@@ -77,7 +77,7 @@
                 <!-- Registrierungsbutton -->
                 <MudButton Type="ButtonType.Submit"
                 Variant="Variant.Filled"
-                OnClick="toRegister"
+                OnClick="ToRegister"
                 Color="Color.Primary"
                 Class="mt-2"
                 FullWidth>
@@ -89,7 +89,7 @@
             <!-- Link zur Login-Seite -->
             <MudText Typo="Typo.body2" Align="Align.Center" Class="mt-4">
                 Haben Sie bereits ein Konto?
-                <MudLink OnClick="toLogin" Class="ms-1">Anmelden</MudLink>
+                <MudLink OnClick="ToLogin" Class="ms-1">Anmelden</MudLink>
             </MudText>
 
         </MudCardContent>
@@ -110,7 +110,7 @@
     /// <summary>
     /// Navigiert zur Login-Seite.
     /// </summary>
-    private void toLogin()
+    private void ToLogin()
     {
         Navigation.NavigateTo("/login");
     }
@@ -119,13 +119,13 @@
     /// Wird aufgerufen, wenn das Formular erfolgreich validiert wurde.
     /// Hier könnte die Registrierung ausgelöst werden.
     /// </summary>
-    private void toRegister()
+    private void ToRegister()
     {
         RegisterDto userRegDTO = new RegisterDto();
-        userRegDTO.Firstname = registerModel.FirstName;
-        userRegDTO.Lastname = registerModel.LastName;
-        userRegDTO.EMail = registerModel.Email;
-        userRegDTO.Password = registerModel.Password;
+        userRegDTO.Firstname = registerModel.firstName;
+        userRegDTO.Lastname = registerModel.lastName;
+        userRegDTO.EMail = registerModel.eMail;
+        userRegDTO.Password = registerModel.password;
 
         _ServiceClient.RegisterAsync(userRegDTO);
         // Console.WriteLine($"Registrierung mit DTO: {userRegDTO}");
@@ -141,33 +141,33 @@
         /// Vorname des Benutzers.
         /// </summary>
         [Required(ErrorMessage = "Vorname ist erforderlich.")]
-        public string FirstName { get; set; }
+        public string firstName { get; set; }
 
         /// <summary>
         /// Nachname des Benutzers.
         /// </summary>
         [Required(ErrorMessage = "Nachname ist erforderlich.")]
-        public string LastName { get; set; }
+        public string lastName { get; set; }
 
         /// <summary>
         /// E-Mail-Adresse des Benutzers.
         /// </summary>
         [Required(ErrorMessage = "E-Mail ist erforderlich.")]
         [EmailAddress(ErrorMessage = "Ungültige E-Mail-Adresse.")]
-        public string Email { get; set; }
+        public string eMail { get; set; }
 
         /// <summary>
         /// Passwort des Benutzers. Mindestlänge 6 Zeichen.
         /// </summary>
         [Required(ErrorMessage = "Passwort ist erforderlich.")]
         [MinLength(6, ErrorMessage = "Passwort muss mindestens 6 Zeichen lang sein.")]
-        public string Password { get; set; }
+        public string password { get; set; }
 
         /// <summary>
         /// Wiederholung des Passworts. Muss mit dem Passwort übereinstimmen.
         /// </summary>
         [Required(ErrorMessage = "Wiederholtes Passwort ist erforderlich.")]
-        [Compare(nameof(Password), ErrorMessage = "Passwörter stimmen nicht überein.")]
-        public string RepPassword { get; set; }
+        [Compare(nameof(password), ErrorMessage = "Passwörter stimmen nicht überein.")]
+        public string repPassword { get; set; }
     }
 }
