@@ -7,16 +7,20 @@
     <MudCard Class="pa-6" Elevation="4">
         <MudCardContent>
 
+            <!-- Logo-Bereich -->
             <div class="text-center mb-4">
                 <MudPaper Class="d-flex justify-center mb-3" Elevation="0">
                     <img src="images/BitWorksSimpel-Gro.png" alt="BitWorks Logo" width="120" height="120" />
                 </MudPaper>
             </div>
 
+            <!-- Überschrift -->
             <MudText Typo="Typo.h5" Align="Align.Center" Class="mb-4">Registrieren Sie sich</MudText>
 
+            <!-- Registrierungsformular -->
             <MudForm Model="@registerModel" @ref="_form" OnValidSubmit="toRegister">
 
+                <!-- Vorname -->
                 <MudTextField @bind-Value="registerModel.FirstName"
                               Label="Vorname"
                               For="@(() => registerModel.FirstName)"
@@ -26,6 +30,7 @@
                               Margin="Margin.Dense"
                               Class="mb-3" />
 
+                <!-- Nachname -->
                 <MudTextField @bind-Value="registerModel.LastName"
                               Label="Nachname"
                               For="@(() => registerModel.LastName)"
@@ -35,6 +40,7 @@
                               Margin="Margin.Dense"
                               Class="mb-3" />
 
+                <!-- E-Mail -->
                 <MudTextField @bind-Value="registerModel.Email"
                               Label="E-Mail"
                               For="@(() => registerModel.Email)"
@@ -44,6 +50,7 @@
                               Margin="Margin.Dense"
                               Class="mb-3" />
 
+                <!-- Passwort -->
                 <MudTextField @bind-Value="registerModel.Password"
                               Label="Passwort"
                               InputType="InputType.Password"
@@ -54,6 +61,7 @@
                               Margin="Margin.Dense"
                               Class="mb-3" />
 
+                <!-- Passwort wiederholen -->
                 <MudTextField @bind-Value="registerModel.RepPassword"
                               Label="Passwort wiederholen"
                               InputType="InputType.Password"
@@ -64,6 +72,7 @@
                               Margin="Margin.Dense"
                               Class="mb-3" />
 
+                <!-- Registrierungsbutton -->
                 <MudButton Type="ButtonType.Submit"
                            Variant="Variant.Filled"
                            Color="Color.Primary"
@@ -74,6 +83,7 @@
 
             </MudForm>
 
+            <!-- Link zur Login-Seite -->
             <MudText Typo="Typo.body2" Align="Align.Center" Class="mt-4">
                 Haben Sie bereits ein Konto?
                 <MudLink OnClick="toLogin" Class="ms-1">Anmelden</MudLink>
@@ -84,36 +94,68 @@
 </MudContainer>
 
 @code {
+    /// <summary>
+    /// Referenz auf das Formular für Validierung und Steuerung.
+    /// </summary>
     private MudForm _form;
+
+    /// <summary>
+    /// Modell mit den Benutzereingaben zur Registrierung.
+    /// </summary>
     private RegisterModel registerModel = new();
 
+    /// <summary>
+    /// Navigiert zur Login-Seite.
+    /// </summary>
     private void toLogin()
     {
         Navigation.NavigateTo("/login");
     }
 
+    /// <summary>
+    /// Wird aufgerufen, wenn das Formular erfolgreich validiert wurde.
+    /// Hier könnte die Registrierung ausgelöst werden.
+    /// </summary>
     private void toRegister()
     {
         Console.WriteLine($"Registrierung: {registerModel.FirstName} {registerModel.LastName}, {registerModel.Email}");
-        // z. B. Navigation.NavigateTo("/dashboard");
+        // Beispiel: Navigation.NavigateTo("/dashboard");
     }
 
+    /// <summary>
+    /// Datenmodell zur Benutzerregistrierung mit Validierungen.
+    /// </summary>
     public class RegisterModel
     {
+        /// <summary>
+        /// Vorname des Benutzers.
+        /// </summary>
         [Required(ErrorMessage = "Vorname ist erforderlich.")]
         public string FirstName { get; set; }
 
+        /// <summary>
+        /// Nachname des Benutzers.
+        /// </summary>
         [Required(ErrorMessage = "Nachname ist erforderlich.")]
         public string LastName { get; set; }
 
+        /// <summary>
+        /// E-Mail-Adresse des Benutzers.
+        /// </summary>
         [Required(ErrorMessage = "E-Mail ist erforderlich.")]
         [EmailAddress(ErrorMessage = "Ungültige E-Mail-Adresse.")]
         public string Email { get; set; }
 
+        /// <summary>
+        /// Passwort des Benutzers. Mindestlänge 6 Zeichen.
+        /// </summary>
         [Required(ErrorMessage = "Passwort ist erforderlich.")]
         [MinLength(6, ErrorMessage = "Passwort muss mindestens 6 Zeichen lang sein.")]
         public string Password { get; set; }
 
+        /// <summary>
+        /// Wiederholung des Passworts. Muss mit dem Passwort übereinstimmen.
+        /// </summary>
         [Required(ErrorMessage = "Wiederholtes Passwort ist erforderlich.")]
         [Compare(nameof(Password), ErrorMessage = "Passwörter stimmen nicht überein.")]
         public string RepPassword { get; set; }
