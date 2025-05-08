@@ -3,15 +3,15 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.12.35527.113
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ET-Frontend", "ET-Frontend\ET-Frontend.csproj", "{C4C3B46B-CB08-4816-B835-F157C2C2C321}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ET-Frontend", "ET-Frontend\ET-Frontend.csproj", "{C4C3B46B-CB08-4816-B835-F157C2C2C321}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ET-Backend", "ET-Backend\ET-Backend.csproj", "{747B84EE-656D-49D9-805A-4C2251F88148}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ET-Backend", "ET-Backend\ET-Backend.csproj", "{747B84EE-656D-49D9-805A-4C2251F88148}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ET-UnitTests", "ET-UnitTests\ET-UnitTests.csproj", "{46832F5E-6568-450D-A372-840BF7F9FEAF}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ET-UnitTests", "ET-UnitTests\ET-UnitTests.csproj", "{46832F5E-6568-450D-A372-840BF7F9FEAF}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Shared", "Shared", "{4F52FD11-658E-A102-6CD3-7D7C16FFA15B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ET.Shared.DTOs", "Shared\ET.Shared.DTOs\ET.Shared.DTOs.csproj", "{68EE4D8E-6B65-49F6-A25F-775B441669B7}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ET.Shared.DTOs", "Shared\ET.Shared.DTOs\ET.Shared.DTOs.csproj", "{68EE4D8E-6B65-49F6-A25F-775B441669B7}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
