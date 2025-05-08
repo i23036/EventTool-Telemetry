@@ -31,13 +31,17 @@ namespace ET_Backend.Controllers
         /// <returns>Eine Liste von Beispiel-Organisationswerten.</returns>
         // GET api/v1/organizations
         [HttpGet]
-        public async Task<ActionResult<List<Organization>>> GetAllOrganizations()
+        public async Task<ActionResult<List<OrganizationDto>>> GetAllOrganizations()
         {
             Result<List<Organization>> result = await _organizationService.GetAllOrganizations();
 
             if (result.IsSuccess)
             {
-                return Ok(result.Value);
+                List<OrganizationDto> dtoList = result.Value
+                    .Select(org => new OrganizationDto(org.Name, org.Domain, org.Description))
+                    .ToList();
+
+                return Ok(dtoList);
             }
             else
             {
