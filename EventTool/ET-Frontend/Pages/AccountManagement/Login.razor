@@ -8,15 +8,19 @@
     <MudCard Class="pa-6" Elevation="4">
         <MudCardContent>
 
+            <!-- Logo-Bereich -->
             <div class="text-center mb-4">
                 <MudPaper Class="d-flex justify-center mb-3" Elevation="0">
                     <img src="images/BitWorksSimpel-Gro.png" alt="BitWorks Logo" width="120" height="120" />
                 </MudPaper>
             </div>
 
+            <!-- Überschrift -->
             <MudText Typo="Typo.h5" Align="Align.Center" Class="mb-4">Melden Sie sich an</MudText>
 
+            <!-- Anmeldeformular -->
             <MudForm @ref="_form" Model="@loginModel" OnValidSubmit="toLogin">
+                <!-- E-Mail-Eingabe -->
                 <MudTextField @bind-Value="loginModel.Email"
                               Label="E-Mail"
                               Required="true"
@@ -26,6 +30,7 @@
                               Margin="Margin.Dense"
                               Class="mb-3" />
 
+                <!-- Passwort-Eingabe -->
                 <MudTextField @bind-Value="loginModel.Password"
                               Label="Passwort"
                               InputType="InputType.Password"
@@ -36,6 +41,7 @@
                               Margin="Margin.Dense"
                               Class="mb-3" />
 
+                <!-- Anmeldebutton -->
                 <MudButton Type="ButtonType.Submit"
                            Variant="Variant.Filled"
                            Color="Color.Primary"
@@ -45,6 +51,7 @@
                 </MudButton>
             </MudForm>
 
+            <!-- Link zur Registrierung -->
             <MudText Typo="Typo.body2" Align="Align.Center" Class="mt-4">
                 Sie haben noch kein Konto?
                 <MudLink OnClick="toRegister" Class="ms-1">Registrieren</MudLink>
@@ -55,9 +62,19 @@
 </MudContainer>
 
 @code {
+    /// <summary>
+    /// Referenz auf das Formular zur Validierung.
+    /// </summary>
     private MudForm _form;
+
+    /// <summary>
+    /// Instanz des Login-Modells, welches E-Mail und Passwort enthält.
+    /// </summary>
     private LoginModel loginModel = new();
 
+    /// <summary>
+    /// Wird bei erfolgreicher Validierung des Formulars aufgerufen.
+    /// </summary>
     private void toLogin()
     {
         Console.WriteLine($"Login mit: {loginModel.Email}, {loginModel.Password}");
@@ -65,17 +82,29 @@
         // Navigation.NavigateTo("/dashboard");
     }
 
+    /// <summary>
+    /// Navigiert zur Registrierungsseite.
+    /// </summary>
     private void toRegister()
     {
         Navigation.NavigateTo("/register");
     }
 
+    /// <summary>
+    /// Datenmodell für den Login-Vorgang.
+    /// </summary>
     public class LoginModel
     {
+        /// <summary>
+        /// Die E-Mail-Adresse des Benutzers.
+        /// </summary>
         [Required(ErrorMessage = "E-Mail ist erforderlich.")]
         [EmailAddress(ErrorMessage = "Ungültige E-Mail-Adresse.")]
         public string Email { get; set; }
 
+        /// <summary>
+        /// Das Passwort des Benutzers.
+        /// </summary>
         [Required(ErrorMessage = "Passwort ist erforderlich.")]
         public string Password { get; set; }
     }
