@@ -16,6 +16,7 @@ using ET_Backend.Services.Processes;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Net;
+using ET_Backend.Repository;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -47,6 +48,9 @@ var cs = builder.Configuration.GetConnectionString("Default")
          ?? "Data Source=bitworks.db";
 builder.Services.AddTransient<IDbConnection>(_ =>
     new SqliteConnection(cs));
+
+builder.Services.AddTransient<DatabaseInitializer>();
+
 
 // e) Services
 builder.Services.AddScoped<IAdministrationService, AdministrationService>();
@@ -101,33 +105,22 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+
 // b) Schema-Initialisierung mit Dapper
-using (var conn = app.Services.GetRequiredService<IDbConnection>())
+using (var scope = app.Services.CreateScope())
 {
-    conn.Execute(@"
-
-      CREATE TABLE IF NOT EXISTS Organizations (
-        Name        TEXT    NOT NULL,
-        Description TEXT,
-        Domain      TEXT    PRIMARY KEY
-      );
-
-      CREATE TABLE IF NOT EXISTS Accounts (
-        Email        TEXT    PRIMARY KEY,
-        Organization INTEGER NOT NULL,
-        Role         INTEGER NOT NULL,
-        PasswordHash TEXT    NOT NULL
-      );
-    ");
+    var initializer = scope.ServiceProvider.GetRequiredService<DatabaseInitializer>();
+    initializer.DropAllTables();
+    initializer.Initialize();
+    initializer.SeedDemoData();
 }
+
 
 
 app.UseAuthentication();
 
 app.UseAuthorization();
 
-
 app.MapControllers();
-
 
 app.Run();
