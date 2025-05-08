@@ -10,7 +10,16 @@
     <PackageReference Include="Blazored.SessionStorage" Version="2.4.0" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="8.0.11" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="8.0.11" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.Extensions.ApiDescription.Client" Version="7.0.2">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
     <PackageReference Include="MudBlazor" Version="8.6.0" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
+    <PackageReference Include="NSwag.ApiDescription.Client" Version="13.18.2">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
     <ProjectReference Include="..\Shared\ET.Shared.DTOs\ET.Shared.DTOs.csproj" />
   </ItemGroup>
 
@@ -26,6 +35,12 @@
 
 <ItemGroup>
   <None Include="staticwebapp.config.json" CopyToOutputDirectory="Always" />
+</ItemGroup>
+
+<ItemGroup>
+  <OpenApiReference Include="OpenAPIs\swagger.json" CodeGenerator="NSwagCSharp" Options="/GenerateClientInterfaces:true" ClassName="ServiceClient">
+    <SourceUri>https://localhost:7085/swagger/v1/swagger.json</SourceUri>
+  </OpenApiReference>
 </ItemGroup>
 
 </Project>
