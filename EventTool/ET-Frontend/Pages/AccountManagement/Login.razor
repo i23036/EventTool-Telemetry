@@ -3,6 +3,7 @@
 
 @using MudBlazor
 @using System.ComponentModel.DataAnnotations
+@using ET.Shared.DTOs;
 
 <MudContainer MaxWidth="MaxWidth.Small" Class="d-flex align-center justify-center" Style="height: 100vh;">
     <MudCard Class="pa-6" Elevation="4">
@@ -60,7 +61,12 @@
 
     private void toLogin()
     {
+        var compareLogiInDTO = new LoginDto(EMail: , Password: );
+
         Console.WriteLine($"Login mit: {loginModel.Email}, {loginModel.Password}");
+        
+        
+        
         // Beispielnavigation:
         // Navigation.NavigateTo("/dashboard");
     }

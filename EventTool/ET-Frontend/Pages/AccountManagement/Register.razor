@@ -95,11 +95,11 @@
 
     private void toRegister()
     {
-        Console.WriteLine($"Registrierung: {registerModel.FirstName} {registerModel.LastName}, {registerModel.Email}");
-
         var userRegDTO = new RegisterDto(Firstname: registerModel.FirstName, registerModel.LastName, registerModel.Email, registerModel.Password);
 
+        Console.WriteLine($"Registrierung mit DTO: {userRegDTO}");
 
+        
 
         // z. B. Navigation.NavigateTo("/dashboard");
     }
