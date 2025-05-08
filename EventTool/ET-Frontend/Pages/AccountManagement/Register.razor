@@ -2,6 +2,7 @@
 @inject NavigationManager Navigation
 @using System.ComponentModel.DataAnnotations
 @using MudBlazor
+@using ET.Shared.DTOs;
 
 <MudContainer MaxWidth="MaxWidth.Small" Class="d-flex align-center justify-center" Style="height: 100vh;">
     <MudCard Class="pa-6" Elevation="4">
@@ -95,6 +96,11 @@
     private void toRegister()
     {
         Console.WriteLine($"Registrierung: {registerModel.FirstName} {registerModel.LastName}, {registerModel.Email}");
+
+        var userRegDTO = new RegisterDto(Firstname: registerModel.FirstName, registerModel.LastName, registerModel.Email, registerModel.Password);
+
+
+
         // z. B. Navigation.NavigateTo("/dashboard");
     }
 
