@@ -2,7 +2,7 @@ using Microsoft.Playwright;
 using System.Threading.Tasks;
 using Xunit;
 
-namespace ET_UnitTests
+namespace ET_UnitTests.Systemtests
 {
     public class RegistrationPageTests
     {
@@ -23,9 +23,8 @@ namespace ET_UnitTests
 
             await page.ClickAsync("button:has-text('Registrieren')");
 
-            // Optional: Warten auf Erfolg oder URL-Wechsel
-            // await page.WaitForURLAsync("**/login");
         }
+
 
     }
 }

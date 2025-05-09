@@ -1,6 +1,7 @@
 ﻿using System.Data;
 using Dapper;
 using ET_Backend.Models;
+using FluentResults;
 
 namespace ET_Backend.Repository.Organization;
 
@@ -13,65 +14,109 @@ public class OrganizationRepository : IOrganizationRepository
         _db = db;
     }
 
-    public async Task<bool> OrganizationExists(string domain)
+    public async Task<Result<bool>> OrganizationExists(string domain)
     {
-        const string sql = @"
+        try
+        {
+            const string sql = @"
               SELECT COUNT(1)
                 FROM Organizations
                WHERE Domain = @Domain;
             ";
-        var count = await _db.ExecuteScalarAsync<int>(sql, new { Domain = domain });
-        return count > 0;
+            var count = await _db.ExecuteScalarAsync<int>(sql, new { Domain = domain });
+            return Result.Ok<bool>(count > 0);
+        }
+        catch (Exception e)
+        {
+            return Result.Fail<bool>("DBError");
+        }
     }
 
-    public async Task<bool> CreateOrganization(string name, string description, string domain)
+    public async Task<Result> CreateOrganization(string name, string description, string domain)
     {
-        const string sql = @"
+        try
+        {
+            const string sql = @"
               INSERT INTO Organizations (Name, Description, Domain)
               VALUES (@Name, @Description, @Domain);
             ";
-        var affected = await _db.ExecuteAsync(sql, new { Name = name, Description = description, Domain = domain });
-        return affected == 1;
+            await _db.ExecuteAsync(sql, new { Name = name, Description = description, Domain = domain });
+            return Result.Ok();
+        }
+        catch (Exception e)
+        {
+            return Result.Fail("DBError");
+        }
+
     }
 
-    public Task<bool> AddAccount(int organization, Account account)
+
+    public async Task<Result> AddAccount(int organization, Account account)
     {
-        // hier würdet ihr z.B. ein UPDATE auf Accounts durchführen:
-        // UPDATE Accounts SET Organization = @Organization WHERE Email = @EMail
-        throw new NotImplementedException();
+        try
+        {
+            throw new NotImplementedException();
+            return Result.Ok();
+        }
+        catch (Exception e)
+        {
+            return Result.Fail("DBError");
+        }
     }
 
-    public async Task<Models.Organization> GetOrganization(string domain)
+    public async Task<Result<Models.Organization>> GetOrganization(string domain)
     {
-        const string sql = @"
+        try
+        {
+            const string sql = @"
               SELECT Name,
                      Description,
                      Domain
                 FROM Organizations
                WHERE Domain = @Domain;
             ";
-        return await _db.QuerySingleOrDefaultAsync<Models.Organization>(sql, new { Domain = domain });
+            return Result.Ok(await _db.QuerySingleOrDefaultAsync<Models.Organization>(sql, new { Domain = domain }));
+        }
+        catch (Exception e)
+        {
+            return Result.Fail("DBError");
+        }
     }
 
-    public async Task<IEnumerable<Models.Organization>> GetAllAsync()
+    public async Task<Result<List<Models.Organization>>> GetAllOrganizations()
     {
-        const string sql = @"
+        try
+        {
+            const string sql = @"
               SELECT Name,
                      Description,
                      Domain
                 FROM Organizations;
             ";
-        return await _db.QueryAsync<Models.Organization>(sql);
+            var result = await _db.QueryAsync<Models.Organization>(sql);
+            return Result.Ok(result.ToList());
+        }
+        catch (Exception e)
+        {
+            return Result.Fail("DBError");
+        }
     }
 
-    public async Task<bool> DeleteOrganization(string domain)
+    public async Task<Result> DeleteOrganization(string domain)
     {
-        const string sql = @"
+        try
+        {
+            const string sql = @"
               DELETE
                 FROM Organizations
                WHERE Domain = @Domain;
             ";
-        var affected = await _db.ExecuteAsync(sql, new { Domain = domain });
-        return affected > 0;
+            await _db.ExecuteAsync(sql, new { Domain = domain });
+            return Result.Ok();
+        }
+        catch (Exception e)
+        {
+            return Result.Fail("DBError");
+        }
     }
 }

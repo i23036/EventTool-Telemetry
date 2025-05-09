@@ -1,0 +1,31 @@
+name: Deploy ET-Frontend to Azure Static Web Apps
+
+on:
+  push:
+    branches:
+      - 'release/**'        # nur wöchentliche Release-Branches
+
+jobs:
+  swa:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Publish Blazor WASM
+        run: |
+          dotnet publish EventTool/ET-Frontend/ET-Frontend.csproj -c Release \
+          -o EventTool/ET-Frontend/publish
+     
+      - name: Deploy to Azure Static Web Apps
+        uses: Azure/static-web-apps-deploy@v1
+        with:
+          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          action: upload
+          skip_app_build:        true
+          app_location:          EventTool/ET-Frontend/publish/wwwroot

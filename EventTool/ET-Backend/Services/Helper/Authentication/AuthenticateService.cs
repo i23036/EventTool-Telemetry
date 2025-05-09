@@ -43,12 +43,14 @@ public class AuthenticateService : IAuthenticateService
     /// </returns>
     public async Task<Result<string>> LoginUser(string eMail, string password)
     {
-        if (await _accountRepository.AccountExists(eMail))
+        Result<bool> accountExists = await _accountRepository.AccountExists(eMail);
+        if (accountExists.IsSuccess && accountExists.Value)
         {
-            string passwordHash = await _accountRepository.GetPasswordHash(eMail);
-            if (passwordHash == password)
+            Result<String> passwordHash = await _accountRepository.GetPasswordHash(eMail);
+            if (passwordHash.IsSuccess && passwordHash.Value == password)
             {
-                string token = GenerateJwtToken(await _accountRepository.GetAccount(eMail));
+                Result<Account> account = await _accountRepository.GetAccount(eMail);
+                string token = GenerateJwtToken(account.Value);
                 return Result.Ok(token);
             }
             else
@@ -80,24 +82,26 @@ public class AuthenticateService : IAuthenticateService
     /// </returns>
     public async Task<Result<String>> RegisterUser(String firstname, String lastname, String eMail, String password)
     {
-        if (! await _accountRepository.AccountExists(eMail))
+        Result<bool> accountExists = await _accountRepository.AccountExists(eMail);
+        if (accountExists.IsSuccess && !accountExists.Value)
         {
             String eMailDomain = eMail.Substring(eMail.LastIndexOf('@') + 1);
 
-            if (await _organizationRepository.OrganizationExists(eMailDomain))
+            Result<bool> organizationExists = await _organizationRepository.OrganizationExists(eMailDomain);
+            if (organizationExists.IsSuccess && organizationExists.Value)
             {
-                List<bool> success = new List<bool>();
-                success.Add(await _userRepository.CreateUser(firstname, lastname, password));
-                Models.Organization organization = await _organizationRepository.GetOrganization(eMailDomain);
-                success.Add(await _accountRepository.CreateAccount(eMail, organization, Role.Member));
 
-                if (success.Contains(false))
+                Result user = await _userRepository.CreateUser(firstname, lastname, password);
+                Result<Models.Organization> organization = await _organizationRepository.GetOrganization(eMailDomain);
+                await _accountRepository.CreateAccount(eMail, organization.Value, Role.Member);
+
+                if (user.IsSuccess && organization.IsSuccess)
                 {
-                    return Result.Fail("Database failure");
+                    return Result.Ok("User added successfully");
                 }
                 else
                 {
-                    return Result.Ok("User added successfully");
+                    return Result.Fail("Database failure");
                 }
             }
             else
