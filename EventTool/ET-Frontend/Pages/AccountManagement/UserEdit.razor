@@ -1,6 +1,9 @@
 ﻿@page "/User/Edit"
 
 @using System.ComponentModel.DataAnnotations
+@using ET.Shared.DTOs;
+@inject ServiceClient _ServiceClient
+@using MudBlazor
 
 
 <PageTitle>Home</PageTitle>
@@ -23,62 +26,62 @@
     </div>
     <!-- das drüber würde ich sagen machen wir später zum Layout -->
 
-    <div class="flex-md-column w-100 h-100">
+    <div class="flex-md-column w-100 h-100 p-4">
         <MudText Typo="Typo.h4">Kontodaten bearbeiten</MudText>
         <MudText Typo="Typo.body1">Hier sind Sie in der Lage, Ihre Kontoeigenschaften zu bearbeiten.</MudText>
         <MudForm Model="@registerModel" @ref="_editForm" OnValidSubmit="toRegister">
 
-            <MudTextField @bind-Value="registerModel.FirstName"
+            <MudTextField @bind-Value="registerModel.firstName"
                           Label="Vorname"
-                          For="@(() => registerModel.FirstName)"
+                          For="@(() => registerModel.firstName)"
                           Required="true"
                           RequiredError="Vorname ist erforderlich."
                           Variant="Variant.Filled"
                           Margin="Margin.Dense"
                           Class="mb-3" />
 
-            <MudTextField @bind-Value="registerModel.LastName"
+            <MudTextField @bind-Value="registerModel.lastName"
                           Label="Nachname"
-                          For="@(() => registerModel.LastName)"
+                          For="@(() => registerModel.lastName)"
                           Required="true"
                           RequiredError="Nachname ist erforderlich."
                           Variant="Variant.Filled"
                           Margin="Margin.Dense"
                           Class="mb-3" />
 
-            <MudTextField @bind-Value="registerModel.Password"
+            <MudTextField @bind-Value="registerModel.password"
                           Label="Passwort"
                           InputType="InputType.Password"
-                          For="@(() => registerModel.Password)"
+                          For="@(() => registerModel.password)"
                           Required="true"
                           RequiredError="Passwort ist erforderlich."
                           Variant="Variant.Filled"
                           Margin="Margin.Dense"
                           Class="mb-3" />
 
-            <MudTextField @bind-Value="registerModel.RepPassword"
+            <MudTextField @bind-Value="registerModel.Reppassword"
                           Label="Passwort wiederholen"
                           InputType="InputType.Password"
-                          For="@(() => registerModel.RepPassword)"
+                          For="@(() => registerModel.Reppassword)"
                           Required="true"
                           RequiredError="Wiederholtes Passwort ist erforderlich."
                           Variant="Variant.Filled"
                           Margin="Margin.Dense"
                           Class="mb-3" />
-            <div class="flex-md-row w-100">
+            <div class="d-flex w-100 align-content-center justify-content-between">
                 <MudButton Type="ButtonType.Submit"
+                           OnClick="ResetChanges"
                            Variant="Variant.Filled"
                            Color="Color.Primary"
-                           Class="mt-2"
-                           FullWidth>
+                           Class="mt-2">
                     Änderungen zurücksetzten
                 </MudButton>
 
                 <MudButton Type="ButtonType.Submit"
+                           OnClick="ChangeUserInfo"
                            Variant="Variant.Filled"
                            Color="Color.Primary"
-                           Class="mt-2"
-                           FullWidth>
+                           Class="mt-2">
                     Änderungen Speichern
                 </MudButton>
             </div>
@@ -94,26 +97,37 @@
     private MudForm _editForm;
     private RegisterModel registerModel = new();
 
-    private void toRegister()
+    private void ChangeUserInfo()
     {
-        Console.WriteLine($"Registrierung: {registerModel.FirstName} {registerModel.LastName}");
+        UserDto userDTO = new UserDto();
+        userDTO.FirstName = registerModel.firstName;
+        userDTO.LastName = registerModel.lastName;
+        userDTO.Password = registerModel.password;
+
+        _ServiceClient.RegisterAsync(userDTO);
+        // Console.WriteLine($"Registrierung mit DTO: {userRegDTO}");
         // z. B. Navigation.NavigateTo("/dashboard");
+    }
+
+    private void ResetChanges()
+    {
+        
     }
 
     public class RegisterModel
     {
         [Required(ErrorMessage = "Vorname ist erforderlich.")]
-        public string FirstName { get; set; }
+        public string firstName { get; set; }
 
         [Required(ErrorMessage = "Nachname ist erforderlich.")]
-        public string LastName { get; set; }
+        public string lastName { get; set; }
 
         [Required(ErrorMessage = "Passwort ist erforderlich.")]
         [MinLength(6, ErrorMessage = "Passwort muss mindestens 6 Zeichen lang sein.")]
-        public string Password { get; set; }
+        public string password { get; set; }
 
         [Required(ErrorMessage = "Wiederholtes Passwort ist erforderlich.")]
-        [Compare(nameof(Password), ErrorMessage = "Passwörter stimmen nicht überein.")]
-        public string RepPassword { get; set; }
+        [Compare(nameof(password), ErrorMessage = "Passwörter stimmen nicht überein.")]
+        public string Reppassword { get; set; }
     }
 }
