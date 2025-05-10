@@ -78,9 +78,9 @@
                 </MudButton>
 
                 <div class="d-flex w-100 align-content-center justify-content-center">
-                    <MudPopover OverflowBehavior="OverflowBehavior.FlipNever" Open="@popupState" AnchorOrigin="Origin.CenterCenter" TransformOrigin="Origin.CenterCenter" Class="pa-4">
+                    <MudPopover OverflowBehavior="OverflowBehavior.FlipNever" Open="@popupState" AnchorOrigin="Origin.CenterCenter" TransformOrigin="Origin.CenterCenter" Class="pa-4 flex-column">
                         <MudText Typo="Typo.body2" Class="px-4 py-1">@popupText</MudText>
-                        <MudButton OnClick="@(() => popupState = false)">Schließen</MudButton>
+                        <MudButton Class="float-end" OnClick="@(() => popupState = false)">OK</MudButton>
                     </MudPopover>
                 </div>
 
@@ -114,15 +114,33 @@
 
         // Console.WriteLine($"Registrierung mit DTO: {userRegDTO}");
         // z. B. Navigation.NavigateTo("/dashboard");
-        popupText = "Änderungen gespeichert!";
-        popupState = true;
+
+        if (true)                                       //TODO hier Variable die sagt ob erfolgreich geladen oder nicht
+        {
+            popupText = "Änderungen gespeichert";
+            popupState = true;
+        }
+        else
+        {
+            popupText = "Fehler beim Speichern der Daten";
+            popupState = true;
+        }
+
     }
 
     private void ResetChanges()
     {
         //TODO funktion um Daten aus der Datenbank zu Laden, Idee ist das Bearbeitbare Felder die gespeicherten Infos haben und bei BHutton diese wiederhergestellt werden
-        popupText = "Änderungen verworfen";
-        popupState = true;
+        if (true)                                       //TODO hier Variable die sagt ob erfolgreich geladen oder nicht
+        {
+            popupText = "Änderungen verworfen";
+            popupState = true;
+        }
+        else
+        {
+            popupText = "Fehler beim Laden der Daten";
+            popupState = true;
+        }
     }
 
     public class RegisterModel
