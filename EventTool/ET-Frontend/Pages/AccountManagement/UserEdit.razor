@@ -77,6 +77,13 @@
                     Änderungen zurücksetzten
                 </MudButton>
 
+                <div class="d-flex w-100 align-content-center justify-content-center">
+                    <MudPopover OverflowBehavior="OverflowBehavior.FlipNever" Open="@popupState" AnchorOrigin="Origin.CenterCenter" TransformOrigin="Origin.CenterCenter" Class="pa-4">
+                        <MudText Typo="Typo.body2" Class="px-4 py-1">@popupText</MudText>
+                        <MudButton OnClick="@(() => popupState = false)">Schließen</MudButton>
+                    </MudPopover>
+                </div>
+
                 <MudButton Type="ButtonType.Submit"
                            OnClick="ChangeUserInfo"
                            Variant="Variant.Filled"
@@ -92,6 +99,8 @@
 </div>
 
 @code {
+    private Boolean popupState = false;
+    private string popupText = "Wir tun mal so, als wäre das ein Easter Egg. Glückwunsch!"; //Fallback falls es wer schafft, das Popup ohne Button auszulösen? XD
     public string organisationName = "test Orga"; // nur für erste Darstellung
 
     private MudForm _editForm;
@@ -99,19 +108,21 @@
 
     private void ChangeUserInfo()
     {
-        UserDto userDTO = new UserDto();
-        userDTO.FirstName = registerModel.firstName;
-        userDTO.LastName = registerModel.lastName;
-        userDTO.Password = registerModel.password;
+        UserDto userDTO = new UserDto(registerModel.firstName, registerModel.lastName, registerModel.password);
 
-        _ServiceClient.RegisterAsync(userDTO);
+        //TODO _ServiceClient.UserAsync(userDTO);
+
         // Console.WriteLine($"Registrierung mit DTO: {userRegDTO}");
         // z. B. Navigation.NavigateTo("/dashboard");
+        popupText = "Änderungen gespeichert!";
+        popupState = true;
     }
 
     private void ResetChanges()
     {
-        
+        //TODO funktion um Daten aus der Datenbank zu Laden, Idee ist das Bearbeitbare Felder die gespeicherten Infos haben und bei BHutton diese wiederhergestellt werden
+        popupText = "Änderungen verworfen";
+        popupState = true;
     }
 
     public class RegisterModel
