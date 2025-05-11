@@ -10,9 +10,11 @@
     <div class="d-flex align-items-center justify-content-between p-4 bg-light">
         <!-- Logo und Organisationsname -->
         <div class="d-flex align-content-center">
-            <MudPaper Class="d-flex align-items-center mr-3" Elevation="0">
-                <img src="images/BitWorksSimpel-Gro.png" alt="BitWorks Logo" width="55" height="55" />
-            </MudPaper>
+            <NavLink href="/" class="text-decoration-none">
+                <MudPaper Class="d-flex align-items-center mr-3" Elevation="0" Style="cursor: pointer;">
+                    <img src="images/BitWorksSimpel-Gro.png" alt="BitWorks Logo" width="55" height="55" />
+                </MudPaper>
+            </NavLink>
             <div class="d-flex display-6 align-items-center">
                 <p class="m-0">@organisationName</p>
             </div>
@@ -37,22 +39,30 @@
                 </NavLink>
 
                 <!-- Tab für Events -->
-                <MudTabPanel Text="Events">
-                    <MudText Typo="Typo.h4" Class="mb-3">Events</MudText>
-
-                    <!-- Datenraster für Event-Daten -->
-                    <MudDataGrid Items="@Elements.Take(4)">
+                <MudTabPanel Text="Organisation">
+                    <MudDataGrid T="MyEvent" Items="@Elements.Take(4)">
                         <Columns>
-                            <PropertyColumn Property="x => x.name" Title="Name" />
-                            <PropertyColumn Property="x => x.description" Title="Beschreibung" />
-                            <PropertyColumn Property="x => x.registeredUsers" Title="Teilnehmer" />
-                            <PropertyColumn Property="x => x.maxUsers" Title="Maximale Teilnehmer" />
+                            <PropertyColumn Property="x => x.Name" Title="Name" />
+                            <PropertyColumn Property="x => x.Description" Title="Beschreibung" />
+                            <PropertyColumn Property="x => x.RegisteredUsers" Title="Teilnehmer" />
+                            <PropertyColumn Property="x => x.MaxUsers" Title="Maximale Teilnehmer" />
 
-                            <!-- Spalte mit Anmelde-Button -->
                             <TemplateColumn CellClass="d-flex justify-end">
-                                <CellTemplate>
-                                    <MudStack Row>
-                                        <MudButton Size="@Size.Small" Variant="@Variant.Filled" Color="@Color.Primary">Anmelden</MudButton>
+                                <CellTemplate Context="eventItem">
+                                    <MudStack Row Spacing="1">
+                                        @if (eventItem.Item.CanBeEdited)
+                                        {
+                                            <MudButton Size="Size.Small"
+                                                       Variant="Variant.Outlined"
+                                                       Color="Color.Secondary"
+                                                       OnClick="@(() => Navigation.NavigateTo($"/EventBearbeiten/{eventItem.Item.ID}"))">
+                                                Bearbeiten
+                                            </MudButton>
+                                        }
+
+                                        <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary">
+                                            Anmelden
+                                        </MudButton>
                                     </MudStack>
                                 </CellTemplate>
                             </TemplateColumn>
@@ -122,7 +132,26 @@
     /// <summary>
     /// Repräsentiert ein Event mit Namen, Beschreibung und Teilnehmerzahlen.
     /// </summary>
-    public record Event(string name, string description, int registeredUsers, int maxUsers);
+    public class MyEvent
+    {
+        public int ID { get; set; }
+        public string Name { get; set; }
+        public string Description { get; set; }
+        public int RegisteredUsers { get; set; }
+        public int MaxUsers { get; set; }
+        public bool CanBeEdited { get; set; }
+
+        public MyEvent(int id, string name, string description, int registeredUsers, int maxUsers, bool canBeEdited)
+        {
+            ID = id;
+            Name = name;
+            Description = description;
+            RegisteredUsers = registeredUsers;
+            MaxUsers = maxUsers;
+            CanBeEdited = canBeEdited;
+        }
+    }
+
     public enum Role { Owner, Mitglied, Organisator }
 
     
@@ -143,7 +172,7 @@
     }
 
 
-    private IEnumerable<Event> Elements;
+    private IEnumerable<MyEvent> Elements;
     private List<Mitglied> Mitglieder;
 
 
@@ -152,10 +181,10 @@
     /// </summary>
     protected override async Task OnInitializedAsync()
     {
-        Elements = new List<Event>
+        Elements = new List<MyEvent>
         {
-            new Event("Grillfest", "lecker!", 5, 10),
-            new Event("Sommerfest", "heiß!", 40, 150)
+            new MyEvent(1, "Grillfest", "lecker!", 5, 10, false),
+            new MyEvent(2, "Sommerfest", "heiß!", 40, 150, true)
         };
 
         Mitglieder = new List<Mitglied>
@@ -174,7 +203,7 @@
         return Task.CompletedTask;
     }
 
-
+    
 
 
     private void EntferneMitglied(Mitglied mitglied)
