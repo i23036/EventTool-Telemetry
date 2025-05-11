@@ -1,0 +1,90 @@
+﻿@page "/EventBearbeiten/{ID:int}"
+@inject NavigationManager Navigation
+
+<PageTitle>Event bearbeiten</PageTitle>
+
+<!-- Kopfzeile -->
+<div class="d-flex align-items-center justify-content-between p-4 bg-light">
+    <div class="d-flex align-content-center">
+        <NavLink href="/" class="text-decoration-none">
+            <MudPaper Class="d-flex align-items-center mr-3" Elevation="0" Style="cursor: pointer;">
+                <img src="images/BitWorksSimpel-Gro.png" alt="BitWorks Logo" width="55" height="55" />
+            </MudPaper>
+        </NavLink>
+        <div class="d-flex display-6 align-items-center">
+            <p class="m-0">@organisationName</p>
+        </div>
+    </div>
+
+    <div class="d-flex align-content-center justify-content-end w-25">
+        <NavLink href="/User">
+            <MudAvatar Color="Color.Primary" Size="Size.Medium">U</MudAvatar>
+        </NavLink>
+    </div>
+</div>
+
+<!-- Tabs -->
+<MudPaper Class="mt-4">
+    <MudTabs Rounded="true" Border="true" @bind-ActivePanelIndex="_tabIndex" PanelClass="pa-4">
+        <MudTabPanel Text="Details">
+            <MudTextField Label="Eventname" @bind-Value="_event.Name" />
+            <MudTextField Label="Beschreibung" @bind-Value="_event.Description" Lines="3" />
+            <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Speichern">Speichern</MudButton>
+        </MudTabPanel>
+
+        <MudTabPanel Text="Teilnehmer">
+        </MudTabPanel>
+
+        <MudTabPanel Text="Externe Einladen">
+        </MudTabPanel>
+    </MudTabs>
+</MudPaper>
+
+@code {
+    [Parameter]
+    public int ID { get; set; }
+
+    private int _tabIndex = 0;
+    private string organisationName = "test Orga";
+
+    public class MyEvent
+    {
+        public int ID { get; set; }
+        public string Name { get; set; }
+        public string Description { get; set; }
+        public int RegisteredUsers { get; set; }
+        public int MaxUsers { get; set; }
+        public bool CanBeEdited { get; set; }
+
+        public MyEvent() { }
+
+        public MyEvent(int id, string name, string description, int registeredUsers, int maxUsers, bool canBeEdited)
+        {
+            ID = id;
+            Name = name;
+            Description = description;
+            RegisteredUsers = registeredUsers;
+            MaxUsers = maxUsers;
+            CanBeEdited = canBeEdited;
+        }
+    }
+
+    private MyEvent _event = new MyEvent(0, "", "", 0, 0, false);
+
+    protected override void OnInitialized()
+    {
+        var alleEvents = new List<MyEvent>
+        {
+            new MyEvent(1, "Grillfest", "lecker!", 5, 10, false),
+            new MyEvent(2, "Sommerfest", "heiß!", 40, 150, true)
+        };
+
+        _event = alleEvents.FirstOrDefault(e => e.ID == ID) ?? new MyEvent(0, "Nicht gefunden", "", 0, 0, false);
+    }
+
+    private void Speichern()
+    {
+        Console.WriteLine($"Gespeichert: {_event.Name} – {_event.Description}");
+        Navigation.NavigateTo("/");
+    }
+}
