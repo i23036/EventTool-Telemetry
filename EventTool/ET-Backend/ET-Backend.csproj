@@ -19,10 +19,4 @@
     <ProjectReference Include="..\Shared\ET.Shared.DTOs\ET.Shared.DTOs.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <None Update="bitworks.db">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-  </ItemGroup>
-
 </Project>

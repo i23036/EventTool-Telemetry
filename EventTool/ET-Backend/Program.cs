@@ -20,20 +20,26 @@ using ET_Backend.Repository;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// 1) Service-Registrierung (vor Build)
+// Service-Registrierung (vor Build)
 
-// a) Controllers + Swagger
+// Controller + Swagger
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// b) DTOs
-// Müssen nicht registriert werden
+// CORS konfigurieren
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowBlazorClient", policy =>
+    {
+        policy
+            .WithOrigins("https://localhost:7210")  // Frontend-URL
+            .AllowAnyHeader()
+            .AllowAnyMethod();
+    });
+});
 
-// c) Models
-// Müssen nicht angemeldet werden
-
-// d) Repository
+// Repository
 builder.Services.AddScoped<IEventRepository, EventRepository>();
 builder.Services.AddScoped<IOrganizationRepository, OrganizationRepository>();
 builder.Services.AddScoped<IAccountRepository, AccountRepository>();
@@ -52,7 +58,7 @@ builder.Services.AddTransient<IDbConnection>(_ =>
 builder.Services.AddTransient<DatabaseInitializer>();
 
 
-// e) Services
+// Services
 builder.Services.AddScoped<IAdministrationService, AdministrationService>();
 builder.Services.AddScoped<ILogService, LogService>();
 builder.Services.AddScoped<IEventService, EventService>();
@@ -68,7 +74,7 @@ builder.Services.AddScoped<IProcessService, ProcessService>();
 builder.Services.AddScoped<IProcessStepService, ProcessStepService>();
 
 
-// d) JWT-Authentifizierung
+// JWT-Authentifizierung
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer();
@@ -76,7 +82,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 builder.Services.ConfigureOptions<JwtOptionsSetup>();
 builder.Services.ConfigureOptions<JwtBaererOptionsSetup>();
 
-// e) AdminOnly-Policy zum Organisationen anlegen und löschen
+// AdminOnly-Policy zum Organisationen anlegen und löschen
 builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy("AdminOnly", policy =>
@@ -96,7 +102,7 @@ var app = builder.Build();
 
 // 2) Pipeline- & Schema-Setup (nach Build, vor Run)
 
-// a) Swagger-Middleware
+// Swagger-Middleware
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -105,8 +111,10 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+// CORS
+app.UseCors("AllowBlazorClient");
 
-// b) Schema-Initialisierung mit Dapper
+// Schema-Initialisierung mit Dapper
 using (var scope = app.Services.CreateScope())
 {
     var initializer = scope.ServiceProvider.GetRequiredService<DatabaseInitializer>();
