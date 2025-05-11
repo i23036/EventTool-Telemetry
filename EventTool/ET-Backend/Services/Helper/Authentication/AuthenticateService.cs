@@ -46,10 +46,10 @@ public class AuthenticateService : IAuthenticateService
         Result<bool> accountExists = await _accountRepository.AccountExists(eMail);
         if (accountExists.IsSuccess && accountExists.Value)
         {
-            Result<String> passwordHash = await _accountRepository.GetPasswordHash(eMail);
-            if (passwordHash.IsSuccess && passwordHash.Value == password)
+            Result<Account> account = await _accountRepository.GetAccount(eMail);
+            string passwordHash = account.Value.User.Password;
+            if (account.IsSuccess && passwordHash == password)
             {
-                Result<Account> account = await _accountRepository.GetAccount(eMail);
                 string token = GenerateJwtToken(account.Value);
                 return Result.Ok(token);
             }
@@ -91,9 +91,9 @@ public class AuthenticateService : IAuthenticateService
             if (organizationExists.IsSuccess && organizationExists.Value)
             {
 
-                Result user = await _userRepository.CreateUser(firstname, lastname, password);
+                Result<User> user = await _userRepository.CreateUser(firstname, lastname, password);
                 Result<Models.Organization> organization = await _organizationRepository.GetOrganization(eMailDomain);
-                await _accountRepository.CreateAccount(eMail, organization.Value, Role.Member);
+                await _accountRepository.CreateAccount(eMail, organization.Value, Role.Member, user.Value);
 
                 if (user.IsSuccess && organization.IsSuccess)
                 {

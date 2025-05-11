@@ -4,18 +4,12 @@
 /// </summary>
 public class User
 {
-    /// <summary>
-    /// Der Nachname des Benutzers.
-    /// </summary>
-    public String Name { set; get; }
+    public int Id { get; set; }
+    public String Lastname { set; get; }
 
-    /// <summary>
-    /// Der Vorname des Benutzers.
-    /// </summary>
-    public String FirstName { set; get; }
+    public String Firstname { set; get; }
 
-    /// <summary>
-    /// Das Passwort des Benutzers.
-    /// </summary>
     public String Password { set; get; }
+
+    public List<Account> Accounts { get; set; } = new List<Account>();
 }

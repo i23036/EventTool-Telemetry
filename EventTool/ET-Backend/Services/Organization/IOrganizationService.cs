@@ -7,7 +7,7 @@ public interface IOrganizationService
 {
     public Task<Result<bool>> OrganizationExists(String domain);
 
-    public Task<Result> CreateOrganization(String name, String domain, String description);
+    public Task<Result<Models.Organization>> CreateOrganization(String name, String domain, String description);
 
     public Task<Result> DeleteOrganization(String  domain);
 
