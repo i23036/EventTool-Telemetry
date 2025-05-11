@@ -40,6 +40,13 @@
                 <MudTabPanel Text="Events">
                     <MudText Typo="Typo.h4" Class="mb-3">Events</MudText>
 
+                    <MudStack Row Justify="Justify.FlexEnd" Class="mb-3">
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="GeheZuEventErstellen">
+                            Event erstellen
+                        </MudButton>
+                    </MudStack>
+
+
                     <!-- Datenraster für Event-Daten -->
                     <MudDataGrid Items="@Elements.Take(4)">
                         <Columns>
@@ -174,8 +181,10 @@
         return Task.CompletedTask;
     }
 
-
-
+    private void GeheZuEventErstellen()
+    {
+        Navigation.NavigateTo("/EventErstellen");
+    }
 
     private void EntferneMitglied(Mitglied mitglied)
     {
