@@ -121,6 +121,8 @@
                         </Columns>
                     </MudDataGrid>
 
+                    <MudButton Class="float-end" OnClick="ChangeOrgaData" Variant="Variant.Filled" Color="Color.Primary">Organisationsdaten ändern</MudButton>
+
                 </MudTabPanel>
 
                 <!-- Tab für Vorlagen -->
@@ -164,6 +166,11 @@
     }
 
     public enum Role { Owner, Mitglied, Organisator }
+
+    public void ChangeOrgaData()
+    {
+        Navigation.NavigateTo("/Organisationsdaten bearbeiten");
+    }
 
     
     public class Mitglied
