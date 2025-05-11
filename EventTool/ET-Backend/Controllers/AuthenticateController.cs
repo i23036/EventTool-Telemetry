@@ -69,8 +69,8 @@ namespace ET_Backend.Controllers
         public async Task<IActionResult> Register([FromBody] RegisterDto value)
         {
             Result<String> result = await _authenticateService.RegisterUser(
-                value.Firstname, 
-                value.Lastname, 
+                value.FirstName, 
+                value.LastName, 
                 value.EMail, 
                 value.Password
                 );

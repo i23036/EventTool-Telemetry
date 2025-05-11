@@ -1,9 +1,12 @@
 ﻿@page "/login"
-@inject NavigationManager Navigation
-@inject ServiceClient _ServiceClient
+
+@using ET.Shared.DTOs
 @using MudBlazor
+@using System.Net.Http.Json
 @using System.ComponentModel.DataAnnotations
-<!--@using ET.Shared.DTOs;-->
+
+@inject NavigationManager Nav
+@inject HttpClient Http
 
 <MudContainer MaxWidth="MaxWidth.Small" Class="d-flex align-center justify-center" Style="height: 100vh;">
     <MudCard Class="pa-6" Elevation="4">
@@ -20,23 +23,23 @@
             <MudText Typo="Typo.h5" Align="Align.Center" Class="mb-4">Melden Sie sich an</MudText>
 
             <!-- Anmeldeformular -->
-            <MudForm @ref="_form" Model="@loginModel" OnValidSubmit="toLogin">
+            <MudForm @ref="_form" Model="@formModel" OnValidSubmit="HandleLogin">
                 <!-- E-Mail-Eingabe -->
-                <MudTextField @bind-Value="loginModel.Email"
+                <MudTextField @bind-Value="formModel.Email"
                 Label="E-Mail"
                 Required="true"
-                For="@(() => loginModel.Email)"
+                For="@(() => formModel.Email)"
                 RequiredError="E-Mail ist erforderlich."
                 Variant="Variant.Filled"
                 Margin="Margin.Dense"
                 Class="mb-3" />
 
                 <!-- Passwort-Eingabe -->
-                <MudTextField @bind-Value="loginModel.Password"
+                <MudTextField @bind-Value="formModel.Password"
                 Label="Passwort"
                 InputType="InputType.Password"
                 Required="true"
-                For="@(() => loginModel.Password)"
+                For="@(() => formModel.Password)"
                 RequiredError="Passwort ist erforderlich."
                 Variant="Variant.Filled"
                 Margin="Margin.Dense"
@@ -44,19 +47,26 @@
 
                 <!-- Anmeldebutton -->
                 <MudButton Type="ButtonType.Submit"
-                Variant="Variant.Filled"
-                OnClick="toLogin"
-                Color="Color.Primary"
-                Class="mt-2"
-                FullWidth>
-                    Anmelden
+                           Variant="Variant.Filled"
+                           Color="Color.Primary"
+                           Class="mt-2"
+                           FullWidth>
+	                Anmelden
                 </MudButton>
+				
+                @if (!string.IsNullOrWhiteSpace(_error))
+                {
+	                <MudText Typo="Typo.body2" Class="mt-2 text-danger" Align="Align.Center">
+		                @_error
+	                </MudText>
+                }
+
             </MudForm>
 
             <!-- Link zur Registrierung -->
             <MudText Typo="Typo.body2" Align="Align.Center" Class="mt-4">
                 Sie haben noch kein Konto?
-                <MudLink OnClick="toRegister" Class="ms-1">Registrieren</MudLink>
+                <MudLink OnClick="@(() => Nav.NavigateTo("/register"))" Class="ms-1">Registrieren</MudLink>
             </MudText>
 
         </MudCardContent>
@@ -70,52 +80,56 @@
     private MudForm _form;
 
     /// <summary>
-    /// Instanz des Login-Modells, welches E-Mail und Passwort enthält.
+    /// Fehlermeldung der API-Antwort
     /// </summary>
-    private LoginModel loginModel = new();
+    private string? _error;
+
+    /// <summary>
+    /// Formular-Model nur fürs UI/Validierung (parameterlos).
+    /// </summary>
+    private LoginModel formModel = new();
 
     /// <summary>
     /// Wird bei erfolgreicher Validierung des Formulars aufgerufen.
     /// </summary>
-    private void toLogin()
+    private async Task HandleLogin()
     {
-        LoginDto userLogDTO = new LoginDto();
-        userLogDTO.EMail = loginModel.Email;
-        userLogDTO.Password = loginModel.Password;
+	    await _form.Validate();
+	    if (!_form.IsValid) return;
 
-        _ServiceClient.LoginAsync(userLogDTO);
+	    var dto = new LoginDto(formModel.Email, formModel.Password);
 
+	    try
+	    {
+		    var resp = await Http.PostAsJsonAsync("api/authenticate/login", dto);
 
-        // Console.WriteLine($"Login mit: {loginModel.Email}, {loginModel.Password}");
-
-        // Beispielnavigation:
-        // Navigation.NavigateTo("/dashboard");
+		    if (resp.IsSuccessStatusCode)
+			    Nav.NavigateTo("/");                // weiter zur Start-Seite
+		    else
+			    _error = await resp.Content.ReadAsStringAsync();
+	    }
+	    catch (Exception ex)
+	    {
+		    _error = ex.Message;
+	    }
     }
 
     /// <summary>
-    /// Navigiert zur Registrierungsseite.
-    /// </summary>
-    private void toRegister()
-    {
-        Navigation.NavigateTo("/register");
-    }
-
-    /// <summary>
-    /// Datenmodell für den Login-Vorgang.
+    /// UI-Modell für den Login-Vorgang mit Validierungen.
     /// </summary>
     public class LoginModel
     {
-        /// <summary>
-        /// Die E-Mail-Adresse des Benutzers.
-        /// </summary>
-        [Required(ErrorMessage = "E-Mail ist erforderlich.")]
-        [EmailAddress(ErrorMessage = "Ungültige E-Mail-Adresse.")]
-        public string Email { get; set; }
+	    /// <summary>
+	    /// Die E-Mail-Adresse des Benutzers.
+	    /// </summary>
+	    [Required(ErrorMessage = "E-Mail ist erforderlich.")]
+	    [EmailAddress(ErrorMessage = "Ungültige E-Mail-Adresse.")]
+	    public string Email { get; set; } = "";
 
-        /// <summary>
-        /// Das Passwort des Benutzers.
-        /// </summary>
-        [Required(ErrorMessage = "Passwort ist erforderlich.")]
-        public string Password { get; set; }
+	    /// <summary>
+	    /// Das Passwort des Benutzers.
+	    /// </summary>
+	    [Required(ErrorMessage = "Passwort ist erforderlich.")]
+	    public string Password { get; set; } = "";
     }
 }

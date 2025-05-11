@@ -1,9 +1,13 @@
 ﻿@page "/register"
-@inject NavigationManager Navigation
-@inject ServiceClient _ServiceClient
+
+@using ET.Shared.DTOs
+@using System.Net.Http
+@using System.Net.Http.Json
 @using System.ComponentModel.DataAnnotations
 @using MudBlazor
-<!--@using ET.Shared.DTOs;-->
+
+@inject HttpClient Http
+@inject NavigationManager Nav
 
 <MudContainer MaxWidth="MaxWidth.Small" Class="d-flex align-center justify-center" Style="height: 100vh;">
     <MudCard Class="pa-6" Elevation="4">
@@ -20,12 +24,16 @@
             <MudText Typo="Typo.h5" Align="Align.Center" Class="mb-4">Registrieren Sie sich</MudText>
 
             <!-- Registrierungsformular -->
-            <MudForm Model="@registerModel" @ref="_form" OnValidSubmit="toRegister">
+            <MudForm Model="@formModel" 
+                     @ref="_form" 
+                     OnSubmit="OnAnySubmit"
+                     OnInvalidSubmit="OnInvalidSubmit"
+                     OnValidSubmit="HandleRegister">
 
                 <!-- Vorname -->
-                <MudTextField @bind-Value="registerModel.firstName"
+                <MudTextField @bind-Value="formModel.FirstName"
                 Label="Vorname"
-                For="@(() => registerModel.firstName)"
+                For="@(() => formModel.FirstName)"
                 Required="true"
                 RequiredError="Vorname ist erforderlich."
                 Variant="Variant.Filled"
@@ -33,9 +41,9 @@
                 Class="mb-3" />
 
                 <!-- Nachname -->
-                <MudTextField @bind-Value="registerModel.lastName"
+                <MudTextField @bind-Value="formModel.LastName"
                 Label="Nachname"
-                For="@(() => registerModel.lastName)"
+                For="@(() => formModel.LastName)"
                 Required="true"
                 RequiredError="Nachname ist erforderlich."
                 Variant="Variant.Filled"
@@ -43,9 +51,9 @@
                 Class="mb-3" />
 
                 <!-- E-Mail -->
-                <MudTextField @bind-Value="registerModel.eMail"
+                <MudTextField @bind-Value="formModel.EMail"
                 Label="E-Mail"
-                For="@(() => registerModel.eMail)"
+                For="@(() => formModel.EMail)"
                 Required="true"
                 RequiredError="E-Mail ist erforderlich."
                 Variant="Variant.Filled"
@@ -53,10 +61,10 @@
                 Class="mb-3" />
 
                 <!-- Passwort -->
-                <MudTextField @bind-Value="registerModel.password"
+                <MudTextField @bind-Value="formModel.Password"
                 Label="Passwort"
                 InputType="InputType.Password"
-                For="@(() => registerModel.password)"
+                For="@(() => formModel.Password)"
                 Required="true"
                 RequiredError="Passwort ist erforderlich."
                 Variant="Variant.Filled"
@@ -64,10 +72,10 @@
                 Class="mb-3" />
 
                 <!-- Passwort wiederholen -->
-                <MudTextField @bind-Value="registerModel.repPassword"
+                <MudTextField @bind-Value="formModel.RepPassword"
                 Label="Passwort wiederholen"
                 InputType="InputType.Password"
-                For="@(() => registerModel.repPassword)"
+                For="@(() => formModel.RepPassword)"
                 Required="true"
                 RequiredError="Wiederholtes Passwort ist erforderlich."
                 Variant="Variant.Filled"
@@ -75,21 +83,31 @@
                 Class="mb-3" />
 
                 <!-- Registrierungsbutton -->
-                <MudButton Type="ButtonType.Submit"
-                Variant="Variant.Filled"
-                OnClick="ToRegister"
+				
+                
+
+                <MudButton Type="ButtonType"
+                           Variant="Variant.Filled"
+                           OnClick="HandleRegister"
                 Color="Color.Primary"
                 Class="mt-2"
                 FullWidth>
                     Registrieren
                 </MudButton>
+				
+                @if (!string.IsNullOrWhiteSpace(_error))
+                {
+	                <MudText Typo="Typo.body2" Class="mt-2 text-danger" Align="Align.Center">
+		                @_error
+	                </MudText>
+                }
 
             </MudForm>
 
             <!-- Link zur Login-Seite -->
             <MudText Typo="Typo.body2" Align="Align.Center" Class="mt-4">
                 Haben Sie bereits ein Konto?
-                <MudLink OnClick="ToLogin" Class="ms-1">Anmelden</MudLink>
+                <MudLink OnClick="@(() => Nav.NavigateTo("/login"))" Class="ms-1">Anmelden</MudLink>
             </MudText>
 
         </MudCardContent>
@@ -103,71 +121,109 @@
     private MudForm _form;
 
     /// <summary>
-    /// Modell mit den Benutzereingaben zur Registrierung.
+    /// Fehlermeldung der API-Antwort
     /// </summary>
-    private RegisterModel registerModel = new();
+	private string? _error;
 
     /// <summary>
-    /// Navigiert zur Login-Seite.
+    /// Formular-Model nur fürs UI/Validierung (parameterlos).
     /// </summary>
-    private void ToLogin()
+    private RegisterModel formModel = new();
+
+    // Wird bei *jedem* Klick ausgelöst (auch wenn invalid)
+    private void OnAnySubmit()
     {
-        Navigation.NavigateTo("/login");
+	    Console.WriteLine("▶ OnSubmit");
+    }
+
+    // Wird nur ausgelöst, wenn Model-Validation fehlschlägt
+    private void OnInvalidSubmit()
+    {
+	    Console.WriteLine("⚠️ InvalidSubmit");
     }
 
     /// <summary>
     /// Wird aufgerufen, wenn das Formular erfolgreich validiert wurde.
-    /// Hier könnte die Registrierung ausgelöst werden.
+    /// Führt die POST-Anfrage an den Backend-Endpoint aus.
     /// </summary>
-    private void ToRegister()
+    private async Task HandleRegister()
     {
-        RegisterDto userRegDTO = new RegisterDto();
-        userRegDTO.Firstname = registerModel.firstName;
-        userRegDTO.Lastname = registerModel.lastName;
-        userRegDTO.EMail = registerModel.eMail;
-        userRegDTO.Password = registerModel.password;
+	    await _form.Validate();
+	    //Console.WriteLine($"IsValid: {_form.IsValid}");   // ← im Browser-Console-Log
+	    if (!_form.IsValid)
+	    {
+		    return;
+	    }
 
-        _ServiceClient.RegisterAsync(userRegDTO);
-        // Console.WriteLine($"Registrierung mit DTO: {userRegDTO}");
-        // z. B. Navigation.NavigateTo("/dashboard");
+	    // Mapping auf das Shared-DTO
+	    var dto = new RegisterDto(
+		    formModel.FirstName,
+		    formModel.LastName,
+		    formModel.EMail,
+		    formModel.Password
+	    );
+
+	    try
+	    {
+		    // 2) API-Call: Wir senden unser DTO als JSON an den Controller
+		    //    POST https://localhost:7085/api/authenticate/register
+		    var response = await Http.PostAsJsonAsync("api/authenticate/register", dto);
+
+		    // 3) Antwort auswerten
+		    if (response.IsSuccessStatusCode)
+		    {
+			    // 201 Created oder 200 OK → weiter zur Login-Seite
+			    Nav.NavigateTo("/login");
+		    }
+		    else
+		    {
+			    // HTTP-Fehlercode → Fehlermeldung aus dem Response-Body lesen
+			    _error = await response.Content.ReadAsStringAsync();
+		    }
+	    }
+	    catch (Exception ex)
+	    {
+		    // Fehlermeldung anzeigen
+		    _error = ex.Message;
+	    }
     }
 
     /// <summary>
-    /// Datenmodell zur Benutzerregistrierung mit Validierungen.
+    /// UI-Modell zur Benutzerregistrierung mit Validierungen.
     /// </summary>
     public class RegisterModel
     {
-        /// <summary>
-        /// Vorname des Benutzers.
-        /// </summary>
-        [Required(ErrorMessage = "Vorname ist erforderlich.")]
-        public string firstName { get; set; }
+	    /// <summary>
+	    /// Vorname des Benutzers.
+	    /// </summary>
+	    [Required(ErrorMessage = "Vorname ist erforderlich.")]
+	    public string FirstName { get; set; } = "";
 
         /// <summary>
         /// Nachname des Benutzers.
         /// </summary>
         [Required(ErrorMessage = "Nachname ist erforderlich.")]
-        public string lastName { get; set; }
+		public string LastName { get; set; } = "";
 
         /// <summary>
         /// E-Mail-Adresse des Benutzers.
         /// </summary>
         [Required(ErrorMessage = "E-Mail ist erforderlich.")]
         [EmailAddress(ErrorMessage = "Ungültige E-Mail-Adresse.")]
-        public string eMail { get; set; }
+		public string EMail { get; set; } = "";
 
         /// <summary>
         /// Passwort des Benutzers. Mindestlänge 6 Zeichen.
         /// </summary>
         [Required(ErrorMessage = "Passwort ist erforderlich.")]
         [MinLength(6, ErrorMessage = "Passwort muss mindestens 6 Zeichen lang sein.")]
-        public string password { get; set; }
+		public string Password { get; set; } = "";
 
         /// <summary>
         /// Wiederholung des Passworts. Muss mit dem Passwort übereinstimmen.
         /// </summary>
         [Required(ErrorMessage = "Wiederholtes Passwort ist erforderlich.")]
-        [Compare(nameof(password), ErrorMessage = "Passwörter stimmen nicht überein.")]
-        public string repPassword { get; set; }
+        [Compare(nameof(Password), ErrorMessage = "Passwörter stimmen nicht überein.")]
+		public string RepPassword { get; set; } = "";
     }
 }
