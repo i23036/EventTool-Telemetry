@@ -27,9 +27,9 @@ public class UserRepository : IUserRepository
 
             return Result.Ok(exists);
         }
-        catch
+        catch(Exception ex)
         {
-            return Result.Fail("DBError");
+            return Result.Fail($"DBError: {ex.Message}");
         }
     }
 
@@ -41,13 +41,18 @@ public class UserRepository : IUserRepository
                 INSERT INTO Users (Firstname, Lastname, Password)
                 VALUES (@Firstname, @Lastname, @Password);
                 SELECT last_insert_rowid();",
-                new { firstname, lastname, password });
+                new
+                {
+                    Firstname = firstname,
+                    Lastname = lastname,
+                    Password = password
+                });
 
             return await GetUser(userId);
         }
-        catch
+        catch(Exception ex)
         {
-            return Result.Fail("DBError");
+            return Result.Fail($"DBError: {ex.Message}");
         }
     }
 
@@ -61,9 +66,9 @@ public class UserRepository : IUserRepository
 
             return affected > 0 ? Result.Ok() : Result.Fail("NotFound");
         }
-        catch
+        catch(Exception ex)
         {
-            return Result.Fail("DBError");
+            return Result.Fail($"DBError: {ex.Message}");
         }
     }
 
@@ -77,9 +82,9 @@ public class UserRepository : IUserRepository
 
             return user == null ? Result.Fail("NotFound") : Result.Ok(user);
         }
-        catch
+        catch(Exception ex)
         {
-            return Result.Fail("DBError");
+            return Result.Fail($"DBError: {ex.Message}");
         }
     }
 
@@ -103,9 +108,9 @@ public class UserRepository : IUserRepository
 
             return rows > 0 ? Result.Ok() : Result.Fail("NotFound");
         }
-        catch
+        catch(Exception ex)
         {
-            return Result.Fail("DBError");
+            return Result.Fail($"DBError: {ex.Message}");
         }
     }
 }

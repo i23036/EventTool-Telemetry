@@ -27,9 +27,9 @@ public class AccountRepository : IAccountRepository
 
             return Result.Ok(exists);
         }
-        catch
+        catch(Exception ex)
         {
-            return Result.Fail("DBError");
+            return Result.Fail($"DBError: {ex.Message}");
         }
     }
 
@@ -43,9 +43,9 @@ public class AccountRepository : IAccountRepository
 
             return Result.Ok(exists);
         }
-        catch
+        catch(Exception ex)
         {
-            return Result.Fail("DBError");
+            return Result.Fail($"DBError: {ex.Message}");
         }
     }
 
@@ -88,10 +88,10 @@ public class AccountRepository : IAccountRepository
             tx.Commit();
             return await GetAccount(accountId);
         }
-        catch
+        catch(Exception ex)
         {
             tx.Rollback();
-            return Result.Fail("DBError");
+            return Result.Fail($"DBError: {ex.Message}");
         }
     }
 
@@ -105,9 +105,9 @@ public class AccountRepository : IAccountRepository
 
             return rows > 0 ? Result.Ok() : Result.Fail("NotFound");
         }
-        catch
+        catch(Exception ex)
         {
-            return Result.Fail("DBError");
+            return Result.Fail($"DBError: {ex.Message}");
         }
     }
 
@@ -121,9 +121,9 @@ public class AccountRepository : IAccountRepository
 
             return rows > 0 ? Result.Ok() : Result.Fail("NotFound");
         }
-        catch
+        catch(Exception ex)
         {
-            return Result.Fail("DBError");
+            return Result.Fail($"DBError: {ex.Message}");
         }
     }
 
@@ -135,7 +135,7 @@ public class AccountRepository : IAccountRepository
                 SELECT 
                     a.Id, a.Email AS EMail, a.IsVerified, 
                     u.Id, u.Firstname, u.Lastname, u.Password,
-                    o.Id, o.Lastname AS Name, o.Description, o.Domain,
+                    o.Id, o.Name AS Name, o.Description, o.Domain,
                     om.Role
                 FROM Accounts a
                 JOIN Users u ON a.UserId = u.Id
@@ -158,9 +158,9 @@ public class AccountRepository : IAccountRepository
             var result = account.FirstOrDefault();
             return result == null ? Result.Fail("NotFound") : Result.Ok(result);
         }
-        catch
+        catch(Exception ex)
         {
-            return Result.Fail("DBError");
+            return Result.Fail($"DBError: {ex.Message}");
         }
     }
 
@@ -172,7 +172,7 @@ public class AccountRepository : IAccountRepository
                 SELECT 
                     a.Id, a.Email AS EMail, a.IsVerified, 
                     u.Id, u.Firstname, u.Lastname, u.Password,
-                    o.Id, o.Lastname AS Name, o.Description, o.Domain,
+                    o.Id, o.Name AS Name, o.Description, o.Domain,
                     om.Role
                 FROM Accounts a
                 JOIN Users u ON a.UserId = u.Id
@@ -195,9 +195,9 @@ public class AccountRepository : IAccountRepository
             var result = account.FirstOrDefault();
             return result == null ? Result.Fail("NotFound") : Result.Ok(result);
         }
-        catch
+        catch(Exception ex)
         {
-            return Result.Fail("DBError");
+            return Result.Fail($"DBError: {ex.Message}");
         }
     }
 
@@ -246,10 +246,10 @@ public class AccountRepository : IAccountRepository
             tx.Commit();
             return Result.Ok();
         }
-        catch
+        catch(Exception ex)
         {
             tx.Rollback();
-            return Result.Fail("DBError");
+            return Result.Fail($"DBError: {ex.Message}");
         }
     }
 }

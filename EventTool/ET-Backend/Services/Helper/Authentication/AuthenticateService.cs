@@ -82,36 +82,44 @@ public class AuthenticateService : IAuthenticateService
     /// </returns>
     public async Task<Result<String>> RegisterUser(String firstname, String lastname, String eMail, String password)
     {
-        Result<bool> accountExists = await _accountRepository.AccountExists(eMail);
-        if (accountExists.IsSuccess && !accountExists.Value)
+        try
         {
-            String eMailDomain = eMail.Substring(eMail.LastIndexOf('@') + 1);
-
-            Result<bool> organizationExists = await _organizationRepository.OrganizationExists(eMailDomain);
-            if (organizationExists.IsSuccess && organizationExists.Value)
+            Result<bool> accountExists = await _accountRepository.AccountExists(eMail);
+            if (accountExists.IsSuccess && !accountExists.Value)
             {
+                String eMailDomain = eMail.Substring(eMail.LastIndexOf('@') + 1);
 
-                Result<User> user = await _userRepository.CreateUser(firstname, lastname, password);
-                Result<Models.Organization> organization = await _organizationRepository.GetOrganization(eMailDomain);
-                await _accountRepository.CreateAccount(eMail, organization.Value, Role.Member, user.Value);
-
-                if (user.IsSuccess && organization.IsSuccess)
+                Result<bool> organizationExists = await _organizationRepository.OrganizationExists(eMailDomain);
+                if (organizationExists.IsSuccess && organizationExists.Value)
                 {
-                    return Result.Ok("User added successfully");
+
+                    Result<User> user = await _userRepository.CreateUser(firstname, lastname, password);
+                    Result<Models.Organization> organization = await _organizationRepository.GetOrganization(eMailDomain);
+                    await _accountRepository.CreateAccount(eMail, organization.Value, Role.Member, user.Value);
+
+                    if (user.IsSuccess && organization.IsSuccess)
+                    {
+                        return Result.Ok("User added successfully");
+                    }
+                    else
+                    {
+                        return Result.Fail("Database failure");
+                    }
                 }
                 else
                 {
-                    return Result.Fail("Database failure");
+                    return Result.Fail("No organization exists for this E-Mail");
                 }
             }
             else
             {
-                return Result.Fail("No organization exists for this E-Mail");
+                return Result.Fail("User already exists");
             }
         }
-        else
+        catch (Exception ex)
         {
-            return Result.Fail("User already exists");
+
+            return Result.Fail($"DBError: {ex.Message}");
         }
     }
 

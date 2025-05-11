@@ -53,7 +53,11 @@ builder.Services.AddScoped<IProcessStepRepository, ProcessStepRepository>();
 var cs = builder.Configuration.GetConnectionString("Default")
          ?? "Data Source=bitworks.db";
 builder.Services.AddTransient<IDbConnection>(_ =>
-    new SqliteConnection(cs));
+{
+    var conn = new SqliteConnection(cs);
+    conn.Open();
+    return conn;
+});
 
 builder.Services.AddTransient<DatabaseInitializer>();
 

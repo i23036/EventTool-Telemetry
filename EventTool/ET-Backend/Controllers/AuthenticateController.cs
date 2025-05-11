@@ -57,7 +57,7 @@ namespace ET_Backend.Controllers
         /// <summary>
         /// Registriert einen neuen Benutzer und loggt ihn direkt ein.
         /// </summary>
-        /// <param name="value">Ein Objekt mit Vorname, Nachname, E-Mail und Passwort.</param>
+        /// <param name="dto">Ein Objekt mit Vorname, Nachname, E-Mail und Passwort.</param>
         /// <returns>
         /// Gibt bei Erfolg das JWT-Token des neu registrierten Benutzers zurück,
         /// andernfalls eine Problem-Antwort mit Fehlerbeschreibung.
@@ -66,23 +66,21 @@ namespace ET_Backend.Controllers
         /// <response code="400">Registrierung fehlgeschlagen – z. B. Benutzer existiert bereits.</response>
         // POST api/<AuthenticateController>
         [HttpPost("register")]
-        public async Task<IActionResult> Register([FromBody] RegisterDto value)
+        public async Task<IActionResult> Register([FromBody] RegisterDto dto)
         {
-            Result<String> result = await _authenticateService.RegisterUser(
-                value.FirstName, 
-                value.LastName, 
-                value.EMail, 
-                value.Password
+            var result = await _authenticateService.RegisterUser(
+                dto.FirstName, 
+                dto.LastName, 
+                dto.EMail, 
+                dto.Password
                 );
 
             if (result.IsSuccess)
             {
-                return await Login(new LoginDto(value.EMail, value.Password));
+                return Ok(new { message = result.Value });
             }
-            else
-            {
-                return BadRequest(result.Value);
-            }
+            var error = result.Errors.FirstOrDefault()?.Message ?? "Unknown error";
+            return BadRequest(new { error });
         }
 
     }
