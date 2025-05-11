@@ -5,18 +5,18 @@
 /// </summary>
 public class Account
 {
-    /// <summary>
-    /// Die E-Mail-Adresse des Benutzerkontos.
-    /// </summary>
+    public int Id { set; get; }
+
     public String EMail { set; get; }
 
-    /// <summary>
-    /// Die ID der Organisation, der das Konto zugeordnet ist.
-    /// </summary>
-    public int Organization { set; get; }
+    public User User { set; get; }
 
-    /// <summary>
-    /// Die Rolle des Benutzers im System.
-    /// </summary>
+    public Organization Organization { set; get; }
+
+    public bool IsVerified { set; get; }
+
     public Role Role { set; get; }
+
+    public List<Event> Events { set; get; } = new List<Event>();
+
 }

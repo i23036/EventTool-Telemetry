@@ -59,7 +59,7 @@ namespace ET_Backend.Controllers
         [Authorize(Policy = "AdminOnly")]
         public async Task<IActionResult> CreateOrganization([FromBody] OrganizationDto value)
         {
-            Result result = await _organizationService.CreateOrganization(value.Name, value.Domain, value.Description);
+            Result<Organization> result = await _organizationService.CreateOrganization(value.Name, value.Domain, value.Description);
 
             if (result.IsSuccess)
             {

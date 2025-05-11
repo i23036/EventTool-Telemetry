@@ -17,7 +17,7 @@ public class OrganizationService : IOrganizationService
         return await _organizationRepository.OrganizationExists(domain);
     }
 
-    public async Task<Result> CreateOrganization(String name, String domain, String description)
+    public async Task<Result<Models.Organization>> CreateOrganization(String name, String domain, String description)
     {
         return await _organizationRepository.CreateOrganization(name, description, domain);
     }

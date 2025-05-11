@@ -8,27 +8,13 @@ namespace ET_Backend.Repository.Person;
 /// </summary>
 public interface IAccountRepository
 {
-    /// <summary>
-    /// Prüft, ob ein Konto mit der angegebenen E-Mail-Adresse existiert.
-    /// </summary>
-    /// <param name="eMail">Die E-Mail-Adresse, nach der gesucht wird.</param>
-    /// <returns>Ein Task mit einem booleschen Wert: true, wenn das Konto existiert.</returns>
-    public Task<Result<bool>> AccountExists(String eMail);
+    public Task<Result<bool>> AccountExists(String accountEMail);
+    public Task<Result<bool>> AccountExists(int accountId);
+    public Task<Result<Account>> CreateAccount(String accountEMail, Models.Organization organization, Role role, User user);
+    public Task<Result> DeleteAccount(String accountEMail);
+    public Task<Result> DeleteAccount(int accountId);
+    public Task<Result<Account>> GetAccount(String accountEMail);
+    public Task<Result<Account>> GetAccount(int accountId);
+    public Task<Result> EditAccount(Account account);
 
-
-	public Task<Result> CreateAccount(String eMail, Models.Organization organization, Role role);
-
-    /// <summary>
-    /// Ruft das Konto zur angegebenen E-Mail-Adresse ab.
-    /// </summary>
-    /// <param name="eMail">Die E-Mail-Adresse des Kontos.</param>
-    /// <returns>Ein Task mit dem <see cref="Account"/>-Objekt.</returns>
-    public Task<Result<Account>> GetAccount(String eMail);
-
-    /// <summary>
-    /// Ruft den Passwort-Hash des Kontos anhand der E-Mail-Adresse ab.
-    /// </summary>
-    /// <param name="eMail">Die E-Mail-Adresse des Kontos.</param>
-    /// <returns>Ein Task mit dem Passwort-Hash als Zeichenkette.</returns>
-    public Task<Result<String>> GetPasswordHash(String eMail);
 }

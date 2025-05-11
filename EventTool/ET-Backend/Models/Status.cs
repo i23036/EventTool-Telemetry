@@ -2,5 +2,8 @@
 
 public enum Status
 {
-    
+    Entwurf,
+    Offen,
+    Geschlossen
+    // TODO: Hinzufügen
 }
