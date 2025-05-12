@@ -12,6 +12,8 @@ public class Organization
 
     public String Domain { set; get; }
 
+    public string OrgaPicAsBase64 { get; set; } = string.Empty;
+
     public List<Event> Events { set; get; } = new List<Event>();
 
     public List<Account> Accounts { set; get; } = new List<Account>();

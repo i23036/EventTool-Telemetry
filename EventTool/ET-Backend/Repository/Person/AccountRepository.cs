@@ -143,7 +143,7 @@ public class AccountRepository : IAccountRepository
                 JOIN Organizations o ON o.Id = om.OrganizationId
                 WHERE a.Email = @Email";
 
-            var account = await _db.QueryAsync<Account, User, Models.Organization, int, Account>(
+            var account = await _db.QueryAsync<Account, User, Models.Organization, long, Account>(
                 sql,
                 (acc, user, org, role) =>
                 {
@@ -180,7 +180,7 @@ public class AccountRepository : IAccountRepository
                 JOIN Organizations o ON o.Id = om.OrganizationId
                 WHERE a.Id = @Id";
 
-            var account = await _db.QueryAsync<Account, User, Models.Organization, int, Account>(
+            var account = await _db.QueryAsync<Account, User, Models.Organization, long, Account>(
                 sql,
                 (acc, user, org, role) =>
                 {

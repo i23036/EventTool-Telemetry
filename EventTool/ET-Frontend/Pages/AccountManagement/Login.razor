@@ -1,4 +1,5 @@
-﻿@page "/login"
+﻿@page "/"
+@page "/login"
 
 @using ET.Shared.DTOs
 @using MudBlazor
@@ -46,8 +47,9 @@
                 Class="mb-3" />
 
                 <!-- Anmeldebutton -->
-                <MudButton Type="ButtonType.Submit"
+                <MudButton Type="ButtonType"
                            Variant="Variant.Filled"
+						   OnClick="HandleLogin"
                            Color="Color.Primary"
                            Class="mt-2"
                            FullWidth>

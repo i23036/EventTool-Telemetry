@@ -24,9 +24,9 @@ public class OrganizationRepository : IOrganizationRepository
 
             return Result.Ok(exists);
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            return Result.Fail("DBError");
+            return Result.Fail($"DBError: {ex.Message}");
         }
     }
 
@@ -40,9 +40,9 @@ public class OrganizationRepository : IOrganizationRepository
 
             return Result.Ok(exists);
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            return Result.Fail("DBError");
+            return Result.Fail($"DBError: {ex.Message}");
         }
     }
 
@@ -64,9 +64,9 @@ public class OrganizationRepository : IOrganizationRepository
 
             return await GetOrganization(id);
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            return Result.Fail("DBError");
+            return Result.Fail($"DBError: {ex.Message}");
         }
     }
 
@@ -80,9 +80,9 @@ public class OrganizationRepository : IOrganizationRepository
 
             return rows > 0 ? Result.Ok() : Result.Fail("NotFound");
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            return Result.Fail("DBError");
+            return Result.Fail($"DBError: {ex.Message}");
         }
     }
 
@@ -115,9 +115,9 @@ public class OrganizationRepository : IOrganizationRepository
 
             return Result.Ok(org);
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            return Result.Fail("DBError");
+            return Result.Fail($"DBError: {ex.Message}");
         }
     }
 
@@ -134,9 +134,9 @@ public class OrganizationRepository : IOrganizationRepository
 
             return Result.Ok(org);
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            return Result.Fail("DBError");
+            return Result.Fail($"DBError: {ex.Message}");
         }
     }
 
@@ -149,9 +149,9 @@ public class OrganizationRepository : IOrganizationRepository
 
             return Result.Ok(orgs);
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            return Result.Fail("DBError");
+            return Result.Fail($"DBError: {ex.Message}");
         }
     }
 

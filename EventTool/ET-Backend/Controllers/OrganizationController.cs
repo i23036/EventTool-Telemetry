@@ -38,7 +38,7 @@ namespace ET_Backend.Controllers
             if (result.IsSuccess)
             {
                 List<OrganizationDto> dtoList = result.Value
-                    .Select(org => new OrganizationDto(org.Name, org.Domain, org.Description))
+                    .Select(org => new OrganizationDto(org.Name, org.Domain, org.Description, org.OrgaPicAsBase64))
                     .ToList();
 
                 return Ok(dtoList);
