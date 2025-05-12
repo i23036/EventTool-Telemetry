@@ -106,7 +106,7 @@
 		    var resp = await Http.PostAsJsonAsync("api/authenticate/login", dto);
 
 		    if (resp.IsSuccessStatusCode)
-			    Nav.NavigateTo("/");                // weiter zur Start-Seite
+			    Nav.NavigateTo("/home");                // weiter zur Start-Seite
 		    else
 			    _error = await resp.Content.ReadAsStringAsync();
 	    }
