@@ -39,7 +39,8 @@ builder.Services.AddCors(options =>
                 "https://nice-field-0026f6403.6.azurestaticapps.net"
             )
             .AllowAnyHeader()
-            .AllowAnyMethod();
+            .AllowAnyMethod()
+            .AllowCredentials(); // wegen JWT im Header oder Cookies
     });
 });
 
@@ -95,7 +96,6 @@ builder.Services.AddScoped<IProcessStepService, ProcessStepService>();
 
 
 // JWT-Authentifizierung
-
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer();
 
@@ -131,12 +131,15 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-// CORS
+// CORS früh einbinden
 app.UseCors("AllowBlazorClient");
 
+// Auth & AuthZ
+app.UseAuthentication();
+app.UseAuthorization();
+
 // Schema-Initialisierung mit Dapper
-// In der Azure-DB wird nicht gedropt.
-using(var scope = app.Services.CreateScope())
+using (var scope = app.Services.CreateScope())
 {
     var env = scope.ServiceProvider.GetRequiredService<IHostEnvironment>();
     var initializer = scope.ServiceProvider.GetRequiredService<DatabaseInitializer>();
@@ -150,12 +153,5 @@ using(var scope = app.Services.CreateScope())
     initializer.SeedDemoData();
 }
 
-
-
-app.UseAuthentication();
-
-app.UseAuthorization();
-
 app.MapControllers();
-
 app.Run();
