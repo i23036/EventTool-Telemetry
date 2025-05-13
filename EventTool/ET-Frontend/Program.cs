@@ -10,7 +10,15 @@ builder.RootComponents.Add<HeadOutlet>("head::after");
 builder.Services.AddBlazoredSessionStorage();
 builder.Services.AddMudServices();
 
-var apiBase = new Uri("https://localhost:7085/");
-builder.Services.AddScoped(sp => new HttpClient { BaseAddress = apiBase });
+// 1) Lese die ApiBaseUrl aus der config
+var apiUrl = builder.Configuration["ApiBaseUrl"]
+             ?? throw new InvalidOperationException("Missing ApiBaseUrl in configuration.");
+
+// 2) Registriere HttpClient mit der jeweils richtigen BaseAddress
+builder.Services.AddScoped(sp =>
+{
+    Console.WriteLine($"Using API base URL: {apiUrl}");
+    return new HttpClient { BaseAddress = new Uri(apiUrl) };
+});
 
 await builder.Build().RunAsync();
