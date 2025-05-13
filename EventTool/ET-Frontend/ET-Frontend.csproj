@@ -31,15 +31,16 @@
 </ItemGroup>
 
 	<ItemGroup>
-		<None Update="appsettings.json">
+		<Content Update="wwwroot\appsettings.json">
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-		</None>
-		<None Update="appsettings.Development.json">
+		</Content>
+		<Content Update="wwwroot\appsettings.Development.json">
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-		</None>
-		<None Update="appsettings.Production.json">
+		</Content>
+		<Content Update="wwwroot\appsettings.Production.json">
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-		</None>
+		</Content>
 	</ItemGroup>
+    
 
 </Project>
