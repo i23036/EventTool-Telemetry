@@ -34,7 +34,10 @@ builder.Services.AddCors(options =>
     options.AddPolicy("AllowBlazorClient", policy =>
     {
         policy
-            .WithOrigins("https://localhost:7210")  // Frontend-URL
+            .WithOrigins(
+                "https://localhost:7210",
+                "https://nice-field-0026f6403.6.azurestaticapps.net"
+            )
             .AllowAnyHeader()
             .AllowAnyMethod();
     });
