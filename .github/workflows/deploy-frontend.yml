@@ -3,7 +3,7 @@ name: Deploy ET-Frontend to Azure Static Web Apps
 on:
   push:
     branches:
-      - 'release/**'        # nur wöchentliche Release-Branches
+      - 'release/**'
 
 jobs:
   swa:

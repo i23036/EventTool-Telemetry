@@ -130,32 +130,51 @@ public class DatabaseInitializer(IDbConnection db)
 
 
     public void SeedDemoData()
+{
+    // Organization nur seeden, wenn noch keine existiert
+    var orgCount = _db.ExecuteScalar<int>("SELECT COUNT(1) FROM Organizations;");
+    if (orgCount == 0)
     {
-        // Insert Organization
         _db.Execute(@"
             INSERT INTO Organizations (Name, Domain, Description)
             VALUES ('DemoOrg', 'demo.org', 'Dies ist eine Demo-Organisation');
         ");
+    }
 
-        // Insert User
+    // User nur seeden, wenn noch keine existiert
+    var userCount = _db.ExecuteScalar<int>("SELECT COUNT(1) FROM Users;");
+    if (userCount == 0)
+    {
         _db.Execute(@"
             INSERT INTO Users (Firstname, Lastname, Password)
             VALUES ('Max', 'Mustermann', 'demo');
         ");
+    }
 
-        // Insert Trigger
+    // Trigger
+    var triggerCount = _db.ExecuteScalar<int>("SELECT COUNT(1) FROM Triggers;");
+    if (triggerCount == 0)
+    {
         _db.Execute(@"
             INSERT INTO Triggers (Attribut)
             VALUES ('E-Mail bestätigt');
         ");
+    }
 
-        // Insert Process
+    // Processes
+    var processCount = _db.ExecuteScalar<int>("SELECT COUNT(1) FROM Processes;");
+    if (processCount == 0)
+    {
         _db.Execute(@"
             INSERT INTO Processes (Name, OrganizationId)
             VALUES ('Onboarding', (SELECT Id FROM Organizations WHERE Domain = 'demo.org'));
         ");
+    }
 
-        // Insert ProcessStep
+    // ProcessSteps
+    var stepCount = _db.ExecuteScalar<int>("SELECT COUNT(1) FROM ProcessSteps;");
+    if (stepCount == 0)
+    {
         _db.Execute(@"
             INSERT INTO ProcessSteps (Name, OrganizationId, TriggerId)
             VALUES (
@@ -164,8 +183,12 @@ public class DatabaseInitializer(IDbConnection db)
                 (SELECT Id FROM Triggers WHERE Attribut = 'E-Mail bestätigt')
             );
         ");
+    }
 
-        // Insert Account
+    // Accounts
+    var accountCount = _db.ExecuteScalar<int>("SELECT COUNT(1) FROM Accounts;");
+    if (accountCount == 0)
+    {
         _db.Execute(@"
             INSERT INTO Accounts (Email, IsVerified, UserId)
             VALUES (
@@ -174,8 +197,12 @@ public class DatabaseInitializer(IDbConnection db)
                 (SELECT Id FROM Users WHERE Lastname = 'Mustermann')
             );
         ");
+    }
 
-        // Associate Account with Organization (Admin = 3)
+    // OrganizationMembers
+    var orgMemberCount = _db.ExecuteScalar<int>("SELECT COUNT(1) FROM OrganizationMembers;");
+    if (orgMemberCount == 0)
+    {
         _db.Execute(@"
             INSERT INTO OrganizationMembers (AccountId, OrganizationId, Role)
             VALUES (
@@ -184,8 +211,12 @@ public class DatabaseInitializer(IDbConnection db)
                 3
             );
         ");
+    }
 
-        // Insert Event
+    // Events
+    var eventCount = _db.ExecuteScalar<int>("SELECT COUNT(1) FROM Events;");
+    if (eventCount == 0)
+    {
         _db.Execute(@"
             INSERT INTO Events (
                 Name, Description, OrganizationId, ProcessId,
@@ -203,8 +234,12 @@ public class DatabaseInitializer(IDbConnection db)
                 0
             );
         ");
+    }
 
-        // Insert EventMember
+    // EventMembers
+    var eventMemberCount = _db.ExecuteScalar<int>("SELECT COUNT(1) FROM EventMembers;");
+    if (eventMemberCount == 0)
+    {
         _db.Execute(@"
             INSERT INTO EventMembers (AccountId, EventId, IsOrganizer, IsContactPerson)
             VALUES (
@@ -214,5 +249,6 @@ public class DatabaseInitializer(IDbConnection db)
             );
         ");
     }
+}
 
 }

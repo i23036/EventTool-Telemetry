@@ -17,6 +17,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Net;
 using ET_Backend.Repository;
+using Microsoft.Data.SqlClient; // für Azure SQL
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -47,16 +48,28 @@ builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IProcessRepository, ProcessRepository>(); 
 builder.Services.AddScoped<IProcessStepRepository, ProcessStepRepository>();
 
+// ermittelt, ob wir im Development-Modus laufen
+bool isDev = builder.Environment.IsDevelopment();
 
 // Dapper + SQLite: IDbConnection
 // Transient: jede Anfrage eine neue Connection
 var cs = builder.Configuration.GetConnectionString("Default")
-         ?? "Data Source=bitworks.db";
-builder.Services.AddTransient<IDbConnection>(_ =>
+          ?? throw new InvalidOperationException("No connection string defined.");
+
+builder.Services.AddTransient<IDbConnection>(sp =>
 {
-    var conn = new SqliteConnection(cs);
-    conn.Open();
-    return conn;
+    if (isDev)
+    {
+        var sqlite = new SqliteConnection(cs);
+        sqlite.Open();
+        return sqlite;
+    }
+    else
+    {
+        var sql = new SqlConnection(cs);
+        sql.Open();
+        return sql;
+    }
 });
 
 builder.Services.AddTransient<DatabaseInitializer>();
@@ -119,10 +132,17 @@ app.UseHttpsRedirection();
 app.UseCors("AllowBlazorClient");
 
 // Schema-Initialisierung mit Dapper
-using (var scope = app.Services.CreateScope())
+// In der Azure-DB wird nicht gedropt.
+using(var scope = app.Services.CreateScope())
 {
+    var env = scope.ServiceProvider.GetRequiredService<IHostEnvironment>();
     var initializer = scope.ServiceProvider.GetRequiredService<DatabaseInitializer>();
-    initializer.DropAllTables();
+
+    if (env.IsDevelopment())
+    {
+        initializer.DropAllTables();
+    }
+
     initializer.Initialize();
     initializer.SeedDemoData();
 }
