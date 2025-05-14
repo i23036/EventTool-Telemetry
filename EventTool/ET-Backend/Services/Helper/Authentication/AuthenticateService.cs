@@ -145,10 +145,10 @@ public class AuthenticateService : IAuthenticateService
 
         JwtSecurityToken token = new JwtSecurityToken(
             _jwtOptions.Issuer,
-            _jwtOptions.Audiece,
+            _jwtOptions.Audience,
             claims,
             null,
-            DateTime.UtcNow.AddHours(_jwtOptions.ExperationTime),
+            DateTime.UtcNow.AddHours(_jwtOptions.ExpirationTime),
             signingCredentials
             );
 

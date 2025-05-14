@@ -34,7 +34,7 @@ public class JwtBaererOptionsSetup : IConfigureOptions<JwtBearerOptions>
             ValidateIssuerSigningKey = true,
 
             ValidIssuer = _jwtOptions.Issuer,
-            ValidAudience = _jwtOptions.Audiece,
+            ValidAudience = _jwtOptions.Audience,
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtOptions.SecretKey))
         };
     }

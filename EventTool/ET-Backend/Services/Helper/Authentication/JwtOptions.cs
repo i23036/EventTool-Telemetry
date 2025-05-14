@@ -12,12 +12,12 @@ public class JwtOptions
     /// <summary>
     /// Der Empfänger (Audience), für den das Token bestimmt ist, z. B. dein Frontend.
     /// </summary>
-    public String Audiece { get; init; }
+    public String Audience { get; init; }
 
     /// <summary>
     /// Die Gültigkeitsdauer des Tokens in Stunden.
     /// </summary>
-    public int ExperationTime { get; init; }
+    public int ExpirationTime { get; init; }
 
     /// <summary>
     /// Der geheime Schlüssel, der zum Signieren der Tokens verwendet wird.
