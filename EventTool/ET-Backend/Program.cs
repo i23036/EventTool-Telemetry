@@ -151,29 +151,26 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 // Schema-Init mit Logging
-using (var scope = app.Services.CreateScope())
+try
 {
+    using var scope = app.Services.CreateScope();
     var env = scope.ServiceProvider.GetRequiredService<IHostEnvironment>();
     var initializer = scope.ServiceProvider.GetRequiredService<DatabaseInitializer>();
 
-    try
+    if (env.IsDevelopment())
     {
-        if (env.IsDevelopment())
-        {
-            logger.LogInformation("Dropping tables...");
-            initializer.DropAllTables();
-        }
+        initializer.DropAllTables();
+    }
 
-        logger.LogInformation("Initializing schema...");
-        initializer.Initialize();
-        initializer.SeedDemoData();
-    }
-    catch (Exception ex)
-    {
-        logger.LogError(ex, "Fehler bei der Datenbankinitialisierung");
-        throw;
-    }
+    initializer.Initialize();
+    initializer.SeedDemoData();
 }
+catch (Exception ex)
+{
+    var log = app.Services.GetRequiredService<ILogger<Program>>();
+    log.LogError(ex, "Fehler beim Datenbankzugriff während Startup.");
+}
+
 
 app.MapControllers();
 app.Run();
