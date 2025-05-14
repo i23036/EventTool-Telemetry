@@ -18,8 +18,13 @@ using Microsoft.IdentityModel.Tokens;
 using System.Net;
 using ET_Backend.Repository;
 using Microsoft.Data.SqlClient; // für Azure SQL
+using Microsoft.Extensions.Logging;
+
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Logging.ClearProviders();
+builder.Logging.AddConsole();
 
 // Service-Registrierung (vor Build)
 
