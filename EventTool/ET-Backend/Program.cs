@@ -155,3 +155,6 @@ using (var scope = app.Services.CreateScope())
 
 app.MapControllers();
 app.Run();
+
+var logger = app.Services.GetRequiredService<ILogger<Program>>();
+logger.LogInformation("Testlog: Backend läuft und hat Logging aktiviert.");
