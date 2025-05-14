@@ -126,11 +126,20 @@ var app = builder.Build();
 
 // Logger einrichten (nach Build!)
 var loggerFactory = app.Services.GetRequiredService<ILoggerFactory>();
-var logger = loggerFactory.CreateLogger("Startup");
-logger.LogInformation("Starte App...");
+var logger = loggerFactory.CreateLogger("DbCheck");
+var connString = builder.Configuration.GetConnectionString("Default");
 
-var connstring = builder.Configuration.GetConnectionString("Default");
-logger.LogInformation($"Connection String: {connstring}");
+try
+{
+    using var testConn = new SqlConnection(connString);
+    testConn.Open();
+    var serverVersion = testConn.ServerVersion;
+    logger.LogInformation("Verbindung zur Datenbank erfolgreich. Server-Version: {version}", serverVersion);
+}
+catch (Exception ex)
+{
+    logger.LogError(ex, "Fehler beim Verbindungsaufbau zur Datenbank");
+}
 
 // 2) Pipeline- & Schema-Setup (nach Build, vor Run)
 
