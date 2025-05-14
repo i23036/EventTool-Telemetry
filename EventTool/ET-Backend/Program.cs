@@ -67,18 +67,9 @@ var cs = builder.Configuration.GetConnectionString("Default")
 
 builder.Services.AddTransient<IDbConnection>(sp =>
 {
-    if (isDev)
-    {
-        var sqlite = new SqliteConnection(cs);
-        sqlite.Open();
-        return sqlite;
-    }
-    else
-    {
-        var sql = new SqlConnection(cs);
-        sql.Open();
-        return sql;
-    }
+    return isDev
+        ? new SqliteConnection(cs)
+        : new SqlConnection(cs);
 });
 
 builder.Services.AddTransient<DatabaseInitializer>();

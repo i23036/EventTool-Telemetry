@@ -8,12 +8,26 @@ using static System.Net.Mime.MediaTypeNames;
 
 namespace ET_Backend.Repository;
 
-public class DatabaseInitializer(IDbConnection db)
+public class DatabaseInitializer(IDbConnection db, ILogger<DatabaseInitializer> logger)
 {
     private readonly IDbConnection _db = db;
+    private readonly ILogger _logger = logger;
 
     public void Initialize()
     {
+        try
+        {
+            if (_db.State != ConnectionState.Open)
+                _db.Open();
+
+            _logger.LogInformation("DB-Verbindung erfolgreich geöffnet.");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Fehler beim Öffnen der DB-Verbindung in DatabaseInitializer.");
+            throw; // App soll stoppen, wenn keine Verbindung
+        }
+
         _db.Execute(@"
             CREATE TABLE IF NOT EXISTS Organizations(
                 Id          INTEGER PRIMARY KEY AUTOINCREMENT,
