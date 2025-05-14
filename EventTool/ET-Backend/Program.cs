@@ -119,6 +119,13 @@ builder.Services.AddAuthorization(options =>
 
 var app = builder.Build();
 
+// Logger einrichten (nach Build!)
+var loggerFactory = app.Services.GetRequiredService<ILoggerFactory>();
+var logger = loggerFactory.CreateLogger("Startup");
+logger.LogInformation("Starte App...");
+
+var connstring = builder.Configuration.GetConnectionString("Default");
+logger.LogInformation($"Connection String: {connstring}");
 
 // 2) Pipeline- & Schema-Setup (nach Build, vor Run)
 
@@ -138,23 +145,30 @@ app.UseCors("AllowBlazorClient");
 app.UseAuthentication();
 app.UseAuthorization();
 
-// Schema-Initialisierung mit Dapper
+// Schema-Init mit Logging
 using (var scope = app.Services.CreateScope())
 {
     var env = scope.ServiceProvider.GetRequiredService<IHostEnvironment>();
     var initializer = scope.ServiceProvider.GetRequiredService<DatabaseInitializer>();
 
-    if (env.IsDevelopment())
+    try
     {
-        initializer.DropAllTables();
-    }
+        if (env.IsDevelopment())
+        {
+            logger.LogInformation("Dropping tables...");
+            initializer.DropAllTables();
+        }
 
-    initializer.Initialize();
-    initializer.SeedDemoData();
+        logger.LogInformation("Initializing schema...");
+        initializer.Initialize();
+        initializer.SeedDemoData();
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "Fehler bei der Datenbankinitialisierung");
+        throw;
+    }
 }
 
 app.MapControllers();
 app.Run();
-
-var logger = app.Services.GetRequiredService<ILogger<Program>>();
-logger.LogInformation("Testlog: Backend läuft und hat Logging aktiviert.");
