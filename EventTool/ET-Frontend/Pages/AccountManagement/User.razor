@@ -3,94 +3,66 @@
 
 <PageTitle>Home</PageTitle>
 
-<!-- Seitenlayout -->
-<div class="flex-md-column align-content-between justify-content-center w-100 h-100">
+<!-- Inhalt -->
+<div class="flex-md-column w-100 h-100 p-4">
 
-    <!-- Kopfzeile -->
-    <div class="d-flex align-items-center justify-content-between p-4 bg-light">
-        <MudLink Href="/"
-                 Class="d-flex align-items-center text-decoration-none"
-                 Color="Color.Inherit">
-            <MudPaper Class="d-flex align-items-center mr-3" Elevation="0">
-                <img src="images/BitWorksSimpel-Gro.png"
-                     alt="BitWorks Logo"
-                     width="55" height="55" />
-            </MudPaper>
-            <div class="d-flex display-6 align-items-center">
-                <p class="m-0">@organisationName</p>
-            </div>
-        </MudLink>
-        <div class="d-flex align-content-center justify-content-end w-25">
-            <NavLink href="/User">
-                <MudAvatar Color="Color.Primary" Size="Size.Medium">U</MudAvatar>
-            </NavLink>
-        </div>
-    </div>
+    <!-- Button über dem Grid -->
+    <MudButton Variant="Variant.Filled"
+               Color="Color.Primary"
+               Class="mb-4"
+               OnClick="changeUserInfo">
+        Nutzerdaten bearbeiten
+    </MudButton>
 
-    <!-- Inhalt -->
-    <div class="flex-md-column w-100 h-100 p-4">
+    <!-- Grid -->
+    <MudDataGrid T="Mitgliedschaft" Items="@Mitgliedschaften" Dense="true">
+        <Columns>
 
-        <!-- Button über dem Grid -->
-        <MudButton Variant="Variant.Filled"
-                   Color="Color.Primary"
-                   Class="mb-4"
-                   OnClick="changeUserInfo">
-            Nutzerdaten bearbeiten
-        </MudButton>
+            <!-- Organisation Name -->
+            <PropertyColumn Property="x => x.OrganisationName" Title="Organisation" />
 
-        <!-- Grid -->
-        <MudDataGrid T="Mitgliedschaft" Items="@Mitgliedschaften" Dense="true">
-            <Columns>
+            <!-- E-Mail + Speichern (links) -->
+            <TemplateColumn Title="E-Mail bearbeiten" CellClass="text-start">
+                <CellTemplate Context="ctx">
+                    <div style="display: inline-flex; align-items: center; gap: 6px;">
+                        <MudTextField @bind-Value="ctx.Item.Email"
+                                      Dense="true"
+                                      Style="width: 200px;" />
+                        <MudButton Size="Size.Small"
+                                   Color="Color.Primary"
+                                   Variant="Variant.Outlined"
+                                   OnClick="@(() => SpeichereEmail(ctx.Item))">
+                            Speichern
+                        </MudButton>
+                    </div>
+                </CellTemplate>
+            </TemplateColumn>
 
-                <!-- Organisation Name -->
-                <PropertyColumn Property="x => x.OrganisationName" Title="Organisation" />
+            <!-- Aktionsspalte (rechte Seite) -->
+            <TemplateColumn Title="" CellClass="text-end">
+                <CellTemplate Context="ctx">
+                    <div class="d-inline-flex align-items-center" style="gap: 8px;">
+                        <MudButton Color="Color.Error"
+                                   Variant="Variant.Filled"
+                                   Size="Size.Small"
+                                   OnClick="@(() => EntferneMitgliedschaft(ctx.Item))">
+                            Entfernen
+                        </MudButton>
 
-                <!-- E-Mail + Speichern (links) -->
-                <TemplateColumn Title="E-Mail bearbeiten" CellClass="text-start">
-                    <CellTemplate Context="ctx">
-                        <div style="display: inline-flex; align-items: center; gap: 6px;">
-                            <MudTextField @bind-Value="ctx.Item.Email"
-                                          Dense="true"
-                                          Style="width: 200px;" />
-                            <MudButton Size="Size.Small"
-                                       Color="Color.Primary"
-                                       Variant="Variant.Outlined"
-                                       OnClick="@(() => SpeichereEmail(ctx.Item))">
-                                Speichern
-                            </MudButton>
-                        </div>
-                    </CellTemplate>
-                </TemplateColumn>
-
-                <!-- Aktionsspalte (rechte Seite) -->
-                <TemplateColumn Title="" CellClass="text-end">
-                    <CellTemplate Context="ctx">
-                        <div class="d-inline-flex align-items-center" style="gap: 8px;">
-                            <MudButton Color="Color.Error"
-                                       Variant="Variant.Filled"
-                                       Size="Size.Small"
-                                       OnClick="@(() => EntferneMitgliedschaft(ctx.Item))">
-                                Entfernen
-                            </MudButton>
-
-                            <MudButton Color="Color.Success"
-                                       Variant="Variant.Filled"
-                                       Size="Size.Small"
-                                       OnClick="@(() => WechselnZuOrganisation(ctx.Item))">
-                                Öffnen
-                            </MudButton>
-                        </div>
-                    </CellTemplate>
-                </TemplateColumn>
-            </Columns>
-        </MudDataGrid>
-
-    </div>
+                        <MudButton Color="Color.Success"
+                                   Variant="Variant.Filled"
+                                   Size="Size.Small"
+                                   OnClick="@(() => WechselnZuOrganisation(ctx.Item))">
+                            Öffnen
+                        </MudButton>
+                    </div>
+                </CellTemplate>
+            </TemplateColumn>
+        </Columns>
+    </MudDataGrid>
 </div>
 
 @code {
-    public string organisationName = "test Orga";
-
     private List<Mitgliedschaft> Mitgliedschaften = new()
     {
         new Mitgliedschaft { OrganisationName = "BitWorks", Email = "du@bitworks.de", OrganisationId = "bitworks" },
