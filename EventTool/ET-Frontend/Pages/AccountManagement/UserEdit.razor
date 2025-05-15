@@ -8,105 +8,79 @@
 
 <PageTitle>Home</PageTitle>
 
-<div class="flex-md-column align-content-between justify-content-center w-100 h-100">
-    <div class="d-flex align-items-center justify-content-between p-4 bg-light">
-        <MudLink Href="/"
-                 Class="d-flex align-items-center text-decoration-none"
-                 Color="Color.Inherit">
-            <MudPaper Class="d-flex align-items-center mr-3" Elevation="0">
-                <img src="images/BitWorksSimpel-Gro.png"
-                     alt="BitWorks Logo"
-                     width="55" height="55" />
-            </MudPaper>
-            <div class="d-flex display-6 align-items-center">
-                <p class="m-0">@organisationName</p>
+<div class="flex-md-column w-100 h-100 p-4">
+    <MudText Typo="Typo.h4">Kontodaten bearbeiten</MudText>
+    <MudText Typo="Typo.body1">Hier sind Sie in der Lage, Ihre Kontoeigenschaften zu bearbeiten.</MudText>
+    <MudForm Model="@registerModel" @ref="_editForm" OnValidSubmit="toRegister">
+
+        <MudTextField @bind-Value="registerModel.firstName"
+                      Label="Vorname"
+                      For="@(() => registerModel.firstName)"
+                      Required="true"
+                      RequiredError="Vorname ist erforderlich."
+                      Variant="Variant.Filled"
+                      Margin="Margin.Dense"
+                      Class="mb-3" />
+
+        <MudTextField @bind-Value="registerModel.lastName"
+                      Label="Nachname"
+                      For="@(() => registerModel.lastName)"
+                      Required="true"
+                      RequiredError="Nachname ist erforderlich."
+                      Variant="Variant.Filled"
+                      Margin="Margin.Dense"
+                      Class="mb-3" />
+
+        <MudTextField @bind-Value="registerModel.password"
+                      Label="Passwort"
+                      InputType="InputType.Password"
+                      For="@(() => registerModel.password)"
+                      Required="true"
+                      RequiredError="Passwort ist erforderlich."
+                      Variant="Variant.Filled"
+                      Margin="Margin.Dense"
+                      Class="mb-3" />
+
+        <MudTextField @bind-Value="registerModel.Reppassword"
+                      Label="Passwort wiederholen"
+                      InputType="InputType.Password"
+                      For="@(() => registerModel.Reppassword)"
+                      Required="true"
+                      RequiredError="Wiederholtes Passwort ist erforderlich."
+                      Variant="Variant.Filled"
+                      Margin="Margin.Dense"
+                      Class="mb-3" />
+        <div class="d-flex w-100 align-content-center justify-content-between">
+            <MudButton Type="ButtonType.Submit"
+                       OnClick="ResetChanges"
+                       Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       Class="mt-2">
+                Änderungen zurücksetzten
+            </MudButton>
+
+            <div class="d-flex w-100 align-content-center justify-content-center">
+                <MudPopover OverflowBehavior="OverflowBehavior.FlipNever" Open="@popupState" AnchorOrigin="Origin.CenterCenter" TransformOrigin="Origin.CenterCenter" Class="pa-4 flex-column">
+                    <MudText Typo="Typo.body2" Class="px-4 py-1">@popupText</MudText>
+                    <MudButton Class="float-end" OnClick="@(() => popupState = false)">OK</MudButton>
+                </MudPopover>
             </div>
-        </MudLink>
-        <div class="d-flex align-content-center justify-content-end w-25">
-            <NavLink href="/User">
-                <MudAvatar Color="Color.Primary" Size="Size.Medium">U</MudAvatar>
-            </NavLink>
+
+            <MudButton Type="ButtonType.Submit"
+                       OnClick="ChangeUserInfo"
+                       Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       Class="mt-2">
+                Änderungen Speichern
+            </MudButton>
         </div>
-    </div>
 
-    <!-- das drüber würde ich sagen machen wir später zum Layout -->
-
-    <div class="flex-md-column w-100 h-100 p-4">
-        <MudText Typo="Typo.h4">Kontodaten bearbeiten</MudText>
-        <MudText Typo="Typo.body1">Hier sind Sie in der Lage, Ihre Kontoeigenschaften zu bearbeiten.</MudText>
-        <MudForm Model="@registerModel" @ref="_editForm" OnValidSubmit="toRegister">
-
-            <MudTextField @bind-Value="registerModel.firstName"
-                          Label="Vorname"
-                          For="@(() => registerModel.firstName)"
-                          Required="true"
-                          RequiredError="Vorname ist erforderlich."
-                          Variant="Variant.Filled"
-                          Margin="Margin.Dense"
-                          Class="mb-3" />
-
-            <MudTextField @bind-Value="registerModel.lastName"
-                          Label="Nachname"
-                          For="@(() => registerModel.lastName)"
-                          Required="true"
-                          RequiredError="Nachname ist erforderlich."
-                          Variant="Variant.Filled"
-                          Margin="Margin.Dense"
-                          Class="mb-3" />
-
-            <MudTextField @bind-Value="registerModel.password"
-                          Label="Passwort"
-                          InputType="InputType.Password"
-                          For="@(() => registerModel.password)"
-                          Required="true"
-                          RequiredError="Passwort ist erforderlich."
-                          Variant="Variant.Filled"
-                          Margin="Margin.Dense"
-                          Class="mb-3" />
-
-            <MudTextField @bind-Value="registerModel.Reppassword"
-                          Label="Passwort wiederholen"
-                          InputType="InputType.Password"
-                          For="@(() => registerModel.Reppassword)"
-                          Required="true"
-                          RequiredError="Wiederholtes Passwort ist erforderlich."
-                          Variant="Variant.Filled"
-                          Margin="Margin.Dense"
-                          Class="mb-3" />
-            <div class="d-flex w-100 align-content-center justify-content-between">
-                <MudButton Type="ButtonType.Submit"
-                           OnClick="ResetChanges"
-                           Variant="Variant.Filled"
-                           Color="Color.Primary"
-                           Class="mt-2">
-                    Änderungen zurücksetzten
-                </MudButton>
-
-                <div class="d-flex w-100 align-content-center justify-content-center">
-                    <MudPopover OverflowBehavior="OverflowBehavior.FlipNever" Open="@popupState" AnchorOrigin="Origin.CenterCenter" TransformOrigin="Origin.CenterCenter" Class="pa-4 flex-column">
-                        <MudText Typo="Typo.body2" Class="px-4 py-1">@popupText</MudText>
-                        <MudButton Class="float-end" OnClick="@(() => popupState = false)">OK</MudButton>
-                    </MudPopover>
-                </div>
-
-                <MudButton Type="ButtonType.Submit"
-                           OnClick="ChangeUserInfo"
-                           Variant="Variant.Filled"
-                           Color="Color.Primary"
-                           Class="mt-2">
-                    Änderungen Speichern
-                </MudButton>
-            </div>
-
-        </MudForm>
-    </div>
-
+    </MudForm>
 </div>
 
 @code {
     private Boolean popupState = false;
     private string popupText = "Wir tun mal so, als wäre das ein Easter Egg. Glückwunsch!"; //Fallback falls es wer schafft, das Popup ohne Button auszulösen? XD
-    public string organisationName = "test Orga"; // nur für erste Darstellung
 
     private MudForm _editForm;
     private RegisterModel registerModel = new();
