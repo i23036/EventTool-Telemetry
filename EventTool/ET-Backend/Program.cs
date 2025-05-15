@@ -57,17 +57,15 @@ builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IProcessRepository, ProcessRepository>(); 
 builder.Services.AddScoped<IProcessStepRepository, ProcessStepRepository>();
 
-// ermittelt, ob wir im Development-Modus laufen
-bool isDev = builder.Environment.IsDevelopment();
-
 // Dapper + SQLite: IDbConnection
 // Transient: jede Anfrage eine neue Connection
-var cs = builder.Configuration.GetConnectionString("Default")
-          ?? throw new InvalidOperationException("No connection string defined.");
-
 builder.Services.AddTransient<IDbConnection>(sp =>
 {
-    return isDev
+    var env = sp.GetRequiredService<IHostEnvironment>();
+    var cs = builder.Configuration.GetConnectionString("Default")
+             ?? throw new InvalidOperationException("No connection string defined.");
+
+    return env.IsDevelopment()
         ? new SqliteConnection(cs)
         : new SqlConnection(cs);
 });
@@ -113,24 +111,36 @@ builder.Services.AddAuthorization(options =>
 });
 
 
+
+
+
+
 var app = builder.Build();
 
+
+Console.WriteLine($"Aktives Environment: {app.Environment.EnvironmentName}");
+
 // Logger einrichten (nach Build!)
-var loggerFactory = app.Services.GetRequiredService<ILoggerFactory>();
-var logger = loggerFactory.CreateLogger("DbCheck");
-var connString = builder.Configuration.GetConnectionString("Default");
+var logger = app.Services.GetRequiredService<ILogger<Program>>();
+
+var connString = app.Configuration.GetConnectionString("Default");
 
 try
 {
-    using var testConn = new SqlConnection(connString);
+    using IDbConnection testConn = app.Environment.IsDevelopment()
+        ? new SqliteConnection(connString)
+        : new SqlConnection(connString);
+
     testConn.Open();
-    var serverVersion = testConn.ServerVersion;
-    logger.LogInformation("Verbindung zur Datenbank erfolgreich. Server-Version: {version}", serverVersion);
+    var dbType = testConn is SqliteConnection ? "SQLite" : "Azure SQL";
+    var version = testConn is SqliteConnection ? "n/a" : ((SqlConnection)testConn).ServerVersion;
+    logger.LogInformation("Verbindung zur {dbType} erfolgreich. Version: {version}", dbType, version);
 }
 catch (Exception ex)
 {
     logger.LogError(ex, "Fehler beim Verbindungsaufbau zur Datenbank");
 }
+
 
 // 2) Pipeline- & Schema-Setup (nach Build, vor Run)
 
@@ -154,10 +164,9 @@ app.UseAuthorization();
 try
 {
     using var scope = app.Services.CreateScope();
-    var env = scope.ServiceProvider.GetRequiredService<IHostEnvironment>();
     var initializer = scope.ServiceProvider.GetRequiredService<DatabaseInitializer>();
 
-    if (env.IsDevelopment())
+    if (app.Environment.IsDevelopment())
     {
         initializer.DropAllTables();
     }
