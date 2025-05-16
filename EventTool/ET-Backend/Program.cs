@@ -41,6 +41,8 @@ builder.Services.AddCors(options =>
         policy
             .WithOrigins(
                 "https://localhost:7210",
+                "http://localhost:7210",
+                "http://localhost:7085",
                 "https://nice-field-0026f6403.6.azurestaticapps.net"
             )
             .AllowAnyHeader()

@@ -80,48 +80,55 @@ public class AuthenticateService : IAuthenticateService
     /// <item><description><c>Fail("Database failure")</c> – wenn ein Eintrag in DB fehlschlägt</description></item>
     /// </list>
     /// </returns>
-    public async Task<Result<String>> RegisterUser(String firstname, String lastname, String eMail, String password)
+    public async Task<Result<string>> RegisterUser(string firstname, string lastname, string eMail, string password)
     {
         try
         {
-            Result<bool> accountExists = await _accountRepository.AccountExists(eMail);
-            if (accountExists.IsSuccess && !accountExists.Value)
-            {
-                String eMailDomain = eMail.Substring(eMail.LastIndexOf('@') + 1);
+            // Existenz prüfen
+            var accountExists = await _accountRepository.AccountExists(eMail);
+            if (accountExists.IsFailed)
+                return Result.Fail("Fehler beim Überprüfen, ob das Benutzerkonto bereits existiert.");
 
-                Result<bool> organizationExists = await _organizationRepository.OrganizationExists(eMailDomain);
-                if (organizationExists.IsSuccess && organizationExists.Value)
-                {
+            if (accountExists.Value)
+                return Result.Fail("Ein Benutzer mit dieser E-Mail-Adresse existiert bereits.");
 
-                    Result<User> user = await _userRepository.CreateUser(firstname, lastname, password);
-                    Result<Models.Organization> organization = await _organizationRepository.GetOrganization(eMailDomain);
-                    await _accountRepository.CreateAccount(eMail, organization.Value, Role.Member, user.Value);
+            // Domain extrahieren und Organisation prüfen
+            var domain = eMail.Substring(eMail.LastIndexOf('@') + 1);
+            var orgExists = await _organizationRepository.OrganizationExists(domain);
 
-                    if (user.IsSuccess && organization.IsSuccess)
-                    {
-                        return Result.Ok("User added successfully");
-                    }
-                    else
-                    {
-                        return Result.Fail("Database failure");
-                    }
-                }
-                else
-                {
-                    return Result.Fail("No organization exists for this E-Mail");
-                }
-            }
-            else
-            {
-                return Result.Fail("User already exists");
-            }
+            if (orgExists.IsFailed)
+                return Result.Fail("Fehler beim Überprüfen der Organisation zur E-Mail-Domain.");
+            if (!orgExists.Value)
+                return Result.Fail("Es existiert keine Organisation für diese E-Mail-Domain.");
+
+            // Benutzer erstellen
+            var userResult = await _userRepository.CreateUser(firstname, lastname, password);
+            if (userResult.IsFailed)
+                return Result.Fail("Fehler beim Erstellen des Benutzers.");
+
+            // Organisation laden
+            var orgResult = await _organizationRepository.GetOrganization(domain);
+            if (orgResult.IsFailed)
+                return Result.Fail("Fehler beim Abrufen der Organisation.");
+
+            // Account anlegen
+            var accountResult = await _accountRepository.CreateAccount(
+                eMail,
+                orgResult.Value,
+                Role.Member,
+                userResult.Value);
+
+            if (accountResult.IsFailed)
+                return Result.Fail("Fehler beim Anlegen des Benutzerkontos.");
+
+            return Result.Ok("Benutzer wurde erfolgreich registriert.");
         }
         catch (Exception ex)
         {
-
-            return Result.Fail($"DBError: {ex.Message}");
+            return Result.Fail($"Unerwarteter Fehler: {ex.Message}");
         }
     }
+
 
 
     /// <summary>

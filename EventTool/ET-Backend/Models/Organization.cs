@@ -6,11 +6,11 @@ public class Organization
 {
     public int Id { get; set; }
 
-    public String Name { set; get; }
+    public string Name { set; get; }
 
-    public String Description { set; get; }
+    public string Description { set; get; }
 
-    public String Domain { set; get; }
+    public string Domain { set; get; }
 
     public string OrgaPicAsBase64 { get; set; } = string.Empty;
 

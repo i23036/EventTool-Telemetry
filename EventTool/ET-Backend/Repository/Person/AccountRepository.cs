@@ -51,13 +51,13 @@ public class AccountRepository : IAccountRepository
 
     public async Task<Result<Account>> CreateAccount(string accountEMail, Models.Organization organization, Role role, User user)
     {
-        using var tx = _db.BeginTransaction();
+        using var tx = _db.BeginSafeTransaction();
         try
         {
             var userId = await _db.ExecuteScalarAsync<int>(@"
                 INSERT INTO Users (Firstname, Lastname, Password)
                 VALUES (@Firstname, @Lastname, @Password);
-                SELECT last_insert_rowid();",
+                SELECT SELECT CAST(SCOPE_IDENTITY() AS int);",
                 new
                 {
                     user.Firstname,
@@ -133,9 +133,9 @@ public class AccountRepository : IAccountRepository
         {
             var sql = @"
                 SELECT 
-                    a.Id, a.Email AS EMail, a.IsVerified, 
-                    u.Id, u.Firstname, u.Lastname, u.Password,
-                    o.Id, o.Name AS Name, o.Description, o.Domain,
+                    a.Id AS AccountId, a.Email AS EMail, a.IsVerified, 
+                    u.Id AS UserId, u.Firstname, u.Lastname, u.Password,
+                    o.Id AS OrgId, o.Name AS Name, o.Description, o.Domain,
                     om.Role
                 FROM Accounts a
                 JOIN Users u ON a.UserId = u.Id
@@ -153,7 +153,7 @@ public class AccountRepository : IAccountRepository
                     return acc;
                 },
                 new { Email = accountEMail },
-                splitOn: "Id,Id,Role");
+                splitOn: "UserId,OrgId,Role");
 
             var result = account.FirstOrDefault();
             return result == null ? Result.Fail("NotFound") : Result.Ok(result);
@@ -170,9 +170,9 @@ public class AccountRepository : IAccountRepository
         {
             var sql = @"
                 SELECT 
-                    a.Id, a.Email AS EMail, a.IsVerified, 
-                    u.Id, u.Firstname, u.Lastname, u.Password,
-                    o.Id, o.Name AS Name, o.Description, o.Domain,
+                    a.Id AS AccountId, a.Email AS EMail, a.IsVerified, 
+                    u.Id AS UserId, u.Firstname, u.Lastname, u.Password,
+                    o.Id AS OrgId, o.Name AS Name, o.Description, o.Domain,
                     om.Role
                 FROM Accounts a
                 JOIN Users u ON a.UserId = u.Id
@@ -190,7 +190,7 @@ public class AccountRepository : IAccountRepository
                     return acc;
                 },
                 new { Id = accountId },
-                splitOn: "Id,Id,Role");
+                splitOn: "UserId,OrgId,Role");
 
             var result = account.FirstOrDefault();
             return result == null ? Result.Fail("NotFound") : Result.Ok(result);
@@ -203,7 +203,7 @@ public class AccountRepository : IAccountRepository
 
     public async Task<Result> EditAccount(Account account)
     {
-        using var tx = _db.BeginTransaction();
+        using var tx = _db.BeginSafeTransaction();
         try
         {
             await _db.ExecuteAsync(@"

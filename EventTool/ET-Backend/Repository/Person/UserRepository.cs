@@ -40,7 +40,7 @@ public class UserRepository : IUserRepository
             var userId = await _db.ExecuteScalarAsync<int>(@"
                 INSERT INTO Users (Firstname, Lastname, Password)
                 VALUES (@Firstname, @Lastname, @Password);
-                SELECT last_insert_rowid();",
+                SELECT CAST(SCOPE_IDENTITY() AS int);",
                 new
                 {
                     Firstname = firstname,

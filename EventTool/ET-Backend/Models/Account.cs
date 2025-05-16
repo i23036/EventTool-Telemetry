@@ -7,7 +7,7 @@ public class Account
 {
     public int Id { set; get; }
 
-    public String EMail { set; get; }
+    public string EMail { set; get; }
 
     public User User { set; get; }
 

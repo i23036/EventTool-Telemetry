@@ -5,11 +5,11 @@
 public class User
 {
     public int Id { get; set; }
-    public String Lastname { set; get; }
+    public string Lastname { set; get; }
 
-    public String Firstname { set; get; }
+    public string Firstname { set; get; }
 
-    public String Password { set; get; }
+    public string Password { set; get; }
 
     public List<Account> Accounts { get; set; } = new List<Account>();
 }
