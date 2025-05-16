@@ -112,12 +112,11 @@ builder.Services.AddAuthorization(options =>
     );
 });
 
-
-
-
-
-
 var app = builder.Build();
+
+
+
+
 
 
 Console.WriteLine($"Aktives Environment: {app.Environment.EnvironmentName}");
