@@ -2,6 +2,7 @@
 using Dapper;
 using ET_Backend.Models;
 using FluentResults;
+using Microsoft.Data.Sqlite;
 
 namespace ET_Backend.Repository.Person;
 
@@ -52,48 +53,62 @@ public class AccountRepository : IAccountRepository
     public async Task<Result<Account>> CreateAccount(string accountEMail, Models.Organization organization, Role role, User user)
     {
         using var tx = _db.BeginSafeTransaction();
+
         try
         {
-            var userId = await _db.ExecuteScalarAsync<int>(@"
-                INSERT INTO Users (Firstname, Lastname, Password)
-                VALUES (@Firstname, @Lastname, @Password);
-                SELECT SELECT CAST(SCOPE_IDENTITY() AS int);",
+            // DB-spezifische ID-Strategie
+            var idQuery = _db is SqliteConnection
+                ? "SELECT last_insert_rowid();"
+                : "SELECT CAST(SCOPE_IDENTITY() AS int);";
+
+            // User einfügen
+            var userId = await _db.ExecuteScalarAsync<int>(
+                $@"INSERT INTO Users (Firstname, Lastname, Password)
+               VALUES (@Firstname, @Lastname, @Password);
+               {idQuery}",
                 new
                 {
                     user.Firstname,
                     user.Lastname,
                     user.Password
-                }, tx);
+                },
+                tx);
 
-            var accountId = await _db.ExecuteScalarAsync<int>(@"
-                INSERT INTO Accounts (Email, UserId)
-                VALUES (@Email, @UserId);
-                SELECT last_insert_rowid();",
+            // Account einfügen
+            var accountId = await _db.ExecuteScalarAsync<int>(
+                $@"INSERT INTO Accounts (Email, UserId)
+               VALUES (@Email, @UserId);
+               {idQuery}",
                 new
                 {
                     Email = accountEMail,
                     UserId = userId
-                }, tx);
+                },
+                tx);
 
-            await _db.ExecuteAsync(@"
-                INSERT INTO OrganizationMembers (AccountId, OrganizationId, Role)
-                VALUES (@AccountId, @OrgId, @Role);",
+            // Organisationseintrag
+            await _db.ExecuteAsync(
+                @"INSERT INTO OrganizationMembers (AccountId, OrganizationId, Role)
+              VALUES (@AccountId, @OrgId, @Role);",
                 new
                 {
                     AccountId = accountId,
                     OrgId = organization.Id,
                     Role = (int)role
-                }, tx);
+                },
+                tx);
 
             tx.Commit();
+
             return await GetAccount(accountId);
         }
-        catch(Exception ex)
+        catch (Exception ex)
         {
             tx.Rollback();
             return Result.Fail($"DBError: {ex.Message}");
         }
     }
+
 
     public async Task<Result> DeleteAccount(string accountEMail)
     {

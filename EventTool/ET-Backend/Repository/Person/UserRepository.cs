@@ -2,6 +2,7 @@
 using Dapper;
 using ET_Backend.Models;
 using FluentResults;
+using Microsoft.Data.Sqlite;
 
 namespace ET_Backend.Repository.Person;
 
@@ -37,10 +38,17 @@ public class UserRepository : IUserRepository
     {
         try
         {
-            var userId = await _db.ExecuteScalarAsync<int>(@"
-                INSERT INTO Users (Firstname, Lastname, Password)
-                VALUES (@Firstname, @Lastname, @Password);
-                SELECT CAST(SCOPE_IDENTITY() AS int);",
+            var insertSql = @"
+            INSERT INTO Users (Firstname, Lastname, Password)
+            VALUES (@Firstname, @Lastname, @Password);";
+
+            // Unterscheide automatisch SQLite vs. SQL Server
+            var idQuery = _db is SqliteConnection
+                ? "SELECT last_insert_rowid();"
+                : "SELECT CAST(SCOPE_IDENTITY() AS int);";
+
+            var userId = await _db.ExecuteScalarAsync<int>(
+                insertSql + idQuery,
                 new
                 {
                     Firstname = firstname,
@@ -50,11 +58,12 @@ public class UserRepository : IUserRepository
 
             return await GetUser(userId);
         }
-        catch(Exception ex)
+        catch (Exception ex)
         {
             return Result.Fail($"DBError: {ex.Message}");
         }
     }
+
 
     public async Task<Result> DeleteUser(int userId)
     {
