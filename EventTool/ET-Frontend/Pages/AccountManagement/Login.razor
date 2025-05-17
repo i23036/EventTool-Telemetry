@@ -24,44 +24,45 @@
             <MudText Typo="Typo.h5" Align="Align.Center" Class="mb-4">Melden Sie sich an</MudText>
 
             <!-- Anmeldeformular -->
-            <MudForm @ref="_form" Model="@formModel" OnValidSubmit="HandleLogin">
-                <!-- E-Mail-Eingabe -->
-                <MudTextField @bind-Value="formModel.Email"
-                Label="E-Mail"
-                Required="true"
-                For="@(() => formModel.Email)"
-                RequiredError="E-Mail ist erforderlich."
-                Variant="Variant.Filled"
-                Margin="Margin.Dense"
-                Class="mb-3" />
+            <MudForm @ref="_form" 
+                     Model="@formModel">
 
-                <!-- Passwort-Eingabe -->
-                <MudTextField @bind-Value="formModel.Password"
-                Label="Passwort"
-                InputType="InputType.Password"
-                Required="true"
-                For="@(() => formModel.Password)"
-                RequiredError="Passwort ist erforderlich."
-                Variant="Variant.Filled"
-                Margin="Margin.Dense"
-                Class="mb-3" />
+	            <!-- E-Mail-Eingabe -->
+	            <MudTextField @bind-Value="formModel.Email"
+	                          Label="E-Mail"
+	                          Required="true"
+	                          For="@(() => formModel.Email)"
+	                          RequiredError="E-Mail ist erforderlich."
+	                          Variant="Variant.Filled"
+	                          Margin="Margin.Dense"
+	                          Class="mb-3"/>
 
-                <!-- Anmeldebutton -->
-                <MudButton Type="ButtonType"
-                           Variant="Variant.Filled"
-						   OnClick="HandleLogin"
-                           Color="Color.Primary"
-                           Class="mt-2"
-                           FullWidth>
-	                Anmelden
-                </MudButton>
-				
-                @if (!string.IsNullOrWhiteSpace(_error))
-                {
-	                <MudText Typo="Typo.body2" Class="mt-2 text-danger" Align="Align.Center">
-		                @_error
-	                </MudText>
-                }
+	            <!-- Passwort-Eingabe -->
+	            <MudTextField @bind-Value="formModel.Password"
+	                          Label="Passwort"
+	                          InputType="InputType.Password"
+	                          Required="true"
+	                          For="@(() => formModel.Password)"
+	                          RequiredError="Passwort ist erforderlich."
+	                          Variant="Variant.Filled"
+	                          Margin="Margin.Dense"
+	                          Class="mb-3"/>
+
+	            <!-- Anmeldebutton -->
+	            <MudButton Variant="Variant.Filled"
+	                       OnClick="HandleLogin"
+	                       Color="Color.Primary"
+	                       Class="mt-2"
+	                       FullWidth>
+		            Anmelden
+	            </MudButton>
+
+	            @if (!string.IsNullOrWhiteSpace(_error))
+	            {
+		            <MudText Typo="Typo.body2" Class="mt-2 text-danger" Align="Align.Center">
+			            @_error
+		            </MudText>
+	            }
 
             </MudForm>
 
@@ -112,7 +113,7 @@
 	    }
 	    catch (Exception ex)
 	    {
-		    _error = ex.Message;
+			_error = $"[EX] {ex.Message}";
 	    }
     }
 

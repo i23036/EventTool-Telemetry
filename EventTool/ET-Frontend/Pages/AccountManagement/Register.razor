@@ -88,10 +88,9 @@
 	                       OnClick="SubmitAsync">
 		            Registrieren
 	            </MudButton>
-
-
 				
-                @if (!string.IsNullOrWhiteSpace(_error))
+
+	            @if (!string.IsNullOrWhiteSpace(_error))
                 {
 	                <MudText Typo="Typo.body2" Class="mt-2 text-danger" Align="Align.Center">
 		                @_error

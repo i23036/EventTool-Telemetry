@@ -47,6 +47,9 @@ public class AccountRepository : IAccountRepository
         }
     }
 
+    private Type RoleSplitType() => _db.IsSQLite() ? typeof(long) : typeof(int);
+
+
     //Hauptmethoden
 
     public async Task<Result<bool>> AccountExists(string accountEMail)
@@ -152,12 +155,39 @@ public class AccountRepository : IAccountRepository
                           JOIN {Tbl("Organizations")} o     ON o.Id           = om.OrganizationId
                           WHERE a.Email = @Email";
 
-            var account = await _db.QueryAsync<Account, User, Models.Organization, long, Account>(
-                sql, (acc, usr, org, role) => { acc.User = usr; acc.Organization = org; acc.Role = (Role)role; return acc; },
-                new { Email = accountEMail }, splitOn: "UserId,OrgId,Role");
+            if (_db.IsSQLite())
+            {
+                var result = await _db.QueryAsync<Account, User, Models.Organization, long, Account>(
+                    sql,
+                    (acc, usr, org, role) =>
+                    {
+                        acc.User = usr;
+                        acc.Organization = org;
+                        acc.Role = (Role)(int)role; // cast long → int → enum
+                        return acc;
+                    },
+                    new { Email = accountEMail },
+                    splitOn: "UserId,OrgId,Role");
 
-            var result = account.FirstOrDefault();
-            return result == null ? Result.Fail("NotFound") : Result.Ok(result);
+                return result.FirstOrDefault() is { } a ? Result.Ok(a) : Result.Fail("NotFound");
+            }
+            else
+            {
+                var result = await _db.QueryAsync<Account, User, Models.Organization, int, Account>(
+                    sql,
+                    (acc, usr, org, role) =>
+                    {
+                        acc.User = usr;
+                        acc.Organization = org;
+                        acc.Role = (Role)role;
+                        return acc;
+                    },
+                    new { Email = accountEMail },
+                    splitOn: "UserId,OrgId,Role");
+
+                return result.FirstOrDefault() is { } a ? Result.Ok(a) : Result.Fail("NotFound");
+            }
+
         }
         catch (Exception ex)
         {
@@ -188,12 +218,39 @@ public class AccountRepository : IAccountRepository
                           JOIN {Tbl("Organizations")} o     ON o.Id           = om.OrganizationId
                           WHERE a.Id = @Id";
 
-            var account = await _db.QueryAsync<Account, User, Models.Organization, long, Account>(
-                sql, (acc, usr, org, role) => { acc.User = usr; acc.Organization = org; acc.Role = (Role)role; return acc; },
-                new { Id = accountId }, splitOn: "UserId,OrgId,Role");
+            if (_db.IsSQLite())
+            {
+                var result = await _db.QueryAsync<Account, User, Models.Organization, long, Account>(
+                    sql,
+                    (acc, usr, org, role) =>
+                    {
+                        acc.User = usr;
+                        acc.Organization = org;
+                        acc.Role = (Role)(int)role; // cast long → int → enum
+                        return acc;
+                    },
+                    new { Id = accountId },
+                    splitOn: "UserId,OrgId,Role");
 
-            var result = account.FirstOrDefault();
-            return result == null ? Result.Fail("NotFound") : Result.Ok(result);
+                return result.FirstOrDefault() is { } a ? Result.Ok(a) : Result.Fail("NotFound");
+            }
+            else
+            {
+                var result = await _db.QueryAsync<Account, User, Models.Organization, int, Account>(
+                    sql,
+                    (acc, usr, org, role) =>
+                    {
+                        acc.User = usr;
+                        acc.Organization = org;
+                        acc.Role = (Role)role;
+                        return acc;
+                    },
+                    new { Id = accountId },
+                    splitOn: "UserId,OrgId,Role");
+
+                return result.FirstOrDefault() is { } a ? Result.Ok(a) : Result.Fail("NotFound");
+            }
+
         }
         catch (Exception ex)
         {
