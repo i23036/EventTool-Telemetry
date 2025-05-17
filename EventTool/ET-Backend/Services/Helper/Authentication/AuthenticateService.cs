@@ -142,7 +142,7 @@ public class AuthenticateService : IAuthenticateService
                 //return Result.Fail("Fehler beim Anlegen des Benutzerkontos.");
 
                 // TEMPORÄR: DEBUG: Fehlerausgabe
-                var dbError = accountExists.Errors[0].Message;
+                var dbError = accountResult.Errors[0].Message;
                 return Result.Fail<string>($"[DEBUG] {dbError}");
             }
 
