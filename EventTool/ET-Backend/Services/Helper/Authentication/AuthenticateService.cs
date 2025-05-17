@@ -138,7 +138,13 @@ public class AuthenticateService : IAuthenticateService
                 user);
 
             if (accountResult.IsFailed)
-                return Result.Fail("Fehler beim Anlegen des Benutzerkontos.");
+            {
+                //return Result.Fail("Fehler beim Anlegen des Benutzerkontos.");
+
+                // TEMPORÄR: DEBUG: Fehlerausgabe
+                var dbError = accountExists.Errors[0].Message;
+                return Result.Fail<string>($"[DEBUG] {dbError}");
+            }
 
             return Result.Ok("Benutzer wurde erfolgreich registriert.");
         }
