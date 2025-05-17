@@ -14,23 +14,32 @@ namespace ET_Backend.Services.Helper.Authentication;
 /// </summary>
 public class AuthenticateService : IAuthenticateService
 {
-    private IAccountRepository _accountRepository;
-    private IUserRepository _userRepository;
-    private IOrganizationRepository _organizationRepository;
-    private JwtOptions _jwtOptions;
+    private readonly IAccountRepository _accountRepository;
+    private readonly IUserRepository _userRepository;
+    private readonly IOrganizationRepository _organizationRepository;
+    private readonly JwtOptions _jwtOptions;
+    private readonly ILogger<AuthenticateService> _logger;
 
     /// <summary>
     /// Erstellt eine neue Instanz des <see cref="AuthenticateService"/>.
     /// </summary>
     /// <param name="accountRepository">Das Repository für Benutzerkonten.</param>
+    /// <param name="userRepository"></param>
+    /// <param name="organizationRepository"></param>
     /// <param name="jwtOptions">Konfiguration für das JWT-Token.</param>
-    public AuthenticateService(IAccountRepository accountRepository, IUserRepository userRepository, 
-        IOrganizationRepository organizationRepository, IOptions<JwtOptions> jwtOptions)
+    /// <param name="logger"></param>
+    public AuthenticateService(
+        IAccountRepository accountRepository,
+        IUserRepository userRepository,
+        IOrganizationRepository organizationRepository, 
+        IOptions<JwtOptions> jwtOptions,
+        ILogger<AuthenticateService> logger)
     {
         _accountRepository = accountRepository;
         _userRepository = userRepository;
         _organizationRepository = organizationRepository;
         _jwtOptions = jwtOptions.Value;
+        _logger = logger;
     }
 
     /// <summary>
@@ -87,7 +96,10 @@ public class AuthenticateService : IAuthenticateService
             // Existenz prüfen
             var accountExists = await _accountRepository.AccountExists(eMail);
             if (accountExists.IsFailed)
+            {
+                _logger.LogError(accountExists.Errors[0].Message);
                 return Result.Fail("Fehler beim Überprüfen, ob das Benutzerkonto bereits existiert.");
+            }
 
             if (accountExists.Value)
                 return Result.Fail("Ein Benutzer mit dieser E-Mail-Adresse existiert bereits.");

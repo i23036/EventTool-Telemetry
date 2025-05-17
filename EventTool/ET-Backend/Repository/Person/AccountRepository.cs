@@ -71,7 +71,7 @@ public class AccountRepository : IAccountRepository
         }
         catch (Exception ex)
         {
-            return Result.Fail($"DBError: {ex.Message}");
+            return Result.Fail($"DBError: {ex.GetType().Name}: {ex.Message}");
         }
     }
 
