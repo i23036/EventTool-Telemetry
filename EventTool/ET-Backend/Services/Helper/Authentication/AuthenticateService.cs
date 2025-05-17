@@ -7,6 +7,7 @@ using ET_Backend.Repository.Person;
 using FluentResults;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace ET_Backend.Services.Helper.Authentication;
 /// <summary>
@@ -97,8 +98,11 @@ public class AuthenticateService : IAuthenticateService
             var accountExists = await _accountRepository.AccountExists(eMail);
             if (accountExists.IsFailed)
             {
-                _logger.LogError(accountExists.Errors[0].Message);
-                return Result.Fail("Fehler beim Überprüfen, ob das Benutzerkonto bereits existiert.");
+                //return Result.Fail("Fehler beim Überprüfen, ob das Benutzerkonto bereits existiert.");
+
+                // TEMPORÄR: DEBUG: Fehlerausgabe
+                var dbError = accountExists.Errors[0].Message;
+                return Result.Fail<string>($"[DEBUG] {dbError}");
             }
 
             if (accountExists.Value)
