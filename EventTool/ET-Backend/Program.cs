@@ -162,6 +162,8 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 // Schema-Init mit Logging
+// Nur für Dev-Umgebung
+// Prod-DB (Azure-DB) sollte schon existieren. (Init-Files in Resource-Ordner)
 try
 {
     using var scope = app.Services.CreateScope();
@@ -170,10 +172,9 @@ try
     if (app.Environment.IsDevelopment())
     {
         initializer.DropAllTables();
+        initializer.Initialize();
+        initializer.SeedDemoData();
     }
-
-    initializer.Initialize();
-    initializer.SeedDemoData();
 }
 catch (Exception ex)
 {
