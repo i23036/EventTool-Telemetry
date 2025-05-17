@@ -101,22 +101,25 @@ public class AuthenticateService : IAuthenticateService
             if (!orgExists.Value)
                 return Result.Fail("Es existiert keine Organisation für diese E-Mail-Domain.");
 
-            // Benutzer erstellen
-            var userResult = await _userRepository.CreateUser(firstname, lastname, password);
-            if (userResult.IsFailed)
-                return Result.Fail("Fehler beim Erstellen des Benutzers.");
-
             // Organisation laden
             var orgResult = await _organizationRepository.GetOrganization(domain);
             if (orgResult.IsFailed)
                 return Result.Fail("Fehler beim Abrufen der Organisation.");
+
+            // Neuen User vorbereiten
+            var user = new User
+            {
+                Firstname = firstname,
+                Lastname = lastname,
+                Password = password
+            };
 
             // Account anlegen
             var accountResult = await _accountRepository.CreateAccount(
                 eMail,
                 orgResult.Value,
                 Role.Member,
-                userResult.Value);
+                user);
 
             if (accountResult.IsFailed)
                 return Result.Fail("Fehler beim Anlegen des Benutzerkontos.");

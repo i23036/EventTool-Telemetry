@@ -7,7 +7,9 @@ using Microsoft.Data.Sqlite;
 namespace ET_Backend.Repository.Person;
 
 /// <summary>
-/// Implementierung des Repositories für den Zugriff auf Kontodaten.
+/// Repository für den Zugriff auf Accounts / Users – funktioniert sowohl mit
+/// SQLite (Dev) als auch mit Azure SQL (Prod). Plattformabhängige Details
+/// (Tabellennamen, Identity‑Abruf) werden zur Laufzeit ermittelt.
 /// </summary>
 public class AccountRepository : IAccountRepository
 {
@@ -18,17 +20,43 @@ public class AccountRepository : IAccountRepository
         _db = db;
     }
 
+    //Helfermethoden
+
+    /// <summary>
+    /// Liefert den vollqualifizierten Tabellennamen – unter SQL Server wird
+    /// automatisch "dbo." vorangestellt.
+    /// </summary>
+    private string Tbl(string baseName) => _db.IsSQLite() ? baseName : $"dbo.{baseName}";
+
+    /// <summary>
+    /// Fügt einen Datensatz ein und gibt die generierte Id zurück.
+    /// * SQLite → INSERT … <c>RETURNING Id</c>
+    /// * SQL Server/Azure SQL → <c>SELECT CAST(SCOPE_IDENTITY() AS int)</c>
+    /// </summary>
+    private async Task<int> InsertAndGetIdAsync(string sql, object param, IDbTransaction tx)
+    {
+        if (_db.IsSQLite())
+        {
+            // Moderner, race‑condition‑sicherer Weg ab SQLite 3.35
+            return await _db.ExecuteScalarAsync<int>($"{sql} RETURNING Id;", param, tx);
+        }
+        else
+        {
+            var fullSql = $"{sql}; SELECT CAST(SCOPE_IDENTITY() AS int);";
+            return await _db.ExecuteScalarAsync<int>(fullSql, param, tx);
+        }
+    }
+
+    //Hauptmethoden
+
     public async Task<Result<bool>> AccountExists(string accountEMail)
     {
         try
         {
-            var count = await _db.ExecuteScalarAsync<int>(
-                "SELECT COUNT(1) FROM Accounts WHERE Email = @Email",
-                new { Email = accountEMail });
-
+            var count = await _db.ExecuteScalarAsync<int>($"SELECT COUNT(1) FROM {Tbl("Accounts")} WHERE Email = @Email", new { Email = accountEMail });
             return Result.Ok(count > 0);
         }
-        catch(Exception ex)
+        catch (Exception ex)
         {
             return Result.Fail($"DBError: {ex.Message}");
         }
@@ -38,13 +66,10 @@ public class AccountRepository : IAccountRepository
     {
         try
         {
-            var count = await _db.ExecuteScalarAsync<int>(
-                "SELECT COUNT(1) FROM Accounts WHERE Id = @Id",
-                new { Id = accountId });
-
+            var count = await _db.ExecuteScalarAsync<int>($"SELECT COUNT(1) FROM {Tbl("Accounts")} WHERE Id = @Id", new { Id = accountId });
             return Result.Ok(count > 0);
         }
-        catch(Exception ex)
+        catch (Exception ex)
         {
             return Result.Fail($"DBError: {ex.Message}");
         }
@@ -53,57 +78,22 @@ public class AccountRepository : IAccountRepository
     public async Task<Result<Account>> CreateAccount(string accountEMail, Models.Organization organization, Role role, User user)
     {
         using var tx = _db.BeginSafeTransaction();
-
         try
         {
-            // DB-spezifische ID-Strategie
-            var idQuery = _db is SqliteConnection
-                ? "SELECT last_insert_rowid();"
-                : "SELECT CAST(SCOPE_IDENTITY() AS int);";
-
-            // User einfügen
-            var userId = await _db.ExecuteScalarAsync<int>(
-                $@"INSERT INTO Users (Firstname, Lastname, Password)
-               VALUES (@Firstname, @Lastname, @Password);
-               {idQuery}",
-                new
-                {
-                    user.Firstname,
-                    user.Lastname,
-                    user.Password
-                },
-                tx);
-            // Wichtig: ID zurück ins Objekt schreiben
+            // 1) User
+            var userInsert = $"INSERT INTO {Tbl("Users")}(Firstname, Lastname, Password) VALUES (@Firstname, @Lastname, @Password)";
+            var userId = await InsertAndGetIdAsync(userInsert, new { user.Firstname, user.Lastname, user.Password }, tx);
             user.Id = userId;
 
-            Console.WriteLine($"User-ID: {user.Id}"); // nur zum Debuggen lokal
+            // 2) Account
+            var accInsert = $"INSERT INTO {Tbl("Accounts")}(Email, UserId) VALUES (@Email, @UserId)";
+            var accountId = await InsertAndGetIdAsync(accInsert, new { Email = accountEMail, UserId = userId }, tx);
 
-            // Account einfügen
-            var accountId = await _db.ExecuteScalarAsync<int>(
-                $@"INSERT INTO Accounts (Email, UserId)
-               VALUES (@Email, @UserId);
-               {idQuery}",
-                new
-                {
-                    Email = accountEMail,
-                    UserId = user.Id       //Dapper kann hier den Parameter UserId nicht auflösen, weil er nicht in der DB ist
-                },
-                tx);
-
-            // Organisationseintrag
-            await _db.ExecuteAsync(
-                @"INSERT INTO OrganizationMembers (AccountId, OrganizationId, Role)
-              VALUES (@AccountId, @OrganizationId, @Role);",
-                new
-                {
-                    AccountId = accountId,
-                    OrganizationId = organization.Id,
-                    Role = (int)role
-                },
-                tx);
+            // 3) Org‑Member
+            await _db.ExecuteAsync($"INSERT INTO {Tbl("OrganizationMembers")}(AccountId, OrganizationId, Role) VALUES (@AccountId, @OrganizationId, @Role);",
+                                   new { AccountId = accountId, OrganizationId = organization.Id, Role = (int)role }, tx);
 
             tx.Commit();
-
             return await GetAccount(accountId);
         }
         catch (Exception ex)
@@ -113,18 +103,14 @@ public class AccountRepository : IAccountRepository
         }
     }
 
-
     public async Task<Result> DeleteAccount(string accountEMail)
     {
         try
         {
-            var rows = await _db.ExecuteAsync(
-                "DELETE FROM Accounts WHERE Email = @Email",
-                new { Email = accountEMail });
-
+            var rows = await _db.ExecuteAsync($"DELETE FROM {Tbl("Accounts")} WHERE Email = @Email", new { Email = accountEMail });
             return rows > 0 ? Result.Ok() : Result.Fail("NotFound");
         }
-        catch(Exception ex)
+        catch (Exception ex)
         {
             return Result.Fail($"DBError: {ex.Message}");
         }
@@ -134,50 +120,46 @@ public class AccountRepository : IAccountRepository
     {
         try
         {
-            var rows = await _db.ExecuteAsync(
-                "DELETE FROM Accounts WHERE Id = @Id",
-                new { Id = accountId });
-
+            var rows = await _db.ExecuteAsync($"DELETE FROM {Tbl("Accounts")} WHERE Id = @Id", new { Id = accountId });
             return rows > 0 ? Result.Ok() : Result.Fail("NotFound");
         }
-        catch(Exception ex)
+        catch (Exception ex)
         {
             return Result.Fail($"DBError: {ex.Message}");
         }
     }
-
+    
     public async Task<Result<Account>> GetAccount(string accountEMail)
     {
         try
         {
-            var sql = @"
-                SELECT 
-                    a.Id AS AccountId, a.Email AS EMail, a.IsVerified, 
-                    u.Id AS UserId, u.Firstname, u.Lastname, u.Password,
-                    o.Id AS OrgId, o.Name AS Name, o.Description, o.Domain,
-                    om.Role
-                FROM Accounts a
-                JOIN Users u ON a.UserId = u.Id
-                JOIN OrganizationMembers om ON om.AccountId = a.Id
-                JOIN Organizations o ON o.Id = om.OrganizationId
-                WHERE a.Email = @Email";
+            var sql = $@"SELECT 
+                            a.Id              AS AccountId,
+                            a.Email           AS EMail,
+                            a.IsVerified,
+                            u.Id              AS UserId,
+                            u.Firstname,
+                            u.Lastname,
+                            u.Password,
+                            o.Id              AS OrgId,
+                            o.Name            AS Name,
+                            o.Description,
+                            o.Domain,
+                            om.Role
+                          FROM {Tbl("Accounts")} a
+                          JOIN {Tbl("Users")} u             ON a.UserId       = u.Id
+                          JOIN {Tbl("OrganizationMembers")} om ON om.AccountId   = a.Id
+                          JOIN {Tbl("Organizations")} o     ON o.Id           = om.OrganizationId
+                          WHERE a.Email = @Email";
 
             var account = await _db.QueryAsync<Account, User, Models.Organization, long, Account>(
-                sql,
-                (acc, user, org, role) =>
-                {
-                    acc.User = user;
-                    acc.Organization = org;
-                    acc.Role = (Role)role;
-                    return acc;
-                },
-                new { Email = accountEMail },
-                splitOn: "UserId,OrgId,Role");
+                sql, (acc, usr, org, role) => { acc.User = usr; acc.Organization = org; acc.Role = (Role)role; return acc; },
+                new { Email = accountEMail }, splitOn: "UserId,OrgId,Role");
 
             var result = account.FirstOrDefault();
             return result == null ? Result.Fail("NotFound") : Result.Ok(result);
         }
-        catch(Exception ex)
+        catch (Exception ex)
         {
             return Result.Fail($"DBError: {ex.Message}");
         }
@@ -187,34 +169,33 @@ public class AccountRepository : IAccountRepository
     {
         try
         {
-            var sql = @"
-                SELECT 
-                    a.Id AS AccountId, a.Email AS EMail, a.IsVerified, 
-                    u.Id AS UserId, u.Firstname, u.Lastname, u.Password,
-                    o.Id AS OrgId, o.Name AS Name, o.Description, o.Domain,
-                    om.Role
-                FROM Accounts a
-                JOIN Users u ON a.UserId = u.Id
-                JOIN OrganizationMembers om ON om.AccountId = a.Id
-                JOIN Organizations o ON o.Id = om.OrganizationId
-                WHERE a.Id = @Id";
+            var sql = $@"SELECT 
+                            a.Id              AS AccountId,
+                            a.Email           AS EMail,
+                            a.IsVerified,
+                            u.Id              AS UserId,
+                            u.Firstname,
+                            u.Lastname,
+                            u.Password,
+                            o.Id              AS OrgId,
+                            o.Name            AS Name,
+                            o.Description,
+                            o.Domain,
+                            om.Role
+                          FROM {Tbl("Accounts")} a
+                          JOIN {Tbl("Users")} u             ON a.UserId       = u.Id
+                          JOIN {Tbl("OrganizationMembers")} om ON om.AccountId   = a.Id
+                          JOIN {Tbl("Organizations")} o     ON o.Id           = om.OrganizationId
+                          WHERE a.Id = @Id";
 
             var account = await _db.QueryAsync<Account, User, Models.Organization, long, Account>(
-                sql,
-                (acc, user, org, role) =>
-                {
-                    acc.User = user;
-                    acc.Organization = org;
-                    acc.Role = (Role)role;
-                    return acc;
-                },
-                new { Id = accountId },
-                splitOn: "UserId,OrgId,Role");
+                sql, (acc, usr, org, role) => { acc.User = usr; acc.Organization = org; acc.Role = (Role)role; return acc; },
+                new { Id = accountId }, splitOn: "UserId,OrgId,Role");
 
             var result = account.FirstOrDefault();
             return result == null ? Result.Fail("NotFound") : Result.Ok(result);
         }
-        catch(Exception ex)
+        catch (Exception ex)
         {
             return Result.Fail($"DBError: {ex.Message}");
         }
@@ -225,47 +206,22 @@ public class AccountRepository : IAccountRepository
         using var tx = _db.BeginSafeTransaction();
         try
         {
-            await _db.ExecuteAsync(@"
-                UPDATE Accounts
-                SET Email = @Email,
-                    IsVerified = @IsVerified
-                WHERE Id = @Id;",
-                new
-                {
-                    Email = account.EMail,
-                    IsVerified = account.IsVerified ? 1 : 0,
-                    account.Id
-                }, tx);
+            // Account
+            await _db.ExecuteAsync($"UPDATE {Tbl("Accounts")} SET Email = @Email, IsVerified = @IsVerified WHERE Id = @Id;",
+                                   new { Email = account.EMail, IsVerified = account.IsVerified ? 1 : 0, account.Id }, tx);
 
-            await _db.ExecuteAsync(@"
-                UPDATE Users
-                SET Firstname = @Firstname,
-                    Lastname = @Lastname,
-                    Password = @Password
-                WHERE Id = @UserId;",
-                new
-                {
-                    UserId = account.User.Id,
-                    account.User.Firstname,
-                    account.User.Lastname,
-                    account.User.Password
-                }, tx);
+            // User
+            await _db.ExecuteAsync($"UPDATE {Tbl("Users")} SET Firstname = @Firstname, Lastname = @Lastname, Password = @Password WHERE Id = @UserId;",
+                                   new { UserId = account.User.Id, account.User.Firstname, account.User.Lastname, account.User.Password }, tx);
 
-            await _db.ExecuteAsync(@"
-                UPDATE OrganizationMembers
-                SET Role = @Role
-                WHERE AccountId = @AccountId AND OrganizationId = @OrganizationId;",
-                new
-                {
-                    Role = (int)account.Role,
-                    AccountId = account.Id,
-                    OrganizationId = account.Organization.Id
-                }, tx);
+            // Org‑Member
+            await _db.ExecuteAsync($"UPDATE {Tbl("OrganizationMembers")} SET Role = @Role WHERE AccountId = @AccountId AND OrganizationId = @OrganizationId;",
+                                   new { Role = (int)account.Role, AccountId = account.Id, OrganizationId = account.Organization.Id }, tx);
 
             tx.Commit();
             return Result.Ok();
         }
-        catch(Exception ex)
+        catch (Exception ex)
         {
             tx.Rollback();
             return Result.Fail($"DBError: {ex.Message}");
