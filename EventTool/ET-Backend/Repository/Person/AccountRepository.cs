@@ -22,11 +22,11 @@ public class AccountRepository : IAccountRepository
     {
         try
         {
-            var exists = await _db.ExecuteScalarAsync<bool>(
+            var count = await _db.ExecuteScalarAsync<int>(
                 "SELECT COUNT(1) FROM Accounts WHERE Email = @Email",
                 new { Email = accountEMail });
 
-            return Result.Ok(exists);
+            return Result.Ok(count > 0);
         }
         catch(Exception ex)
         {
@@ -38,11 +38,11 @@ public class AccountRepository : IAccountRepository
     {
         try
         {
-            var exists = await _db.ExecuteScalarAsync<bool>(
+            var count = await _db.ExecuteScalarAsync<int>(
                 "SELECT COUNT(1) FROM Accounts WHERE Id = @Id",
                 new { Id = accountId });
 
-            return Result.Ok(exists);
+            return Result.Ok(count > 0);
         }
         catch(Exception ex)
         {
