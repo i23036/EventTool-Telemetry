@@ -24,13 +24,10 @@
             <MudText Typo="Typo.h5" Align="Align.Center" Class="mb-4">Registrieren Sie sich <br/>(angelegte Domain: demo.org)</MudText>
 
             <!-- Registrierungsformular -->
-            <MudForm Model="@formModel" 
-                     @ref="_form" 
-                     OnSubmit="OnAnySubmit"
-                     OnInvalidSubmit="OnInvalidSubmit"
-                     OnValidSubmit="HandleRegister">
-
-                <!-- Vorname -->
+            <MudForm @ref="_form"
+                     Model="@formModel">
+					 
+	            <!-- Vorname -->
                 <MudTextField @bind-Value="formModel.FirstName"
                 Label="Vorname"
                 For="@(() => formModel.FirstName)"
@@ -81,19 +78,18 @@
                 Variant="Variant.Filled"
                 Margin="Margin.Dense"
                 Class="mb-3" />
+				
 
                 <!-- Registrierungsbutton -->
-				
-                
+	            <MudButton Variant="Variant.Filled"
+	                       Color="Color.Primary"
+	                       Class="mt-2"
+	                       FullWidth
+	                       OnClick="SubmitAsync">
+		            Registrieren
+	            </MudButton>
 
-                <MudButton Type="ButtonType"
-                           Variant="Variant.Filled"
-                           OnClick="HandleRegister"
-                Color="Color.Primary"
-                Class="mt-2"
-                FullWidth>
-                    Registrieren
-                </MudButton>
+
 				
                 @if (!string.IsNullOrWhiteSpace(_error))
                 {
@@ -130,30 +126,21 @@
     /// </summary>
     private RegisterModel formModel = new();
 
-    // Wird bei *jedem* Klick ausgelöst (auch wenn invalid)
-    private void OnAnySubmit()
+    private async Task SubmitAsync()
     {
-	    Console.WriteLine("▶ OnSubmit");
+	    await _form.Validate();          // DataAnnotations prüfen
+	    if (!_form.IsValid) return;      // bei Fehlern abbrechen
+
+	    await HandleRegister();          // dein alter Code
     }
 
-    // Wird nur ausgelöst, wenn Model-Validation fehlschlägt
-    private void OnInvalidSubmit()
-    {
-	    Console.WriteLine("⚠️ InvalidSubmit");
-    }
-
-    /// <summary>
+	/// <summary>
     /// Wird aufgerufen, wenn das Formular erfolgreich validiert wurde.
     /// Führt die POST-Anfrage an den Backend-Endpoint aus.
     /// </summary>
     private async Task HandleRegister()
     {
-	    await _form.Validate();
-	    //Console.WriteLine($"IsValid: {_form.IsValid}");   // ← im Browser-Console-Log
-	    if (!_form.IsValid)
-	    {
-		    return;
-	    }
+	    Console.WriteLine("Form validiert und Submit erkannt!");
 
 	    // Mapping auf das Shared-DTO
 	    var dto = new RegisterDto(

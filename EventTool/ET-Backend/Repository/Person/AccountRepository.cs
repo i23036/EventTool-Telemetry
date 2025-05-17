@@ -73,6 +73,10 @@ public class AccountRepository : IAccountRepository
                     user.Password
                 },
                 tx);
+            // Wichtig: ID zurück ins Objekt schreiben
+            user.Id = userId;
+
+            Console.WriteLine($"User-ID: {user.Id}"); // nur zum Debuggen lokal
 
             // Account einfügen
             var accountId = await _db.ExecuteScalarAsync<int>(
@@ -82,18 +86,18 @@ public class AccountRepository : IAccountRepository
                 new
                 {
                     Email = accountEMail,
-                    UserId = userId
+                    UserId = user.Id       //Dapper kann hier den Parameter UserId nicht auflösen, weil er nicht in der DB ist
                 },
                 tx);
 
             // Organisationseintrag
             await _db.ExecuteAsync(
                 @"INSERT INTO OrganizationMembers (AccountId, OrganizationId, Role)
-              VALUES (@AccountId, @OrgId, @Role);",
+              VALUES (@AccountId, @OrganizationId, @Role);",
                 new
                 {
                     AccountId = accountId,
-                    OrgId = organization.Id,
+                    OrganizationId = organization.Id,
                     Role = (int)role
                 },
                 tx);
