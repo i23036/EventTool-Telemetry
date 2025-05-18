@@ -3,26 +3,6 @@
 
 <PageTitle>Event bearbeiten</PageTitle>
 
-<!-- Kopfzeile -->
-<div class="d-flex align-items-center justify-content-between p-4 bg-light">
-    <div class="d-flex align-content-center">
-        <NavLink href="/" class="text-decoration-none">
-            <MudPaper Class="d-flex align-items-center mr-3" Elevation="0" Style="cursor: pointer;">
-                <img src="images/BitWorksSimpel-Gro.png" alt="BitWorks Logo" width="55" height="55" />
-            </MudPaper>
-        </NavLink>
-        <div class="d-flex display-6 align-items-center">
-            <p class="m-0">@organisationName</p>
-        </div>
-    </div>
-
-    <div class="d-flex align-content-center justify-content-end w-25">
-        <NavLink href="/User">
-            <MudAvatar Color="Color.Primary" Size="Size.Medium">U</MudAvatar>
-        </NavLink>
-    </div>
-</div>
-
 <!-- Tabs -->
 <MudPaper Class="mt-4">
     <MudTabs Rounded="true" Border="true" @bind-ActivePanelIndex="_tabIndex" PanelClass="pa-4">
@@ -45,7 +25,6 @@
     public int ID { get; set; }
 
     private int _tabIndex = 0;
-    private string organisationName = "test Orga";
 
     public class MyEvent
     {

@@ -3,60 +3,35 @@
 
 <PageTitle>Event erstellen</PageTitle>
 
+<!-- Tabs -->
 <div class="flex-md-column align-content-between justify-content-center w-100 h-100">
-    <!-- Kopfzeile -->
-    <div class="d-flex align-items-center justify-content-between p-4 bg-light">
-        <MudLink Href="/"
-                 Class="d-flex align-items-center text-decoration-none"
-                 Color="Color.Inherit">
-            <MudPaper Class="d-flex align-items-center mr-3" Elevation="0">
-                <img src="images/BitWorksSimpel-Gro.png"
-                     alt="BitWorks Logo"
-                     width="55" height="55" />
-            </MudPaper>
-            <div class="d-flex display-6 align-items-center">
-                <p class="m-0">@organisationName</p>
-            </div>
-        </MudLink>
-        <div class="d-flex align-content-center justify-content-end w-25">
-            <NavLink href="/User">
-                <MudAvatar Color="Color.Primary" Size="Size.Medium">U</MudAvatar>
-            </NavLink>
-        </div>
-    </div>
+    <MudPaper Width="100%" Height="100%">
+        <MudTabs Class="h-100" Elevation="2" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-6 h-100">
 
-    <!-- Tabs -->
-    <div class="flex-md-column align-content-between justify-content-center w-100 h-100">
-        <MudPaper Width="100%" Height="100%">
-            <MudTabs Class="h-100" Elevation="2" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-6 h-100">
+            <!-- Tab: Details -->
+            <MudTabPanel Text="Details">
+                <MudTextField @bind-Value="neuesEvent.name" Label="Name" Variant="Variant.Outlined" Required="true" />
+                <MudTextField @bind-Value="neuesEvent.description" Label="Beschreibung" Variant="Variant.Outlined" Required="true" />
+                <MudNumericField @bind-Value="neuesEvent.registeredUsers" Label="Anzahl angemeldeter Teilnehmer" Variant="Variant.Outlined" />
+                <MudNumericField @bind-Value="neuesEvent.maxUsers" Label="Maximale Teilnehmer" Variant="Variant.Outlined" />
+            </MudTabPanel>
 
-                <!-- Tab: Details -->
-                <MudTabPanel Text="Details">
-                    <MudTextField @bind-Value="neuesEvent.name" Label="Name" Variant="Variant.Outlined" Required="true" />
-                    <MudTextField @bind-Value="neuesEvent.description" Label="Beschreibung" Variant="Variant.Outlined" Required="true" />
-                    <MudNumericField @bind-Value="neuesEvent.registeredUsers" Label="Anzahl angemeldeter Teilnehmer" Variant="Variant.Outlined" />
-                    <MudNumericField @bind-Value="neuesEvent.maxUsers" Label="Maximale Teilnehmer" Variant="Variant.Outlined" />
-                </MudTabPanel>
+            <!-- Tab: Prozesse -->
+            <MudTabPanel Text="Prozesse">
+                <MudText Typo="Typo.body1" Class="mb-4">TODO</MudText>
+                <MudSpacer />
+                <MudStack Row Justify="Justify.FlexEnd" Class="mt-6">
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Speichern">
+                        Speichern
+                    </MudButton>
+                </MudStack>
+            </MudTabPanel>
 
-                <!-- Tab: Prozesse -->
-                <MudTabPanel Text="Prozesse">
-                    <MudText Typo="Typo.body1" Class="mb-4">TODO</MudText>
-                    <MudSpacer />
-                    <MudStack Row Justify="Justify.FlexEnd" Class="mt-6">
-                        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Speichern">
-                            Speichern
-                        </MudButton>
-                    </MudStack>
-                </MudTabPanel>
-
-            </MudTabs>
-        </MudPaper>
-    </div>
+        </MudTabs>
+    </MudPaper>
 </div>
 
 @code {
-    public string organisationName = "test Orga";
-
     public class Event
     {
         public string name { get; set; }

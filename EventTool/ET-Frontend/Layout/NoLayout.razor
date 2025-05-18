@@ -1,0 +1,27 @@
+﻿@using Blazored.SessionStorage
+@inherits LayoutComponentBase
+@inject NavigationManager Navigation
+@inject ISessionStorageService SessionStorage
+
+@* Required *@
+<MudThemeProvider />
+<MudPopoverProvider />
+
+@* Needed for dialogs *@
+<MudDialogProvider />
+
+@* Needed for snackbars *@
+<MudSnackbarProvider />
+
+<!--Main Page-->
+<main class="h-100">
+	<article class="h-100">
+		@Body
+	</article>
+</main>
+
+
+
+@code {
+
+}
