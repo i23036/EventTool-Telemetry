@@ -27,6 +27,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\ET-Backend\ET-Backend.csproj" />
+    <ProjectReference Include="..\ET-Frontend\ET-Frontend.csproj" />
+    <ProjectReference Include="..\Shared\ET.Shared.DTOs\ET.Shared.DTOs.csproj" />
   </ItemGroup>
 
   <ItemGroup>
