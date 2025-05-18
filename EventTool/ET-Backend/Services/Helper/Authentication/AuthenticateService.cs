@@ -98,11 +98,11 @@ public class AuthenticateService : IAuthenticateService
             var accountExists = await _accountRepository.AccountExists(eMail);
             if (accountExists.IsFailed)
             {
-                //return Result.Fail("Fehler beim Überprüfen, ob das Benutzerkonto bereits existiert.");
+                return Result.Fail("Fehler beim Überprüfen, ob das Benutzerkonto bereits existiert.");
 
                 // TEMPORÄR: DEBUG: Fehlerausgabe
-                var dbError = accountExists.Errors[0].Message;
-                return Result.Fail<string>($"[DEBUG] {dbError}");
+                //var dbError = accountExists.Errors[0].Message;
+                //return Result.Fail<string>($"[DEBUG] {dbError}");
             }
 
             if (accountExists.Value)
@@ -139,11 +139,11 @@ public class AuthenticateService : IAuthenticateService
 
             if (accountResult.IsFailed)
             {
-                //return Result.Fail("Fehler beim Anlegen des Benutzerkontos.");
+                return Result.Fail("Fehler beim Anlegen des Benutzerkontos.");
 
                 // TEMPORÄR: DEBUG: Fehlerausgabe
-                var dbError = accountResult.Errors[0].Message;
-                return Result.Fail<string>($"[DEBUG] {dbError}");
+                //var dbError = accountResult.Errors[0].Message;
+                //return Result.Fail<string>($"[DEBUG] {dbError}");
             }
 
             return Result.Ok("Benutzer wurde erfolgreich registriert.");

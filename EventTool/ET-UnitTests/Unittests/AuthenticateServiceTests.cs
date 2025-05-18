@@ -7,6 +7,7 @@ using ET_Backend.Repository.Person;
 using ET_Backend.Repository;
 using ET_Backend.Services.Helper.Authentication;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Logging;
 using FluentResults;
 
 namespace ET_UnitTests.Unittests
@@ -20,12 +21,13 @@ namespace ET_UnitTests.Unittests
             var mockAccountRepo = new Mock<IAccountRepository>();
             var mockUserRepo = new Mock<IUserRepository>();
             var mockOrgRepo = new Mock<IOrganizationRepository>();
+            var mockLogger = new Mock<ILogger<AuthenticateService>>();
 
             var jwtOptions = Options.Create(new JwtOptions
             {
                 Issuer = "TestIssuer",
-                Audiece = "TestAudience",
-                ExperationTime = 1,
+                Audience = "TestAudience",
+                ExpirationTime = 1,
                 SecretKey = "SuperSecretKey1234567890"
             });
 
@@ -67,7 +69,8 @@ namespace ET_UnitTests.Unittests
                 mockAccountRepo.Object,
                 mockUserRepo.Object,
                 mockOrgRepo.Object,
-                jwtOptions
+                jwtOptions,
+                mockLogger.Object
             );
 
             // Act
