@@ -81,7 +81,6 @@ builder.Services.AddScoped<ILogService, LogService>();
 builder.Services.AddScoped<IEventService, EventService>();
 builder.Services.AddScoped<IFileManagementService, FileManagementService>();
 builder.Services.AddScoped<IAuthenticateService, AuthenticateService>();
-builder.Services.AddScoped<IEMailService, EMailService>();
 builder.Services.AddScoped<IWorkerService, WorkerService>();
 builder.Services.AddScoped<IOrganizationService, OrganizationService>();
 builder.Services.AddScoped<ISearchService, SearchService>();
@@ -90,6 +89,10 @@ builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IProcessService, ProcessService>();
 builder.Services.AddScoped<IProcessStepService, ProcessStepService>();
 
+// Email-Service
+builder.Services.Configure<EmailSettings>(
+    builder.Configuration.GetSection("EmailSettings"));
+builder.Services.AddScoped<IEMailService, EMailService>();
 
 // JWT-Authentifizierung
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
