@@ -47,5 +47,56 @@ namespace ET_UnitTests.Unittests
             // Assert
             Assert.IsType<BadRequestResult>(result);
         }
+
+        [Fact]
+        public async Task GetAllOrganizations_ReturnsOk_WithOrganizationDtos()
+        {
+            var mockService = new Mock<IOrganizationService>();
+            var orgList = new List<Organization>
+    {
+        new Organization { Name = "Org1", Domain = "org1.de", Description = "Desc1", OrgaPicAsBase64 = null },
+        new Organization { Name = "Org2", Domain = "org2.de", Description = "Desc2", OrgaPicAsBase64 = null }
+    };
+            mockService.Setup(s => s.GetAllOrganizations())
+                .ReturnsAsync(Result.Ok(orgList));
+
+            var controller = new OrganizationController(mockService.Object);
+
+            var result = await controller.GetAllOrganizations();
+
+            var okResult = Assert.IsType<OkObjectResult>(result.Result);
+            var dtos = Assert.IsAssignableFrom<List<OrganizationDto>>(okResult.Value);
+            Assert.Equal(2, dtos.Count);
+        }
+
+
+        [Fact]
+        public async Task DeleteOrganization_ReturnsOk_OnSuccess()
+        {
+            var mockService = new Mock<IOrganizationService>();
+            mockService.Setup(s => s.DeleteOrganization("org1.de"))
+                .ReturnsAsync(Result.Ok());
+
+            var controller = new OrganizationController(mockService.Object);
+
+            var result = await controller.DeleteOrganization("org1.de");
+
+            Assert.IsType<OkResult>(result);
+        }
+
+        [Fact]
+        public async Task DeleteOrganization_ReturnsBadRequest_OnFailure()
+        {
+            var mockService = new Mock<IOrganizationService>();
+            mockService.Setup(s => s.DeleteOrganization("org1.de"))
+                .ReturnsAsync(Result.Fail("Fehler"));
+
+            var controller = new OrganizationController(mockService.Object);
+
+            var result = await controller.DeleteOrganization("org1.de");
+
+            Assert.IsType<BadRequestResult>(result);
+        }
+
     }
 }
