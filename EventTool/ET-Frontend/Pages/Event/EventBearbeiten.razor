@@ -57,15 +57,14 @@
             <MudDivider Class="my-4" />
 
             <div class="d-flex justify-end gap-3">
-                <MudButton Color="Color.Default" Variant="Variant.Outlined" OnClick="AlsEntwurfSpeichern">Als Entwurf speichern</MudButton>
-                <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Speichern">Speichern</MudButton>
+                <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SaveEvent">Speichern</MudButton>
             </div>
         </MudTabPanel>
 
         <MudTabPanel Text="Teilnehmer">
             <MudText Typo="Typo.h5" Class="mb-3">Teilnehmer</MudText>
 
-            <MudDataGrid T="Teilnehmer" Items="@_teilnehmerListe" Dense="true">
+            <MudDataGrid T="Participant" Items="@_participantList" Dense="true">
                 <Columns>
                     <PropertyColumn Property="x => x.LastName" Title="Nachname" />
                     <PropertyColumn Property="x => x.Email" Title="E-Mail" />
@@ -74,7 +73,7 @@
                             <MudButton Variant="Variant.Filled"
                                        Color="Color.Error"
                                        Size="Size.Small"
-                                       OnClick="@(() => EntferneTeilnehmer(ctx.Item))">
+                                       OnClick="@(() => RemoveParticipant(ctx.Item))">
                                 Entfernen
                             </MudButton>
                         </CellTemplate>
@@ -82,12 +81,30 @@
                 </Columns>
             </MudDataGrid>
         </MudTabPanel>
+
+        <!-- Tab: Prozesse -->
+        <MudTabPanel Text="Prozesse">
+            <MudText Typo="Typo.body1" Class="mb-4">TODO</MudText>
+            <MudSpacer />
+            <MudStack Row Justify="Justify.FlexEnd" Class="mt-6">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveEvent">
+                    Speichern
+                </MudButton>
+            </MudStack>
+        </MudTabPanel>
     </MudTabs>
 </MudPaper>
 
 @code {
     [Parameter] public int ID { get; set; }
     private int _tabIndex = 0;
+    private MyEvent _event = new MyEvent();
+    private List<Participant> _participantList = new()
+    {
+        new Participant { LastName = "Reich", Email = "reich@example.com" },
+        new Participant { LastName = "Müller", Email = "mueller@example.com" },
+        new Participant { LastName = "Schmidt", Email = "schmidt@example.com" }
+    };
 
     public enum EventStatus
     {
@@ -116,30 +133,22 @@
         public bool CanBeEdited { get; set; }
     }
 
-    public class Teilnehmer
+    public class Participant
     {
         public string LastName { get; set; }
         public string Email { get; set; }
     }
 
-    private MyEvent _event = new MyEvent();
-
-    private List<Teilnehmer> _teilnehmerListe = new()
+    private void RemoveParticipant(Participant t)
     {
-        new Teilnehmer { LastName = "Reich", Email = "reich@example.com" },
-        new Teilnehmer { LastName = "Müller", Email = "mueller@example.com" },
-        new Teilnehmer { LastName = "Schmidt", Email = "schmidt@example.com" }
-    };
-
-    private void EntferneTeilnehmer(Teilnehmer t)
-    {
-        _teilnehmerListe.Remove(t);
+        _participantList.Remove(t);
     }
 
     protected override void OnInitialized()
     {
         var alleEvents = new List<MyEvent>
         {
+            //TODO vorläufig die erstellten Events, hier das Event das man braucht laden
             new MyEvent
             {
                 ID = 1,
@@ -161,16 +170,10 @@
         _event = alleEvents.FirstOrDefault(e => e.ID == ID) ?? new MyEvent { Name = "Nicht gefunden" };
     }
 
-    private void Speichern()
+    private void SaveEvent()
     {
-        Console.WriteLine($"[SPEICHERN] {_event.Name}, Status: {_event.Status}");
-        Navigation.NavigateTo("/");
-    }
-
-    private void AlsEntwurfSpeichern()
-    {
-        _event.Status = EventStatus.Entwurf;
-        Console.WriteLine($"[ALS ENTWURF] {_event.Name}, Status: {_event.Status}");
+        //TODO DTO an Datenbank
+        Console.WriteLine($"[SaveEvent] {_event.Name}, Status: {_event.Status}");
         Navigation.NavigateTo("/");
     }
 }
