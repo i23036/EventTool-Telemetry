@@ -15,13 +15,6 @@
             <MudTabPanel Text="Events">
                 <MudText Typo="Typo.h4" Class="mb-3">Events</MudText>
 
-                <MudStack Row Justify="Justify.FlexEnd" Class="mb-3">
-                    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="GeheZuEventErstellen">
-                        Event erstellen
-                    </MudButton>
-                </MudStack>
-
-
                 <!-- Datenraster für Event-Daten -->
                 <MudDataGrid Items="@Elements.Take(4)">
                     <Columns>
@@ -33,6 +26,9 @@
                         <TemplateColumn CellClass="d-flex justify-end">
                             <CellTemplate Context="eventItem">
                                 <MudStack Row Spacing="1">
+                                    <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary" OnClick="@(() => NavigateToEventDetails(eventItem.Item))">
+                                        Details
+                                    </MudButton>
                                     @if (eventItem.Item.CanBeEdited)
                                     {
                                         <MudButton Size="Size.Small"
@@ -51,15 +47,18 @@
                         </TemplateColumn>
                     </Columns>
                 </MudDataGrid>
+                    <MudButton Class="float-end mt-4" Variant="Variant.Filled" Color="Color.Primary" OnClick="NavigateToEventCreation">
+                        Event erstellen
+                    </MudButton>
             </MudTabPanel>
 
             <!-- Tab für Organisation -->
             <MudTabPanel Text="Organisation">
-                <MudText Typo="Typo.h4" Class="mb-3">Mitglieder</MudText>
+                <MudText Typo="Typo.h4" Class="mb-3">Members</MudText>
 
 
 
-                <MudDataGrid T="Mitglied" Items="@Mitglieder" Dense="true">
+                <MudDataGrid T="Member" Items="@Members" Dense="true">
                     <Columns>
                         <PropertyColumn Property="x => x.LastName" Title="Nachname" />
                         <PropertyColumn Property="x => x.Email" Title="E-Mail" />
@@ -72,7 +71,7 @@
                                            Dense="true"
                                            @bind-Value="ctx.Item.Role">
                                     <MudSelectItem Value="Role.Owner">Owner</MudSelectItem>
-                                    <MudSelectItem Value="Role.Mitglied">Mitglied</MudSelectItem>
+                                    <MudSelectItem Value="Role.Member">Member</MudSelectItem>
                                     <MudSelectItem Value="Role.Organisator">Organisator</MudSelectItem>
                                 </MudSelect>
 
@@ -85,7 +84,7 @@
                                 <MudButton Variant="Variant.Filled"
                                            Color="Color.Error"
                                            Size="Size.Small"
-                                           OnClick="@(() => EntferneMitglied(ctx.Item))">
+                                           OnClick="@(() => RemoveMember(ctx.Item))">
                                     Entfernen
                                 </MudButton>
                             </CellTemplate>
@@ -131,23 +130,23 @@
         }
     }
 
-    public enum Role { Owner, Mitglied, Organisator }
+    public enum Role { Owner, Member, Organisator }
 
     public void ChangeOrgaData()
     {
         Navigation.NavigateTo("/Organisationsdaten");
     }
 
-    
-    public class Mitglied
+
+    public class Member
     {
         public Role Role { get; set; }
         public string LastName { get; set; }
         public string Email { get; set; }
 
-        public Mitglied() { }
+        public Member() { }
 
-        public Mitglied(string lastName, string email, Role role)
+        public Member(string lastName, string email, Role role)
         {
             LastName = lastName;
             Email = email;
@@ -157,7 +156,7 @@
 
 
     private IEnumerable<MyEvent> Elements;
-    private List<Mitglied> Mitglieder;
+    private List<Member> Members;
 
 
     /// <summary>
@@ -169,31 +168,28 @@
         {
             new MyEvent(1, "Grillfest", "lecker!", 5, 10, false),
             new MyEvent(2, "Sommerfest", "heiß!", 40, 150, true)
-        };
-
-        Mitglieder = new List<Mitglied>
-        {
-        new Mitglied("Reich", "Reich@example.com", Role.Owner),
-        new Mitglied("Jonas", "Jonas@example.com", Role.Organisator),
-        new Mitglied("Müller", "mueller@example.com", Role.Mitglied)
-        };
-    
+        };   
     }
 
-    private Task UpdateRolle(Mitglied mitglied, Role neueRolle)
+    private Task UpdateRolle(Member Member, Role neueRolle)
     {
-        mitglied.Role = neueRolle;
+        Member.Role = neueRolle;
         StateHasChanged();
         return Task.CompletedTask;
     }
 
-    private void GeheZuEventErstellen()
+    private void NavigateToEventCreation()
     {
         Navigation.NavigateTo("/EventErstellen");
     }
 
-    private void EntferneMitglied(Mitglied mitglied)
+    private void RemoveMember(Member Member)
     {
-        Mitglieder.Remove(mitglied);
+        Members.Remove(Member);
+    }
+
+    private void NavigateToEventDetails(MyEvent clickedEvent)
+    {
+        Navigation.NavigateTo($"/EventDetails/{clickedEvent.ID}");
     }
 }
