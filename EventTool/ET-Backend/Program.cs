@@ -2,6 +2,7 @@ using Microsoft.Data.Sqlite;
 using System.Data;
 using Dapper;
 using ET.Shared.DTOs;
+using ET_Backend.Extensions;
 using ET_Backend.Repository.Person;
 using ET_Backend.Repository.Event;
 using ET_Backend.Repository.Organization;
@@ -19,6 +20,7 @@ using System.Net;
 using ET_Backend.Repository;
 using Microsoft.Data.SqlClient; // für Azure SQL
 using Microsoft.Extensions.Logging;
+using ET_Backend.Repository.Authentication;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -68,7 +70,7 @@ builder.Services.AddTransient<IDbConnection>(sp =>
              ?? throw new InvalidOperationException("No connection string defined.");
 
     return env.IsDevelopment()
-        ? new SqliteConnection(cs)
+        ? new SqliteConnection(cs) { DefaultTimeout = 30 }.WithForeignKeys()
         : new SqlConnection(cs);
 });
 
@@ -81,7 +83,6 @@ builder.Services.AddScoped<ILogService, LogService>();
 builder.Services.AddScoped<IEventService, EventService>();
 builder.Services.AddScoped<IFileManagementService, FileManagementService>();
 builder.Services.AddScoped<IAuthenticateService, AuthenticateService>();
-builder.Services.AddScoped<IEMailService, EMailService>();
 builder.Services.AddScoped<IWorkerService, WorkerService>();
 builder.Services.AddScoped<IOrganizationService, OrganizationService>();
 builder.Services.AddScoped<ISearchService, SearchService>();
@@ -90,6 +91,11 @@ builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IProcessService, ProcessService>();
 builder.Services.AddScoped<IProcessStepService, ProcessStepService>();
 
+// Email-Service
+builder.Services.Configure<EmailSettings>(
+    builder.Configuration.GetSection("EmailSettings"));
+builder.Services.AddScoped<IEMailService, EMailService>();
+builder.Services.AddScoped<IEmailVerificationTokenRepository, EmailVerificationTokenRepository>();
 
 // JWT-Authentifizierung
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)

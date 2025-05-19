@@ -23,6 +23,13 @@
 
             <!-- Überschrift -->
             <MudText Typo="Typo.h5" Align="Align.Center" Class="mb-4">Melden Sie sich an</MudText>
+			
+            @if (_showVerifiedMessage)
+            {
+	            <MudAlert Severity="Severity.Success" Elevation="0" Dense="true" Class="mb-4">
+		            Dein Account wurde erfolgreich bestätigt. Du kannst dich jetzt anmelden.
+	            </MudAlert>
+            }
 
             <!-- Anmeldeformular -->
             <MudForm @ref="_form" 
@@ -136,4 +143,14 @@
 	    [Required(ErrorMessage = "Passwort ist erforderlich.")]
 	    public string Password { get; set; } = "";
     }
+
+    private bool _showVerifiedMessage;
+
+    protected override void OnInitialized()
+    {
+	    var uri = new Uri(Nav.Uri);
+	    var query = System.Web.HttpUtility.ParseQueryString(uri.Query);
+	    _showVerifiedMessage = query["verified"] == "true";
+    }
+
 }
