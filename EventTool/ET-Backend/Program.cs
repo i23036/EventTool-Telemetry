@@ -19,6 +19,7 @@ using System.Net;
 using ET_Backend.Repository;
 using Microsoft.Data.SqlClient; // für Azure SQL
 using Microsoft.Extensions.Logging;
+using ET_Backend.Repository.Authentication;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -93,6 +94,7 @@ builder.Services.AddScoped<IProcessStepService, ProcessStepService>();
 builder.Services.Configure<EmailSettings>(
     builder.Configuration.GetSection("EmailSettings"));
 builder.Services.AddScoped<IEMailService, EMailService>();
+builder.Services.AddScoped<IEmailVerificationTokenRepository, EmailVerificationTokenRepository>();
 
 // JWT-Authentifizierung
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)

@@ -23,4 +23,10 @@ public class JwtOptions
     /// Der geheime Schlüssel, der zum Signieren der Tokens verwendet wird.
     /// </summary>
     public String SecretKey { get; init; }
+
+    /// <summary>
+    /// Basis-URL für Frontend (für Links in E-Mails, z. B. zur Verifizierung).
+    /// </summary>
+    public string FrontendBaseUrl { get; init; } = "https://localhost:7210/";
+
 }

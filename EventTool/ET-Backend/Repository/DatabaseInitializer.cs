@@ -127,6 +127,18 @@ public class DatabaseInitializer(IDbConnection db, ILogger<DatabaseInitializer> 
                 FOREIGN KEY (TriggerId) REFERENCES Triggers(Id)
             );
         ");
+
+        _db.Execute(@"
+            CREATE TABLE IF NOT EXISTS EmailVerificationTokens (
+                 Id         INTEGER PRIMARY KEY AUTOINCREMENT,
+                 AccountId  INTEGER NOT NULL,
+                 Token      TEXT NOT NULL UNIQUE,
+                 ExpiresAt  TEXT NOT NULL,
+                 FOREIGN KEY (AccountId) REFERENCES Accounts(Id)
+            );
+        ");
+
+        _logger.LogInformation("Datenbank-Tabellen erfolgreich erstellt.");
     }
 
     public void DropAllTables()
@@ -140,6 +152,7 @@ public class DatabaseInitializer(IDbConnection db, ILogger<DatabaseInitializer> 
         _db.Execute("DROP TABLE IF EXISTS Triggers;");
         _db.Execute("DROP TABLE IF EXISTS Users;");
         _db.Execute("DROP TABLE IF EXISTS Organizations;");
+        _db.Execute("DROP TABLE IF EXISTS EmailVerificationTokens;");
     }
 
 

@@ -2,12 +2,12 @@
 using System.Security.Claims;
 using System.Text;
 using ET_Backend.Models;
+using ET_Backend.Repository.Authentication;
 using ET_Backend.Repository.Organization;
 using ET_Backend.Repository.Person;
 using FluentResults;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace ET_Backend.Services.Helper.Authentication;
 /// <summary>
@@ -20,6 +20,9 @@ public class AuthenticateService : IAuthenticateService
     private readonly IOrganizationRepository _organizationRepository;
     private readonly JwtOptions _jwtOptions;
     private readonly ILogger<AuthenticateService> _logger;
+    private readonly IEmailVerificationTokenRepository _tokenRepo;
+    private readonly IEMailService _emailService;
+
 
     /// <summary>
     /// Erstellt eine neue Instanz des <see cref="AuthenticateService"/>.
@@ -29,18 +32,24 @@ public class AuthenticateService : IAuthenticateService
     /// <param name="organizationRepository"></param>
     /// <param name="jwtOptions">Konfiguration für das JWT-Token.</param>
     /// <param name="logger"></param>
+    /// <param name="tokenRepo"></param>
+    /// <param name="emailService"></param>
     public AuthenticateService(
         IAccountRepository accountRepository,
         IUserRepository userRepository,
         IOrganizationRepository organizationRepository, 
         IOptions<JwtOptions> jwtOptions,
-        ILogger<AuthenticateService> logger)
+        ILogger<AuthenticateService> logger,
+        IEmailVerificationTokenRepository tokenRepo,
+        IEMailService emailService)
     {
         _accountRepository = accountRepository;
         _userRepository = userRepository;
         _organizationRepository = organizationRepository;
         _jwtOptions = jwtOptions.Value;
         _logger = logger;
+        _tokenRepo = tokenRepo;
+        _emailService = emailService;;
     }
 
     /// <summary>
@@ -145,8 +154,28 @@ public class AuthenticateService : IAuthenticateService
                 //var dbError = accountResult.Errors[0].Message;
                 //return Result.Fail<string>($"[DEBUG] {dbError}");
             }
-
             return Result.Ok("Benutzer wurde erfolgreich registriert.");
+
+            var accountId = accountResult.Value.Id;
+            var token = Guid.NewGuid().ToString("N");
+
+            // Token speichern
+            var tokenResult = await _tokenRepo.CreateAsync(accountId, token);
+            if (tokenResult.IsFailed)
+                return Result.Fail("Token konnte nicht gespeichert werden.");
+
+            // Mail-Text vorbereiten
+            var link = $"{_jwtOptions.FrontendBaseUrl}verify?token={token}";
+            var body = $"""
+                        <p>Hallo {firstname},</p>
+                        <p>bitte bestätige deine Registrierung über folgenden Link:</p>
+                        <p><a href="{link}">Account bestätigen</a></p>
+                        <p><small>Der Link ist 48 Stunden gültig.</small></p>
+                        """;
+
+            // Mail senden
+            await _emailService.SendAsync(eMail, "Bitte Registrierung bestätigen", body);
+
         }
         catch (Exception ex)
         {

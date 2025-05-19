@@ -7,28 +7,25 @@ using Microsoft.Extensions.Options;
 namespace ET_Backend.Services.Helper;
 
 /// <summary>
-/// SMTP-basierte Implementierung von <see cref="IEMailService"/>.
+/// SMTP-Implementierung von <see cref="IEMailService"/>.
 /// </summary>
 public sealed class EMailService : IEMailService
 {
-    private readonly EmailSettings          _settings;
-    private readonly ILogger<EMailService> _logger;
+    private readonly EmailSettings _cfg;
+    private readonly ILogger<EMailService> _log;
 
-    public EMailService(IOptions<EmailSettings> options,
-        ILogger<EMailService>   logger)
+    public EMailService(IOptions<EmailSettings> opts,
+        ILogger<EMailService>   log)
     {
-        _settings = options.Value;
-        _logger   = logger;
+        _cfg = opts.Value;
+        _log = log;
     }
 
-    /// <inheritdoc />
     public async Task SendAsync(string to, string subject, string htmlBody)
     {
         using var msg = new MailMessage
         {
-            From           = new MailAddress(_settings.FromAddress,
-                _settings.FromName,
-                Encoding.UTF8),
+            From           = new MailAddress(_cfg.FromAddress, _cfg.FromName, Encoding.UTF8),
             Subject        = subject,
             Body           = htmlBody,
             IsBodyHtml     = true,
@@ -37,17 +34,16 @@ public sealed class EMailService : IEMailService
         };
         msg.To.Add(to);
 
-        using var client = new SmtpClient(_settings.SmtpServer, _settings.Port)
+        using var client = new SmtpClient(_cfg.SmtpServer, _cfg.Port)
         {
-            EnableSsl = _settings.UseSsl
+            EnableSsl = _cfg.UseSsl
         };
-        if (!string.IsNullOrWhiteSpace(_settings.UserName))
+        if (!string.IsNullOrWhiteSpace(_cfg.UserName))
             client.Credentials =
-                new NetworkCredential(_settings.UserName, _settings.Password);
+                new NetworkCredential(_cfg.UserName, _cfg.Password);
 
-        _logger.LogInformation("Sende E-Mail an {Recipient}: {Subject}", to, subject);
+        _log.LogInformation("Sende E-Mail an {Recipient}: {Subject}", to, subject);
 
-        // SmtpClient.Send ist synchron – wir wrappen ihn, damit der ASP-Thread nicht blockiert.
-        await Task.Run(() => client.Send(msg));
+        await Task.Run(() => client.Send(msg));   // blockiert nicht den ASP-Thread
     }
 }
