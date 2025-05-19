@@ -1,55 +1,174 @@
 ﻿@page "/EventErstellen"
 @inject NavigationManager Navigation
+@using MudBlazor
+@using System.Linq
 
 <PageTitle>Event erstellen</PageTitle>
 
 <!-- Tabs -->
 <div class="flex-md-column align-content-between justify-content-center w-100 h-100">
-    <MudPaper Width="100%" Height="100%">
-        <MudTabs Class="h-100" Elevation="2" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-6 h-100">
+    <MudPaper Class="mt-4 p-6 rounded-lg shadow-md">
+        <MudTabs Rounded="true" Border="true" @bind-ActivePanelIndex="_tabIndex" PanelClass="pa-4">
 
             <!-- Tab: Details -->
             <MudTabPanel Text="Details">
-                <MudTextField @bind-Value="neuesEvent.name" Label="Name" Variant="Variant.Outlined" Required="true" />
-                <MudTextField @bind-Value="neuesEvent.description" Label="Beschreibung" Variant="Variant.Outlined" Required="true" />
-                <MudNumericField @bind-Value="neuesEvent.registeredUsers" Label="Anzahl angemeldeter Teilnehmer" Variant="Variant.Outlined" />
-                <MudNumericField @bind-Value="neuesEvent.maxUsers" Label="Maximale Teilnehmer" Variant="Variant.Outlined" />
+                <MudGrid>
+                    <MudItem xs="12" sm="6">
+                        <MudTextField Label="Eventname" @bind-Value="newEvent.Name" FullWidth="true" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudTextField Label="Eventtyp" @bind-Value="newEvent.EventType" FullWidth="true" />
+                    </MudItem>
+
+                    <MudItem xs="12">
+                        <MudTextField Label="Beschreibung" @bind-Value="newEvent.Description" Lines="3" FullWidth="true" />
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6">
+                        <MudTextField Label="Ansprechpartner" @bind-Value="newEvent.ContactPerson" FullWidth="true" />
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6">
+                        <MudDatePicker Label="Startdatum" @bind-Date="newEvent.StartDate" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudDatePicker Label="Enddatum" @bind-Date="newEvent.EndDate" />
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6">
+                        <MudNumericField T="int" Label="Minimale Teilnehmer" @bind-Value="newEvent.MinUsers" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudNumericField T="int" Label="Maximale Teilnehmer" @bind-Value="newEvent.MaxUsers" />
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6">
+                        <MudDatePicker Label="Anmeldebeginn" @bind-Date="newEvent.RegistrationStart" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudDatePicker Label="Anmeldefrist" @bind-Date="newEvent.RegistrationDeadline" />
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6">
+                        <MudSelect T="EventStatus" Label="Status" @bind-Value="newEvent.Status" FullWidth="true">
+                            <MudSelectItem Value="EventStatus.Offen">Offen</MudSelectItem>
+                            <MudSelectItem Value="EventStatus.Geschlossen">Geschlossen</MudSelectItem>
+                            <MudSelectItem Value="EventStatus.Abgesagt">Abgesagt</MudSelectItem>
+                        </MudSelect>
+                    </MudItem>
+                </MudGrid>
+
+                <MudDivider Class="my-4" />
+
+                <div class="d-flex justify-end gap-3">
+                    <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="ChooseTemplate">Vorlage wählen</MudButton>
+                    <MudButton Color="Color.Default" Variant="Variant.Outlined" OnClick="SaveAsTemplate">Als Entwurf speichern</MudButton>
+                    <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SaveEvent">Speichern</MudButton>
+                </div>
+            </MudTabPanel>
+
+            <MudTabPanel Text="Teilnehmer">
+                <MudText Typo="Typo.h5" Class="mb-3">Teilnehmer</MudText>
+
+                <MudDataGrid T="Participant" Items="@_participantList" Dense="true">
+                    <Columns>
+                        <PropertyColumn Property="x => x.LastName" Title="Nachname" />
+                        <PropertyColumn Property="x => x.Email" Title="E-Mail" />
+                        <TemplateColumn Title="" CellClass="text-end">
+                            <CellTemplate Context="ctx">
+                                <MudButton Variant="Variant.Filled"
+                                           Color="Color.Error"
+                                           Size="Size.Small"
+                                           OnClick="@(() => RemoveParticipant(ctx.Item))">
+                                    Entfernen
+                                </MudButton>
+                            </CellTemplate>
+                        </TemplateColumn>
+                    </Columns>
+                </MudDataGrid>
             </MudTabPanel>
 
             <!-- Tab: Prozesse -->
-            <MudTabPanel Text="Prozesse">
+            <MudTabPanel Text="Prozess">
                 <MudText Typo="Typo.body1" Class="mb-4">TODO</MudText>
                 <MudSpacer />
                 <MudStack Row Justify="Justify.FlexEnd" Class="mt-6">
-                    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Speichern">
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveEvent">
                         Speichern
                     </MudButton>
                 </MudStack>
             </MudTabPanel>
-
         </MudTabs>
     </MudPaper>
 </div>
 
 @code {
-    public class Event
+    [Parameter] public int ID { get; set; }
+    private int _tabIndex = 0;
+    private MyEvent newEvent = new MyEvent();
+    private List<Participant> _participantList = new();
+
+    public enum EventStatus
     {
-        public string name { get; set; }
-        public string description { get; set; }
-        public int registeredUsers { get; set; }
-        public int maxUsers { get; set; }
+        Entwurf,
+        Offen,
+        Geschlossen,
+        Abgesagt,
+        Archiviert
     }
 
-    private Event neuesEvent = new();
+    public class MyEvent
+    {
+        public int ID { get; set; }
+        public string Name { get; set; }
+        public string EventType { get; set; }
+        public string Description { get; set; }
+        public DateTime? StartDate { get; set; }
+        public DateTime? EndDate { get; set; }
+        public int MinUsers { get; set; }
+        public int MaxUsers { get; set; }
+        public DateTime? RegistrationStart { get; set; }
+        public DateTime? RegistrationDeadline { get; set; }
+        public string ContactPerson { get; set; }
+        public EventStatus Status { get; set; } = EventStatus.Entwurf;
+        public int RegisteredUsers { get; set; }
+        public bool CanBeEdited { get; set; }
+    }
 
-    private void GeheZuHome()
+    public class Participant
+    {
+        public string LastName { get; set; }
+        public string Email { get; set; }
+    }
+
+    private void RemoveParticipant(Participant t)
+    {
+        _participantList.Remove(t);
+    }
+
+    private void SaveEvent()
+    {
+        //TODO DTO an Datenbank
+        Console.WriteLine($"[SPEICHERN] {newEvent.Name}, Status: {newEvent.Status}");
+        Navigation.NavigateTo("/");
+    }
+
+    private void SaveAsTemplate()
+    {
+        //TODO DTO an Datenbank
+        newEvent.Status = EventStatus.Entwurf;
+        Console.WriteLine($"[ALS ENTWURF] {newEvent.Name}, Status: {newEvent.Status}");
+        Navigation.NavigateTo("/");
+    }
+
+    private void NavigateHome()
     {
         Navigation.NavigateTo("/");
     }
 
-    private void Speichern()
+    private void ChooseTemplate()
     {
-        Console.WriteLine($"Event gespeichert: {neuesEvent.name}, {neuesEvent.description}");
-        Navigation.NavigateTo("/");
+        //TODO verfügbare Templates laden und in einem PopUp anzeigen?
     }
 }
+

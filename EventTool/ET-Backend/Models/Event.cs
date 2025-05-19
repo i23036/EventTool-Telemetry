@@ -10,6 +10,10 @@ public class Event
 
     public string Description { set; get; }
 
+    public List<Account> Participants { set; get; } = new List<Account>();
+
+    public List<Account> Organizers { set; get; } = new List<Account>();
+
     public Organization Organization { get; set; }
 
     public Process Process { get; set; }

@@ -1,1 +1,111 @@
-﻿
+﻿@page "/EventDetails/{ID:int}"
+@inject NavigationManager Navigation
+@using MudBlazor
+@using System.Linq
+
+<PageTitle>Event Details</PageTitle>
+
+<!-- Tabs -->
+<div class="flex-md-column align-content-between justify-content-center w-100 h-100 p-4">
+    <MudPaper Class="mt-4 rounded-lg shadow-md">
+        <MudText Typo="Typo.h4">Event Details</MudText>
+        <MudGrid>
+            <MudItem xs="12" sm="6">
+                <MudTextField Label="Eventname" @bind-Value="_event.Name" FullWidth="true" ReadOnly="true" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudTextField Label="Eventtyp" @bind-Value="_event.EventType" FullWidth="true" ReadOnly="true" />
+            </MudItem>
+
+            <MudItem xs="12">
+                <MudTextField Label="Beschreibung" @bind-Value="_event.Description" Lines="3" FullWidth="true" ReadOnly="true" />
+            </MudItem>
+
+            <MudItem xs="12" sm="6">
+                <MudTextField Label="Ansprechpartner" @bind-Value="_event.ContactPerson" FullWidth="true" ReadOnly="true" />
+            </MudItem>
+
+            <MudItem xs="12" sm="6">
+                <MudDatePicker Label="Startdatum" @bind-Date="_event.StartDate" ReadOnly="true" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudDatePicker Label="Enddatum" @bind-Date="_event.EndDate" ReadOnly="true" />
+            </MudItem>
+
+            <MudItem xs="12" sm="6">
+                <MudNumericField T="int" Label="Minimale Teilnehmer" @bind-Value="_event.MinUsers" ReadOnly="true" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudNumericField T="int" Label="Maximale Teilnehmer" @bind-Value="_event.MaxUsers" ReadOnly="true" />
+            </MudItem>
+
+            <MudItem xs="12" sm="6">
+                <MudDatePicker Label="Anmeldebeginn" @bind-Date="_event.RegistrationStart" ReadOnly="true" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudDatePicker Label="Anmeldefrist" @bind-Date="_event.RegistrationDeadline" ReadOnly="true" />
+            </MudItem>
+
+            <MudItem xs="12" sm="6">
+                <MudTextField Label="Status" @bind-Value="_event.Status" Lines="3" FullWidth="true" ReadOnly="true" />
+            </MudItem>
+        </MudGrid>
+    </MudPaper>
+</div>
+
+@code {
+    [Parameter] public int ID { get; set; }
+    private int _tabIndex = 0;
+    private MyEvent _event = new MyEvent()
+        {
+            ID = 1,
+            Name = "Grillfest",
+            Description = "lecker!",
+            RegisteredUsers = 5,
+            MaxUsers = 10
+        };
+
+    public enum EventStatus
+    {
+        Entwurf,
+        Offen,
+        Geschlossen,
+        Abgesagt,
+        Archiviert
+    }
+
+    public class MyEvent
+    {
+        public int ID { get; set; }
+        public string Name { get; set; }
+        public string EventType { get; set; }
+        public string Description { get; set; }
+        public DateTime? StartDate { get; set; }
+        public DateTime? EndDate { get; set; }
+        public int MinUsers { get; set; }
+        public int MaxUsers { get; set; }
+        public DateTime? RegistrationStart { get; set; }
+        public DateTime? RegistrationDeadline { get; set; }
+        public string ContactPerson { get; set; }
+        public EventStatus Status { get; set; } = EventStatus.Entwurf;
+        public int RegisteredUsers { get; set; }
+        public bool CanBeEdited { get; set; }
+    }
+
+    public class Teilnehmer
+    {
+        public string LastName { get; set; }
+        public string Email { get; set; }
+    }
+
+    protected override void OnInitialized()
+    {
+        //
+    }
+
+    private void NavigateHome()
+    {
+        Navigation.NavigateTo("/");
+    }
+}
+
