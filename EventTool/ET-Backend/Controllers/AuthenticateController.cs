@@ -7,8 +7,6 @@ using FluentResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 
-// For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
-
 namespace ET_Backend.Controllers
 
 {
@@ -54,7 +52,8 @@ namespace ET_Backend.Controllers
             }
             else
             {
-                return BadRequest(result.Value);
+                var error = result.Errors.FirstOrDefault()?.Message ?? "Unbekannter Fehler";
+                return BadRequest(new { error });
             }
         }
 
@@ -68,6 +67,7 @@ namespace ET_Backend.Controllers
         /// </returns>
         /// <response code="200">Benutzer erfolgreich registriert und eingeloggt.</response>
         /// <response code="400">Registrierung fehlgeschlagen – z. B. Benutzer existiert bereits.</response>
+        
         // POST api/<AuthenticateController>
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] RegisterDto dto)
@@ -104,20 +104,26 @@ namespace ET_Backend.Controllers
 
             var accId = result.Value.AccountId;
 
+            if (db.State != ConnectionState.Open)
+                db.Open();
+
             using var tr = db.BeginTransaction();
             await db.ExecuteAsync("UPDATE Accounts SET IsVerified = 1 WHERE Id = @id", new { id = accId }, tr);
 
-            var del = await repo.ConsumeAsync(token);
+            log.LogWarning("Versuche Token zu löschen: {Token}", token);
+            var del = await repo.ConsumeAsync(token, db, tr);
             if (del.IsFailed)
             {
                 tr.Rollback();
+                log.LogError("Token-DELETE fehlgeschlagen: {Error}", del.Errors.FirstOrDefault()?.Message);
                 return StatusCode(500, "Token konnte nicht gelöscht werden.");
             }
 
             tr.Commit();
             log.LogInformation("Account {Id} wurde erfolgreich verifiziert", accId);
 
-            return Redirect($"{jwt.Value.FrontendBaseUrl}verification?status=success");
+            return Redirect($"{jwt.Value.FrontendBaseUrl}login?verified=true");
+            
         }
     }
 }

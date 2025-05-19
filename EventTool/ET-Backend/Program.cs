@@ -2,6 +2,7 @@ using Microsoft.Data.Sqlite;
 using System.Data;
 using Dapper;
 using ET.Shared.DTOs;
+using ET_Backend.Extensions;
 using ET_Backend.Repository.Person;
 using ET_Backend.Repository.Event;
 using ET_Backend.Repository.Organization;
@@ -69,7 +70,7 @@ builder.Services.AddTransient<IDbConnection>(sp =>
              ?? throw new InvalidOperationException("No connection string defined.");
 
     return env.IsDevelopment()
-        ? new SqliteConnection(cs)
+        ? new SqliteConnection(cs) { DefaultTimeout = 30 }.WithForeignKeys()
         : new SqlConnection(cs);
 });
 

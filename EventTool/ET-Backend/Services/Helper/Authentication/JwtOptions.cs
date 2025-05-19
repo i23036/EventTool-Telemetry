@@ -25,8 +25,12 @@ public class JwtOptions
     public String SecretKey { get; init; }
 
     /// <summary>
-    /// Basis-URL für Frontend (für Links in E-Mails, z. B. zur Verifizierung).
+    /// Basis-URL für Frontend.
     /// </summary>
     public string FrontendBaseUrl { get; init; } = "https://localhost:7210/";
 
+    /// <summary>
+    /// Basis-URL für Backend (für Links in E-Mails, z. B. zur Verifizierung).
+    /// </summary>
+    public string BackendBaseUrl { get; init; } = "https://localhost:7085/";
 }

@@ -53,35 +53,61 @@ public class AuthenticateService : IAuthenticateService
     }
 
     /// <summary>
-    /// Versucht, einen Benutzer zu authentifizieren und gibt ein JWT zurück, wenn erfolgreich.
+    /// Authentifiziert einen Benutzer anhand von E-Mail und Passwort.
+    /// Gibt bei Erfolg ein JWT zurück.
     /// </summary>
     /// <param name="eMail">Die E-Mail-Adresse des Benutzers.</param>
-    /// <param name="password">Das Passwort des Benutzers.</param>
+    /// <param name="password">Das eingegebene Passwort.</param>
     /// <returns>
-    /// Ein <see cref="Result{T}"/> mit dem JWT als Zeichenkette bei Erfolg oder einer Fehlermeldung.
+    /// Ein <see cref="Result{T}"/> mit dem JWT bei Erfolg,
+    /// oder einer lokalisierten Fehlermeldung.
     /// </returns>
     public async Task<Result<string>> LoginUser(string eMail, string password)
     {
-        Result<bool> accountExists = await _accountRepository.AccountExists(eMail);
-        if (accountExists.IsSuccess && accountExists.Value)
+        try
         {
-            Result<Account> account = await _accountRepository.GetAccount(eMail);
-            string passwordHash = account.Value.User.Password;
-            if (account.IsSuccess && passwordHash == password)
+            // Existenz prüfen
+            var accountExists = await _accountRepository.AccountExists(eMail);
+            if (accountExists.IsFailed)
             {
-                string token = GenerateJwtToken(account.Value);
-                return Result.Ok(token);
+                return Result.Fail("Fehler beim Überprüfen des Benutzerkontos.");
             }
-            else
+
+            if (!accountExists.Value)
+                return Result.Fail("Es existiert kein Benutzer mit dieser E-Mail-Adresse.");
+
+            // Account abrufen
+            var accountResult = await _accountRepository.GetAccount(eMail);
+            if (accountResult.IsFailed)
             {
-                return Result.Fail<string>("Password does not match");
+                return Result.Fail("Benutzerdaten konnten nicht geladen werden.");
             }
+
+            var account = accountResult.Value;
+
+            // Verifizierungsstatus prüfen
+            if (!account.IsVerified)
+            {
+                return Result.Fail("Account ist noch nicht bestätigt. Bitte E-Mail prüfen.");
+            }
+
+            // Passwort prüfen
+            if (account.User.Password != password)
+            {
+                return Result.Fail("Das eingegebene Passwort ist falsch.");
+            }
+
+            // Token generieren und zurückgeben
+            var token = GenerateJwtToken(account);
+            return Result.Ok(token);
         }
-        else
+        catch (Exception ex)
         {
-            return Result.Fail<string>("User does not exist");
+            _logger.LogError(ex, "Fehler bei der Benutzeranmeldung.");
+            return Result.Fail("Unerwarteter Fehler beim Login.");
         }
     }
+
 
     /// <summary>
     /// Registriert einen neuen Benutzer mit zugehörigem Benutzerkonto, wenn eine passende Organisation existiert.
@@ -154,9 +180,11 @@ public class AuthenticateService : IAuthenticateService
                 //var dbError = accountResult.Errors[0].Message;
                 //return Result.Fail<string>($"[DEBUG] {dbError}");
             }
-            return Result.Ok("Benutzer wurde erfolgreich registriert.");
-
+            
             var accountId = accountResult.Value.Id;
+
+            _logger.LogInformation("Registrierung erfolgreich, neue Account-ID: {Id}", accountId);
+            
             var token = Guid.NewGuid().ToString("N");
 
             // Token speichern
@@ -165,17 +193,20 @@ public class AuthenticateService : IAuthenticateService
                 return Result.Fail("Token konnte nicht gespeichert werden.");
 
             // Mail-Text vorbereiten
-            var link = $"{_jwtOptions.FrontendBaseUrl}verify?token={token}";
+            var link = $"{_jwtOptions.BackendBaseUrl}api/authenticate/verify?token={token}";
             var body = $"""
                         <p>Hallo {firstname},</p>
                         <p>bitte bestätige deine Registrierung über folgenden Link:</p>
                         <p><a href="{link}">Account bestätigen</a></p>
+                        <p>Nach der Bestätigung kannst du dich anmelden.</p>
                         <p><small>Der Link ist 48 Stunden gültig.</small></p>
                         """;
 
             // Mail senden
             await _emailService.SendAsync(eMail, "Bitte Registrierung bestätigen", body);
 
+            // Rückmeldung
+            return Result.Ok("Benutzer wurde erfolgreich registriert. Bitte E-Mail bestätigen.");
         }
         catch (Exception ex)
         {

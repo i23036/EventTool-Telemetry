@@ -97,7 +97,17 @@ public class AccountRepository : IAccountRepository
                                    new { AccountId = accountId, OrganizationId = organization.Id, Role = (int)role }, tx);
 
             tx.Commit();
-            return await GetAccount(accountId);
+            
+            var account = new Account
+            {
+                Id = accountId,
+                EMail = accountEMail,
+                IsVerified = false,
+                User = user,
+                Organization = organization,
+                Role = role
+            };
+            return Result.Ok(account);
         }
         catch (Exception ex)
         {

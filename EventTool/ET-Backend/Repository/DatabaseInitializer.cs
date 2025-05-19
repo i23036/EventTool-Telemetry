@@ -143,6 +143,7 @@ public class DatabaseInitializer(IDbConnection db, ILogger<DatabaseInitializer> 
 
     public void DropAllTables()
     {
+        _db.Execute("DROP TABLE IF EXISTS EmailVerificationTokens;");
         _db.Execute("DROP TABLE IF EXISTS EventMembers;");
         _db.Execute("DROP TABLE IF EXISTS Events;");
         _db.Execute("DROP TABLE IF EXISTS OrganizationMembers;");
@@ -152,8 +153,7 @@ public class DatabaseInitializer(IDbConnection db, ILogger<DatabaseInitializer> 
         _db.Execute("DROP TABLE IF EXISTS Triggers;");
         _db.Execute("DROP TABLE IF EXISTS Users;");
         _db.Execute("DROP TABLE IF EXISTS Organizations;");
-        _db.Execute("DROP TABLE IF EXISTS EmailVerificationTokens;");
-    }
+        }
 
 
     public void SeedDemoData()

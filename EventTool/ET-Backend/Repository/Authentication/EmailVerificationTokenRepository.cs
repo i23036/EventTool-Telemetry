@@ -24,7 +24,7 @@ public class EmailVerificationTokenRepository : IEmailVerificationTokenRepositor
         }
         catch (Exception ex)
         {
-            return Result.Fail($"Token-Erstellung fehlgeschlagen: {ex.Message}");
+            return Result.Fail($"[DEBUG] Token-Insert fehlgeschlagen: {ex.Message}");
         }
     }
 
@@ -48,17 +48,21 @@ public class EmailVerificationTokenRepository : IEmailVerificationTokenRepositor
         }
     }
 
-    public async Task<Result> ConsumeAsync(string token)
+    public async Task<Result> ConsumeAsync(string token, IDbConnection conn, IDbTransaction tr)
     {
         try
         {
-            await _db.ExecuteAsync("DELETE FROM EmailVerificationTokens WHERE Token = @Tok",
-                                   new { Tok = token });
-            return Result.Ok();
+            var rows = await conn.ExecuteAsync(
+                "DELETE FROM EmailVerificationTokens WHERE Token = @Tok",
+                new { Tok = token }, tr);
+
+            return rows > 0
+                ? Result.Ok()
+                : Result.Fail("Token wurde nicht gefunden oder konnte nicht gelöscht werden.");
         }
         catch (Exception ex)
         {
-            return Result.Fail($"Token konnte nicht gelöscht werden: {ex.Message}");
+            return Result.Fail($"Fehler beim Löschen des Tokens: {ex.Message}");
         }
     }
 }
