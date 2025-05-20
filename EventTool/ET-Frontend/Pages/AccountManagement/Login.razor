@@ -2,11 +2,12 @@
 @page "/login"
 
 @using ET.Shared.DTOs
-@using MudBlazor
-@using System.Net.Http.Json
 @using System.ComponentModel.DataAnnotations
+@using ET_Frontend.Services.Authentication
+
 @layout NoLayout
 
+@inject ILoginService LoginService
 @inject NavigationManager Nav
 @inject HttpClient Http
 
@@ -102,6 +103,7 @@
 
     /// <summary>
     /// Wird bei erfolgreicher Validierung des Formulars aufgerufen.
+    /// Führt den Login über den LoginService aus.
     /// </summary>
     private async Task HandleLogin()
     {
@@ -109,21 +111,18 @@
 	    if (!_form.IsValid) return;
 
 	    var dto = new LoginDto(formModel.Email, formModel.Password);
+	    var (success, error) = await LoginService.LoginAsync(dto);
 
-	    try
+	    if (success)
 	    {
-		    var resp = await Http.PostAsJsonAsync("api/authenticate/login", dto);
-
-		    if (resp.IsSuccessStatusCode)
-			    Nav.NavigateTo("/home");                // weiter zur Start-Seite
-		    else
-			    _error = await resp.Content.ReadAsStringAsync();
+		    Nav.NavigateTo("/home");
 	    }
-	    catch (Exception ex)
+	    else
 	    {
-			_error = $"[EX] {ex.Message}";
+			_error = $"Login fehlgeschlagen. {error}";
 	    }
     }
+
 
     /// <summary>
     /// UI-Modell für den Login-Vorgang mit Validierungen.
