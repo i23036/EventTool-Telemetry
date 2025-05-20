@@ -38,8 +38,9 @@ public class LoginService : ILoginService
                 return (false, await response.Content.ReadAsStringAsync());
 
             var token = await response.Content.ReadAsStringAsync();
+            Console.WriteLine($"[LoginService] Received Token:\n{token}");
             await _storage.SetItemAsStringAsync(TokenKey, token);
-
+            
             if (_authProvider is JwtAuthenticationStateProvider jwt)
                 jwt.NotifyAuthenticationStateChanged();
 

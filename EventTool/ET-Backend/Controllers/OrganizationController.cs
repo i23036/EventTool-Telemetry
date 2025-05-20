@@ -44,6 +44,29 @@ public class OrganizationController : ControllerBase
     }
 
     /// <summary>
+    /// Liefert die Organisation zur angegebenen Domain.
+    /// </summary>
+    [HttpGet("{domain}")]
+    [Authorize]
+    public async Task<ActionResult<OrganizationDto>> GetOrganizationByDomain(string domain)
+    {
+        var result = await _organizationService.GetOrganization(domain);
+
+        if (result.IsFailed)
+            return NotFound(result.Errors);
+
+        var org = result.Value;
+        return Ok(new OrganizationDto(
+            org.Name,
+            org.Domain,
+            org.Description,
+            org.OrgaPicAsBase64,
+            "", "", "", "" // Ownerdaten irrelevant bei GET
+        ));
+    }
+
+
+    /// <summary>
     /// Erstellt eine neue Organisation mit einem initialen Owner.
     /// </summary>
     [HttpPost]

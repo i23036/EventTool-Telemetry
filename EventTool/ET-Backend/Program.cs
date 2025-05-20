@@ -15,11 +15,14 @@ using ET_Backend.Services.Processes;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using System.Net;
 using ET_Backend.Repository;
-using Microsoft.Data.SqlClient; // für Azure SQL
+using Microsoft.Data.SqlClient;
 using ET_Backend.Repository.Authentication;
 
-
 var builder = WebApplication.CreateBuilder(args);
+
+var env = builder.Environment.EnvironmentName;
+Console.WriteLine($"Aktive Umgebung: {env}");
+Console.WriteLine($"Geladener SecretKey: {builder.Configuration["Jwt:SecretKey"]}");
 
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
@@ -117,12 +120,8 @@ builder.Services.AddAuthorization(options =>
 
 var app = builder.Build();
 
+Console.WriteLine($"JWT SecretKey from config: {builder.Configuration["Jwt:SecretKey"]}");
 
-
-
-
-
-Console.WriteLine($"Aktives Environment: {app.Environment.EnvironmentName}");
 
 // Logger einrichten (nach Build!)
 var logger = app.Services.GetRequiredService<ILogger<Program>>();

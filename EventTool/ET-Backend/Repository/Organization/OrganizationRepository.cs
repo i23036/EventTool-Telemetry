@@ -167,7 +167,6 @@ public class OrganizationRepository : IOrganizationRepository
         }
     }
 
-
     public async Task<Result> EditOrganization(Models.Organization organization)
     {
         try
