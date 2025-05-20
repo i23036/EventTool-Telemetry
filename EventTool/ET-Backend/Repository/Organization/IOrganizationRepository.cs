@@ -18,6 +18,8 @@ public interface IOrganizationRepository
     Task<Result<List<Models.Organization>>> GetAllOrganizations();
     Task<Result<Models.Organization>> GetOrganization(string domain);
     Task<Result<Models.Organization>> GetOrganization(int id);
+    Task<Result<List<OrganizationMemberDto>>> GetMembersByDomain(string domain);
+
 
     // === Schreiben ===
 

@@ -101,6 +101,30 @@ public class OrganizationRepository : IOrganizationRepository
         }
     }
 
+    public async Task<Result<List<OrganizationMemberDto>>> GetMembersByDomain(string domain)
+    {
+        try
+        {
+            var sql = @"
+            SELECT a.Email, u.Lastname, om.Role
+            FROM OrganizationMembers om
+            JOIN Accounts a ON om.AccountId = a.Id
+            JOIN Users u ON a.UserId = u.Id
+            JOIN Organizations o ON om.OrganizationId = o.Id
+            WHERE o.Domain = @Domain;";
+
+            var result = await _db.QueryAsync<OrganizationMemberDto>(
+                sql,
+                new { Domain = domain });
+
+            return Result.Ok(result.ToList());
+        }
+        catch (Exception ex)
+        {
+            return Result.Fail($"DBError: {ex.Message}");
+        }
+    }
+    
     // === Schreiben ===
 
     public async Task<Result<Models.Organization>> CreateOrganization(

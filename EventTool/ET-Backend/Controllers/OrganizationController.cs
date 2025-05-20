@@ -65,6 +65,16 @@ public class OrganizationController : ControllerBase
         ));
     }
 
+    /// <summary>
+    /// Gibt alle Mitglieder einer Organisation anhand der Domain zurück.
+    /// </summary>
+    [HttpGet("{domain}/members")]
+    [Authorize]
+    public async Task<IActionResult> GetMembersByDomain(string domain)
+    {
+        var result = await _organizationService.GetMembersByDomain(domain);
+        return result.IsSuccess ? Ok(result.Value) : BadRequest(result.Errors);
+    }
 
     /// <summary>
     /// Erstellt eine neue Organisation mit einem initialen Owner.

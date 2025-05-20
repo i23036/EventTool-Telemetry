@@ -25,6 +25,10 @@ public interface IOrganizationService
     /// <summary>Gibt eine Organisation anhand der ID zurück.</summary>
     Task<Result<Models.Organization>> GetOrganization(int id);
 
+    Task<Result<List<OrganizationMemberDto>>> GetMembersByDomain(string domain);
+
+
+
     // === Erstellen & Bearbeiten ===
 
     /// <summary>Erstellt eine neue Organisation.</summary>

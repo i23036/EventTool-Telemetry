@@ -33,6 +33,10 @@ public class OrganizationService : IOrganizationService
     public async Task<Result<Models.Organization>> GetOrganization(int id) =>
         await _organizationRepository.GetOrganization(id);
 
+    public async Task<Result<List<OrganizationMemberDto>>> GetMembersByDomain(string domain)
+        => await _organizationRepository.GetMembersByDomain(domain);
+
+
     // === Erstellen & Bearbeiten ===
 
     public async Task<Result<OrganizationDto>> CreateOrganization(
