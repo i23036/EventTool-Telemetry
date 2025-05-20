@@ -8,7 +8,8 @@ BEGIN
         Id INT IDENTITY(1,1) PRIMARY KEY,
         Name NVARCHAR(255) NOT NULL,
         Domain NVARCHAR(255) NOT NULL UNIQUE,
-        Description NVARCHAR(MAX)
+        Description NVARCHAR(MAX),
+        OrgaPicAsBase64 NVARCHAR(MAX) NULL
     );
 END
 GO

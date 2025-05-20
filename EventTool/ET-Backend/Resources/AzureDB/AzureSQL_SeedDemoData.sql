@@ -4,8 +4,9 @@ GO
 -- Organisation einfügen
 IF NOT EXISTS (SELECT 1 FROM Organizations WHERE Domain = 'demo.org')
 BEGIN
-    INSERT INTO Organizations (Name, Domain, Description)
-    VALUES ('DemoOrg', 'demo.org', 'Dies ist eine Demo-Organisation');
+    INSERT INTO Organizations (Name, Domain, Description, OrgaPicAsBase64)
+    VALUES ('DemoOrg', 'demo.org', 'Dies ist eine Demobeschreibung.', '');
+
 END
 GO
 
