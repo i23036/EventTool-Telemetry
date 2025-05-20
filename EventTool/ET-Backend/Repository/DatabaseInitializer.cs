@@ -1,10 +1,6 @@
 ﻿using System.Data;
-using System.Data.Common;
-using System.Xml.Linq;
+using System.Resources;
 using Dapper;
-using Microsoft.AspNetCore.DataProtection.KeyManagement;
-using Microsoft.AspNetCore.Http.HttpResults;
-using static System.Net.Mime.MediaTypeNames;
 
 namespace ET_Backend.Repository;
 
@@ -33,7 +29,8 @@ public class DatabaseInitializer(IDbConnection db, ILogger<DatabaseInitializer> 
                 Id          INTEGER PRIMARY KEY AUTOINCREMENT,
                 Name        TEXT NOT NULL,
                 Domain      TEXT NOT NULL UNIQUE,
-                Description TEXT
+                Description TEXT,
+                OrgaPicAsBase64 TEXT
             );
         ");
 
@@ -153,56 +150,65 @@ public class DatabaseInitializer(IDbConnection db, ILogger<DatabaseInitializer> 
         _db.Execute("DROP TABLE IF EXISTS Triggers;");
         _db.Execute("DROP TABLE IF EXISTS Users;");
         _db.Execute("DROP TABLE IF EXISTS Organizations;");
-        }
+    }
 
 
     public void SeedDemoData()
-{
-    // Organization nur seeden, wenn noch keine existiert
-    var orgCount = _db.ExecuteScalar<int>("SELECT COUNT(1) FROM Organizations;");
-    if (orgCount == 0)
     {
-        _db.Execute(@"
-            INSERT INTO Organizations (Name, Domain, Description)
-            VALUES ('DemoOrg', 'demo.org', 'Dies ist eine Demo-Organisation');
-        ");
-    }
+        // Organization nur seeden, wenn noch keine existiert
+        var orgCount = _db.ExecuteScalar<int>("SELECT COUNT(1) FROM Organizations;");
+        if (orgCount == 0)
+        {
+            var logoBase64 = DbUtils.GetBase64FromImage("Resources/Seed/BitWorksSimpel-Gro.png");
 
-    // User nur seeden, wenn noch keine existiert
-    var userCount = _db.ExecuteScalar<int>("SELECT COUNT(1) FROM Users;");
-    if (userCount == 0)
-    {
-        _db.Execute(@"
+            _db.Execute(@"
+        INSERT INTO Organizations (Name, Domain, Description, OrgaPicAsBase64)
+        VALUES (@Name, @Domain, @Description, @OrgaPicAsBase64);
+        ", new
+            {
+                Name = "DemoOrg",
+                Domain = "demo.org",
+                Description = "Dies ist eine Demo-Organisation",
+                OrgaPicAsBase64 = logoBase64
+            });
+
+        }
+
+        // User nur seeden, wenn noch keine existiert
+        var userCount = _db.ExecuteScalar<int>("SELECT COUNT(1) FROM Users;");
+        if (userCount == 0)
+        {
+            _db.Execute(@"
             INSERT INTO Users (Firstname, Lastname, Password)
             VALUES ('Max', 'Mustermann', 'demo');
         ");
-    }
+        }
 
-    // Trigger
-    var triggerCount = _db.ExecuteScalar<int>("SELECT COUNT(1) FROM Triggers;");
-    if (triggerCount == 0)
-    {
-        _db.Execute(@"
+        // Trigger
+        var triggerCount = _db.ExecuteScalar<int>("SELECT COUNT(1) FROM Triggers;");
+        if (triggerCount == 0)
+        {
+            _db.Execute(@"
             INSERT INTO Triggers (Attribut)
             VALUES ('E-Mail bestätigt');
         ");
-    }
+        }
 
-    // Processes
-    var processCount = _db.ExecuteScalar<int>("SELECT COUNT(1) FROM Processes;");
-    if (processCount == 0)
-    {
-        _db.Execute(@"
+        // Processes
+        var processCount = _db.ExecuteScalar<int>("SELECT COUNT(1) FROM Processes;");
+        if (processCount == 0)
+        {
+            _db.Execute(@"
             INSERT INTO Processes (Name, OrganizationId)
             VALUES ('Onboarding', (SELECT Id FROM Organizations WHERE Domain = 'demo.org'));
         ");
-    }
+        }
 
-    // ProcessSteps
-    var stepCount = _db.ExecuteScalar<int>("SELECT COUNT(1) FROM ProcessSteps;");
-    if (stepCount == 0)
-    {
-        _db.Execute(@"
+        // ProcessSteps
+        var stepCount = _db.ExecuteScalar<int>("SELECT COUNT(1) FROM ProcessSteps;");
+        if (stepCount == 0)
+        {
+            _db.Execute(@"
             INSERT INTO ProcessSteps (Name, OrganizationId, TriggerId)
             VALUES (
                 'Willkommen',
@@ -210,13 +216,13 @@ public class DatabaseInitializer(IDbConnection db, ILogger<DatabaseInitializer> 
                 (SELECT Id FROM Triggers WHERE Attribut = 'E-Mail bestätigt')
             );
         ");
-    }
+        }
 
-    // Accounts
-    var accountCount = _db.ExecuteScalar<int>("SELECT COUNT(1) FROM Accounts;");
-    if (accountCount == 0)
-    {
-        _db.Execute(@"
+        // Accounts
+        var accountCount = _db.ExecuteScalar<int>("SELECT COUNT(1) FROM Accounts;");
+        if (accountCount == 0)
+        {
+            _db.Execute(@"
             INSERT INTO Accounts (Email, IsVerified, UserId)
             VALUES (
                 'admin@demo.org',
@@ -224,13 +230,13 @@ public class DatabaseInitializer(IDbConnection db, ILogger<DatabaseInitializer> 
                 (SELECT Id FROM Users WHERE Lastname = 'Mustermann')
             );
         ");
-    }
+        }
 
-    // OrganizationMembers
-    var orgMemberCount = _db.ExecuteScalar<int>("SELECT COUNT(1) FROM OrganizationMembers;");
-    if (orgMemberCount == 0)
-    {
-        _db.Execute(@"
+        // OrganizationMembers
+        var orgMemberCount = _db.ExecuteScalar<int>("SELECT COUNT(1) FROM OrganizationMembers;");
+        if (orgMemberCount == 0)
+        {
+            _db.Execute(@"
             INSERT INTO OrganizationMembers (AccountId, OrganizationId, Role)
             VALUES (
                 (SELECT Id FROM Accounts WHERE Email = 'admin@demo.org'),
@@ -238,13 +244,13 @@ public class DatabaseInitializer(IDbConnection db, ILogger<DatabaseInitializer> 
                 3
             );
         ");
-    }
+        }
 
-    // Events
-    var eventCount = _db.ExecuteScalar<int>("SELECT COUNT(1) FROM Events;");
-    if (eventCount == 0)
-    {
-        _db.Execute(@"
+        // Events
+        var eventCount = _db.ExecuteScalar<int>("SELECT COUNT(1) FROM Events;");
+        if (eventCount == 0)
+        {
+            _db.Execute(@"
             INSERT INTO Events (
                 Name, Description, OrganizationId, ProcessId,
                 StartDate, EndDate, StartTime, EndTime, Location,
@@ -261,13 +267,13 @@ public class DatabaseInitializer(IDbConnection db, ILogger<DatabaseInitializer> 
                 0
             );
         ");
-    }
+        }
 
-    // EventMembers
-    var eventMemberCount = _db.ExecuteScalar<int>("SELECT COUNT(1) FROM EventMembers;");
-    if (eventMemberCount == 0)
-    {
-        _db.Execute(@"
+        // EventMembers
+        var eventMemberCount = _db.ExecuteScalar<int>("SELECT COUNT(1) FROM EventMembers;");
+        if (eventMemberCount == 0)
+        {
+            _db.Execute(@"
             INSERT INTO EventMembers (AccountId, EventId, IsOrganizer, IsContactPerson)
             VALUES (
                 (SELECT Id FROM Accounts WHERE Email = 'admin@demo.org'),
@@ -275,7 +281,6 @@ public class DatabaseInitializer(IDbConnection db, ILogger<DatabaseInitializer> 
                 1, 1
             );
         ");
+        }
     }
-}
-
 }

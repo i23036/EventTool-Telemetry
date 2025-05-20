@@ -223,28 +223,25 @@ public class AuthenticateService : IAuthenticateService
     /// <returns>Ein gültiges JWT als Zeichenkette.</returns>
     private string GenerateJwtToken(Account account)
     {
-        Claim[] claims = new Claim[]
+        var claims = new[]
         {
+            new Claim(JwtRegisteredClaimNames.Sub, account.Id.ToString()),
             new Claim(JwtRegisteredClaimNames.Email, account.EMail),
-            
-            // TODO: Mehr hinzufügen
+            new Claim("org", account.Organization.Domain),
+            new Claim(ClaimTypes.Role, account.Role.ToString())
         };
 
-        SigningCredentials signingCredentials = new SigningCredentials(
-            new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtOptions.SecretKey)),
-            SecurityAlgorithms.HmacSha256
-            );
+        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtOptions.SecretKey));
+        var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
-        JwtSecurityToken token = new JwtSecurityToken(
+        var token = new JwtSecurityToken(
             _jwtOptions.Issuer,
             _jwtOptions.Audience,
             claims,
-            null,
-            DateTime.UtcNow.AddHours(_jwtOptions.ExpirationTime),
-            signingCredentials
-            );
+            expires: DateTime.UtcNow.AddHours(_jwtOptions.ExpirationTime),
+            signingCredentials: credentials
+        );
 
-        string tokenValue = new JwtSecurityTokenHandler().WriteToken(token);
-        return tokenValue;
+        return new JwtSecurityTokenHandler().WriteToken(token);
     }
 }

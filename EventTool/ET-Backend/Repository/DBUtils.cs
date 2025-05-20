@@ -36,14 +36,34 @@ public static class DbUtils
     public static bool IsSqlServer(this IDbConnection connection) => connection is SqlConnection;
 
     /// <summary>
-    /// Gibt den Namen der erkannten Datenbankplattform zurück.
+    /// Liest eine Bilddatei vom angegebenen relativen Pfad (bezogen auf das aktuelle Arbeitsverzeichnis)
+    /// und konvertiert deren Inhalt in einen Base64-codierten String.
+    /// Diese Methode wird z. B. beim Initial-Seeding von Bilddaten (z. B. Logos) verwendet.
     /// </summary>
-    /// <param name="connection">Die zu analysierende Verbindung.</param>
-    /// <returns>Plattformname (z. B. "SQLite", "SQL Server" oder "Unbekannt").</returns>
-    public static string GetPlatformName(this IDbConnection connection)
+    /// <param name="relativePath">
+    /// Relativer Pfad zur Bilddatei, z. B. "Resources/Seed/BitWorksSimpel-Gro.png".
+    /// Der Pfad wird relativ zu <c>Directory.GetCurrentDirectory()</c> aufgelöst.
+    /// </param>
+    /// <returns>
+    /// Ein Base64-codierter String des Bildes – <b>ohne</b> "data:image/...;base64,"-Präfix.
+    /// Gibt <c>null</c> zurück, wenn die Datei nicht gefunden oder nicht gelesen werden konnte.
+    /// </returns>
+
+    public static string GetBase64FromImage(string relativePath)
     {
-        if (connection.IsSQLite()) return "SQLite";
-        if (connection.IsSqlServer()) return "SQL Server";
-        return "Unbekannt";
+        try
+        {
+            var fullPath = Path.Combine(Directory.GetCurrentDirectory(), relativePath);
+            if (!File.Exists(fullPath))
+                return null;
+
+            var bytes = File.ReadAllBytes(fullPath);
+            return Convert.ToBase64String(bytes);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[WARN] Fehler beim Lesen der Bilddatei: {ex.Message}");
+            return null;
+        }
     }
 }

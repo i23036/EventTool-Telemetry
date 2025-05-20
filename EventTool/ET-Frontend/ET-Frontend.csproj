@@ -4,41 +4,46 @@
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-	<GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
   </PropertyGroup>
 
+  <!-- NuGet Packages -->
   <ItemGroup>
     <PackageReference Include="Blazored.SessionStorage" Version="2.4.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.Authorization" Version="8.0.16" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="8.0.11" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="8.0.11" PrivateAssets="all" />
     <PackageReference Include="MudBlazor" Version="8.6.0" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+  </ItemGroup>
+
+  <!-- Projekt-Referenzen -->
+  <ItemGroup>
     <ProjectReference Include="..\Shared\ET.Shared.DTOs\ET.Shared.DTOs.csproj" />
   </ItemGroup>
 
+  <!-- Statische Inhalte -->
   <ItemGroup>
-    <Folder Include="wwwroot\images\" />
+    <!-- Konfigurationsdateien -->
+    <Content Update="wwwroot\staticwebapp.config.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Update="wwwroot\appsettings.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Update="wwwroot\appsettings.Development.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Update="wwwroot\appsettings.Production.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 
+  <!-- Layout-Dateien -->
   <ItemGroup>
     <Content Update="Layout\MainLayout.razor">
       <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
     </Content>
   </ItemGroup>
-
-	<ItemGroup>
-		<Content Update="wwwroot\staticwebapp.config.json">
-			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-		</Content>
-		<Content Update="wwwroot\appsettings.json">
-			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-		</Content>
-		<Content Update="wwwroot\appsettings.Development.json">
-			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-		</Content>
-		<Content Update="wwwroot\appsettings.Production.json">
-			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-		</Content>
-	</ItemGroup>
 
 </Project>

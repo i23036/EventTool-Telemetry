@@ -1,8 +1,13 @@
 ﻿@page "/Organisationsdaten"
 
-@using System.ComponentModel.DataAnnotations
+@using ET_Frontend.Models
+@using ET_Frontend.Helpers
 @using ET.Shared.DTOs
-@using MudBlazor
+@using Microsoft.AspNetCore.Components.Authorization
+
+@inject HttpClient Http
+@inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthProvider
 
 
 <PageTitle>Organisationsdaten bearbeiten</PageTitle>
@@ -83,23 +88,27 @@
 </div>
 
 @code {
-    [Inject] private HttpClient Http { get; set; }
-    [Inject] private NavigationManager Navigation { get; set; }
-    private Boolean popupState = false;
+    private bool popupState = false;
     private string popupText = "Wir tun mal so, als wäre das ein Easter Egg. Glückwunsch!"; //Fallback falls es wer schafft, das Popup ohne Button auszulösen? XD
 
     private MudForm _editForm;
     private OrgaChangeModel orgaModel = new();
 
-    protected override async Task OnInitializedAsync()
+   // Lädt die Organisationsdaten des aktuell eingeloggten Benutzers anhand des Domain-Claims.
+   // Zeigt ein Standardbild, falls kein Logo vorhanden ist.
+   protected override async Task OnInitializedAsync()
     {
-        if (string.IsNullOrEmpty(orgaModel.orgaPicBase64))
-        {
-            var imageBytes = await Http.GetByteArrayAsync($"{Navigation.BaseUri}images/BitWorksSimpel-Gro.png");
-            orgaModel.orgaPicBase64 = $"data:image/png;base64,{Convert.ToBase64String(imageBytes)}";
-        }
-    }
+	    var domain = await JwtClaimHelper.GetUserDomainAsync(AuthProvider);
 
+	    var dto = await Http.GetFromJsonAsync<OrganizationDto>($"api/organization/{domain}");
+	    if (dto != null)
+	    {
+		    orgaModel = DtoMapper.FromDto(dto);
+	    }
+    }
+	
+    // Validiert die Eingaben im Formular.
+    // Führt bei Erfolg die Speicherung durch, sonst Popup.
     private async Task ValidateForm(IBrowserFile file)
     {
         await _editForm.Validate();
@@ -113,97 +122,58 @@
             popupState = true;
         }
     }
-
+	
+    // Speichert die geänderten Organisationsdaten über die API.
+    // Bild wird optional in Base64 übertragen.
     private async Task ChangeOrgaData(IBrowserFile file)
     {
-        if (file != null)
-        {
-            using var stream = file.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024); // sorgt für ein 10 MB Limit für die Datei
-            using var memoryStream = new MemoryStream();
-            await stream.CopyToAsync(memoryStream);
+	    string base64;
 
-            var base64 = Convert.ToBase64String(memoryStream.ToArray());
-        }
-        else //falls kein neues Bild eingefügt wurde, das alte einfügen fürs Dto
-        {
-            //TODO hier laden der alten Datei bzw sollte ja schon da sein
-        }
+	    if (file != null)
+	    {
+		    using var stream = file.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024);
+		    using var ms = new MemoryStream();
+		    await stream.CopyToAsync(ms);
+		    base64 = Convert.ToBase64String(ms.ToArray());
+		    orgaModel.orgaPicBase64 = $"data:{file.ContentType};base64,{base64}";
+	    }
 
-        //OrganizationDto orgaDTO = new OrganizationDto(orgaModel.orgaName, orgaModel.description, orgaModel.domain, base64);
+	    var dto = DtoMapper.ToDto(orgaModel);
+	    var response = await Http.PutAsJsonAsync($"api/organization/{orgaModel.domain}", dto);
 
-        //TODO upload zur Datenbank
-
-        // Console.WriteLine($"Registrierung mit DTO: {userRegDTO}");
-
-        if (true)                                       //TODO hier Variable die sagt ob erfolgreich geladen oder nicht
-        {
-            popupText = "Änderungen gespeichert";
-            popupState = true;
-        }
-        else
-        {
-            popupText = "Fehler beim Speichern der Daten";
-            popupState = true;
-        }
-
+	    popupText = response.IsSuccessStatusCode
+		    ? "Änderungen gespeichert"
+		    : "Fehler beim Speichern";
+	    popupState = true;
     }
-
+	
+    // Lädt die gespeicherten Originaldaten erneut und setzt das Formular zurück.
     private async Task ResetChanges()
     {
-        //TODO funktion um Daten aus der Datenbank zu Laden, Idee ist das Bearbeitbare Felder die gespeicherten Infos haben und bei BHutton diese wiederhergestellt werden
-        var imageBytes = await Http.GetByteArrayAsync("images/BitWorksSimpel-Gro.png");
-        orgaModel.orgaPicBase64 = $"data:image/png;base64,{Convert.ToBase64String(imageBytes)}";
-
-        if (true)                                       //TODO hier Variable die sagt ob erfolgreich geladen oder nicht
-        {
-            popupText = "Änderungen verworfen";
-            popupState = true;
-        }
-        else
-        {
-            popupText = "Fehler beim Laden der Daten";
-            popupState = true;
-        }
+	    var domain = await JwtClaimHelper.GetUserDomainAsync(AuthProvider);
+	    var dto = await Http.GetFromJsonAsync<OrganizationDto>($"api/organization/{domain}");
+	    orgaModel = dto != null ? DtoMapper.FromDto(dto) : new();
+	    popupText = "Änderungen verworfen";
+	    popupState = true;
     }
 
+    // Zeigt eine Bildvorschau an, wenn eine neue Datei hochgeladen wurde.
     private async Task UpdatePicPreview(IBrowserFile file)
     {
-        orgaModel.orgaPic = file;
+	    orgaModel.orgaPic = file;
 
-        if (!file.ContentType.StartsWith("image/"))
-        {
-            popupText = "Bitte laden Sie nur Bilddateien hoch.";
-            popupState = true;
-            return;
-        }
-        try
-        {
-            using var stream = file.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024); // sorgt für ein 10 MB Limit für die Datei
-            using var memoryStream = new MemoryStream();
-            await stream.CopyToAsync(memoryStream);
-            var base64 = Convert.ToBase64String(memoryStream.ToArray());
-            orgaModel.orgaPicBase64 = $"data:{file.ContentType};base64,{(base64)}";
+	    if (!file.ContentType.StartsWith("image/"))
+	    {
+		    popupText = "Bitte nur Bilddateien hochladen.";
+		    popupState = true;
+		    return;
+	    }
 
-        }catch(IOException e)
-        {
-            popupText = "Bitte laden Sie nur Bilddateien hoch, die größer als 10MB sind.";
-            popupState = true;
-            return;
-        }
-    }
+        using var stream = file.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024); // sorgt für ein 10 MB Limit für die Datei
+	    using var ms = new MemoryStream();
+	    await stream.CopyToAsync(ms);
+	    var base64 = Convert.ToBase64String(ms.ToArray());
 
-    public class OrgaChangeModel
-    {
-        [Required(ErrorMessage = "Organisationsname ist erforderlich.")]
-        public string orgaName { get; set; }
-
-        public string description { get; set; }
-
-        [Required(ErrorMessage = "Domain ist erforderlich.")]
-        public string domain { get; set; }
-
-        public IBrowserFile orgaPic { get; set; }
-
-        public string orgaPicBase64 { get; set; }
+	    orgaModel.orgaPicBase64 = $"data:{file.ContentType};base64,{base64}";
     }
 }
