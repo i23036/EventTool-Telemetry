@@ -31,7 +31,13 @@ public static class DtoMapper
     /// Entfernt den Base64-Prefix.
     /// </summary>
     public static OrganizationDto ToDto(OrgaChangeModel model) =>
-        new(model.orgaName, model.domain, model.description, StripPrefix(model.orgaPicBase64));
+        new(
+            model.orgaName,
+            model.domain,
+            model.description,
+            StripPrefix(model.orgaPicBase64),
+            "", "", "", "" // Ownerdaten leer – nur beim POST relevant
+        );
 
     /// <summary>
     /// Entfernt den Prefix ("data:image/...") aus einem Base64-String.

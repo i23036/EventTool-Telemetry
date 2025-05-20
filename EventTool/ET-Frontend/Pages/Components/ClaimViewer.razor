@@ -1,0 +1,33 @@
+﻿@using Microsoft.AspNetCore.Components.Authorization
+@inject AuthenticationStateProvider AuthProvider
+@namespace ET_Frontend.Components
+
+<AuthorizeView>
+	<Authorized>
+		<div class="mt-4">
+			<h4>Claims</h4>
+			<ul>
+				@foreach (var claim in claims)
+				{
+					<li><b>@claim.Type:</b> @claim.Value</li>
+				}
+			</ul>
+		</div>
+	</Authorized>
+	<NotAuthorized>
+		<p><i>Du bist nicht eingeloggt.</i></p>
+	</NotAuthorized>
+</AuthorizeView>
+
+@code {
+	private List<System.Security.Claims.Claim> claims = new();
+
+	protected override async Task OnInitializedAsync()
+	{
+		var authState = await AuthProvider.GetAuthenticationStateAsync();
+		var user = authState.User;
+
+		if (user.Identity?.IsAuthenticated ?? false)
+			claims = user.Claims.ToList();
+	}
+}

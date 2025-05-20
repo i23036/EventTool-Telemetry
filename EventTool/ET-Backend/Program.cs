@@ -1,7 +1,5 @@
 using Microsoft.Data.Sqlite;
 using System.Data;
-using Dapper;
-using ET.Shared.DTOs;
 using ET_Backend.Extensions;
 using ET_Backend.Repository.Person;
 using ET_Backend.Repository.Event;
@@ -15,11 +13,9 @@ using ET_Backend.Services.Organization;
 using ET_Backend.Services.Person;
 using ET_Backend.Services.Processes;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.IdentityModel.Tokens;
 using System.Net;
 using ET_Backend.Repository;
 using Microsoft.Data.SqlClient; // für Azure SQL
-using Microsoft.Extensions.Logging;
 using ET_Backend.Repository.Authentication;
 
 
@@ -44,6 +40,7 @@ builder.Services.AddCors(options =>
             .WithOrigins(
                 "https://localhost:7210",
                 "http://localhost:7210",
+                "https://localhost:7085",
                 "http://localhost:7085",
                 "https://nice-field-0026f6403.6.azurestaticapps.net"
             )

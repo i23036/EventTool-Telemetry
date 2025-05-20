@@ -1,5 +1,6 @@
 ﻿using System.Data;
 using Dapper;
+using ET_Backend.Models;
 using ET.Shared.DTOs;
 using FluentResults;
 
@@ -102,29 +103,70 @@ public class OrganizationRepository : IOrganizationRepository
 
     // === Schreiben ===
 
-    public async Task<Result<Models.Organization>> CreateOrganization(string name, string description, string domain)
+    public async Task<Result<Models.Organization>> CreateOrganization(
+    string name,
+    string description,
+    string domain,
+    string ownerFirstName,
+    string ownerLastName,
+    string ownerEmail,
+    string initialPassword)
     {
+        using var tx = _db.BeginSafeTransaction();
+
         try
         {
-            var sql = @"
-                INSERT INTO Organizations (Name, Description, Domain)
-                VALUES (@Name, @Description, @Domain);
-                SELECT last_insert_rowid();";
+            // 1. Organisation einfügen
+            var orgInsert = @"
+            INSERT INTO Organizations (Name, Description, Domain)
+            VALUES (@Name, @Description, @Domain);";
 
-            var id = await _db.ExecuteScalarAsync<int>(sql, new
+            var orgId = await _db.ExecuteScalarAsync<int>(
+                orgInsert, new { Name = name, Description = description, Domain = domain }, tx);
+
+            // 2. User einfügen
+            var userInsert = @"
+            INSERT INTO Users (Firstname, Lastname, Password)
+            VALUES (@Firstname, @Lastname, @Password);";
+
+            var userId = await _db.ExecuteScalarAsync<int>(
+                $"{userInsert} SELECT last_insert_rowid();",
+                new { Firstname = ownerFirstName, Lastname = ownerLastName, Password = initialPassword },
+                tx);
+
+            // 3. Account einfügen
+            var accountInsert = @"
+            INSERT INTO Accounts (Email, IsVerified, UserId)
+            VALUES (@Email, 1, @UserId);";
+
+            var accountId = await _db.ExecuteScalarAsync<int>(
+                $"{accountInsert} SELECT last_insert_rowid();",
+                new { Email = ownerEmail, UserId = userId },
+                tx);
+
+            // 4. Rollenbindung (Owner)
+            var memberInsert = @"
+            INSERT INTO OrganizationMembers (AccountId, OrganizationId, Role)
+            VALUES (@AccountId, @OrganizationId, @Role);";
+
+            await _db.ExecuteAsync(memberInsert, new
             {
-                Name = name,
-                Description = description,
-                Domain = domain
-            });
+                AccountId = accountId,
+                OrganizationId = orgId,
+                Role = (int)Role.Owner
+            }, tx);
 
-            return await GetOrganization(id);
+            tx.Commit();
+
+            return await GetOrganization(orgId);
         }
         catch (Exception ex)
         {
+            tx.Rollback();
             return Result.Fail($"DBError: {ex.Message}");
         }
     }
+
 
     public async Task<Result> EditOrganization(Models.Organization organization)
     {

@@ -155,34 +155,47 @@ public class DatabaseInitializer(IDbConnection db, ILogger<DatabaseInitializer> 
 
     public void SeedDemoData()
     {
-        // Organization nur seeden, wenn noch keine existiert
-        var orgCount = _db.ExecuteScalar<int>("SELECT COUNT(1) FROM Organizations;");
-        if (orgCount == 0)
+        var orgExists = _db.ExecuteScalar<int>("SELECT COUNT(1) FROM Organizations WHERE Domain = 'demo.org';") > 0;
+        if (!orgExists)
         {
             var logoBase64 = DbUtils.GetBase64FromImage("Resources/Seed/BitWorksSimpel-Gro.png");
 
+            // Organisation erstellen
             _db.Execute(@"
-        INSERT INTO Organizations (Name, Domain, Description, OrgaPicAsBase64)
-        VALUES (@Name, @Domain, @Description, @OrgaPicAsBase64);
-        ", new
-            {
-                Name = "DemoOrg",
-                Domain = "demo.org",
-                Description = "Dies ist eine Demo-Organisation",
-                OrgaPicAsBase64 = logoBase64
-            });
+            INSERT INTO Organizations (Name, Domain, Description, OrgaPicAsBase64)
+            VALUES (@Name, @Domain, @Description, @OrgaPicAsBase64);",
+                new
+                {
+                    Name = "DemoOrg",
+                    Domain = "demo.org",
+                    Description = "Dies ist eine Demo-Organisation",
+                    OrgaPicAsBase64 = logoBase64
+                });
 
-        }
-
-        // User nur seeden, wenn noch keine existiert
-        var userCount = _db.ExecuteScalar<int>("SELECT COUNT(1) FROM Users;");
-        if (userCount == 0)
-        {
+            // User erstellen
             _db.Execute(@"
             INSERT INTO Users (Firstname, Lastname, Password)
-            VALUES ('Max', 'Mustermann', 'demo');
-        ");
+            VALUES ('Max', 'Mustermann', 'demo');");
+
+            // Account erstellen
+            _db.Execute(@"
+            INSERT INTO Accounts (Email, IsVerified, UserId)
+            VALUES (
+                'admin@demo.org',
+                1,
+                (SELECT Id FROM Users WHERE Lastname = 'Mustermann')
+            );");
+
+            // OrgaMember mit Rolle Owner
+            _db.Execute(@"
+            INSERT INTO OrganizationMembers (AccountId, OrganizationId, Role)
+            VALUES (
+            (SELECT Id FROM Accounts WHERE Email = 'admin@demo.org'),
+            (SELECT Id FROM Organizations WHERE Domain = 'demo.org'),
+            0 -- Role.Owner
+            );");
         }
+
 
         // Trigger
         var triggerCount = _db.ExecuteScalar<int>("SELECT COUNT(1) FROM Triggers;");
@@ -191,7 +204,7 @@ public class DatabaseInitializer(IDbConnection db, ILogger<DatabaseInitializer> 
             _db.Execute(@"
             INSERT INTO Triggers (Attribut)
             VALUES ('E-Mail bestätigt');
-        ");
+            ");
         }
 
         // Processes
@@ -201,7 +214,7 @@ public class DatabaseInitializer(IDbConnection db, ILogger<DatabaseInitializer> 
             _db.Execute(@"
             INSERT INTO Processes (Name, OrganizationId)
             VALUES ('Onboarding', (SELECT Id FROM Organizations WHERE Domain = 'demo.org'));
-        ");
+            ");
         }
 
         // ProcessSteps
@@ -214,36 +227,8 @@ public class DatabaseInitializer(IDbConnection db, ILogger<DatabaseInitializer> 
                 'Willkommen',
                 (SELECT Id FROM Organizations WHERE Domain = 'demo.org'),
                 (SELECT Id FROM Triggers WHERE Attribut = 'E-Mail bestätigt')
-            );
-        ");
-        }
-
-        // Accounts
-        var accountCount = _db.ExecuteScalar<int>("SELECT COUNT(1) FROM Accounts;");
-        if (accountCount == 0)
-        {
-            _db.Execute(@"
-            INSERT INTO Accounts (Email, IsVerified, UserId)
-            VALUES (
-                'admin@demo.org',
-                1, -- IsVerified: 1 for true
-                (SELECT Id FROM Users WHERE Lastname = 'Mustermann')
-            );
-        ");
-        }
-
-        // OrganizationMembers
-        var orgMemberCount = _db.ExecuteScalar<int>("SELECT COUNT(1) FROM OrganizationMembers;");
-        if (orgMemberCount == 0)
-        {
-            _db.Execute(@"
-            INSERT INTO OrganizationMembers (AccountId, OrganizationId, Role)
-            VALUES (
-                (SELECT Id FROM Accounts WHERE Email = 'admin@demo.org'),
-                (SELECT Id FROM Organizations WHERE Domain = 'demo.org'),
-                3
-            );
-        ");
+                );
+            ");
         }
 
         // Events

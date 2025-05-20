@@ -1,10 +1,11 @@
 ﻿using System.Net.Http.Json;
 using Blazored.SessionStorage;
 using ET.Shared.DTOs;
+using ET_Frontend.Services.Authentication;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 
-namespace ET_Frontend.Services.Authentication;
+namespace Services.Authentication;
 
 /// <summary>
 /// Implementierung des Login-Dienstes für JWT-basierte Authentifizierung.

@@ -35,9 +35,40 @@ public class OrganizationService : IOrganizationService
 
     // === Erstellen & Bearbeiten ===
 
-    public async Task<Result<Models.Organization>> CreateOrganization(string name, string domain, string description) =>
-        await _organizationRepository.CreateOrganization(name, description, domain);
+    public async Task<Result<OrganizationDto>> CreateOrganization(
+        string orgName,
+        string domain,
+        string description,
+        string ownerFirstName,
+        string ownerLastName,
+        string ownerEmail,
+        string initialPassword)
+    {
+        var result = await _organizationRepository.CreateOrganization(
+            orgName, domain, description,
+            ownerFirstName, ownerLastName, ownerEmail, initialPassword);
 
+        if (result.IsFailed)
+            return Result.Fail(result.Errors);
+
+        var org = result.Value;
+
+        // Mapping zum DTO
+        var dto = new OrganizationDto(
+            org.Name,
+            org.Domain,
+            org.Description,
+            org.OrgaPicAsBase64,
+            ownerFirstName,
+            ownerLastName,
+            ownerEmail,
+            initialPassword // nur intern → nicht an UI zurückgeben
+        );
+
+        return Result.Ok(dto);
+    }
+
+    
     public async Task<Result> EditOrganization(Models.Organization organization) =>
         await _organizationRepository.EditOrganization(organization);
 

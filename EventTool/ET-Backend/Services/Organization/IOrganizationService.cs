@@ -28,7 +28,15 @@ public interface IOrganizationService
     // === Erstellen & Bearbeiten ===
 
     /// <summary>Erstellt eine neue Organisation.</summary>
-    Task<Result<Models.Organization>> CreateOrganization(string name, string domain, string description);
+    Task<Result<OrganizationDto>> CreateOrganization(
+        string orgName,
+        string domain,
+        string description,
+        string ownerFirstName,
+        string ownerLastName,
+        string ownerEmail,
+        string initialPassword
+    );
 
     /// <summary>Bearbeitet die interne Struktur einer Organisation (z. B. Admin-Tools).</summary>
     Task<Result> EditOrganization(Models.Organization organization);

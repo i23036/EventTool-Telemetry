@@ -228,6 +228,7 @@ public class AuthenticateService : IAuthenticateService
             new Claim(JwtRegisteredClaimNames.Sub, account.Id.ToString()),
             new Claim(JwtRegisteredClaimNames.Email, account.EMail),
             new Claim("org", account.Organization.Domain),
+            new Claim("orgName", account.Organization.Name),
             new Claim(ClaimTypes.Role, account.Role.ToString())
         };
 
