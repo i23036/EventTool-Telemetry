@@ -243,6 +243,8 @@ public class AuthenticateService : IAuthenticateService
             signingCredentials: credentials
         );
 
+        _logger.LogInformation("JWT wird mit SecretKey erstellt: {Key}", _jwtOptions.SecretKey);
+
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
 }

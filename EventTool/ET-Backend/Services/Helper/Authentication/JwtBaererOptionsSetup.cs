@@ -2,31 +2,31 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.Extensions.Logging;
 
 namespace ET_Backend.Services.Helper.Authentication;
-/// <summary>
-/// Konfiguriert die Optionen für die JWT-Authentifizierung.
-/// </summary>
-public class JwtBaererOptionsSetup : IConfigureOptions<JwtBearerOptions>
-{
-    private JwtOptions _jwtOptions;
 
-    /// <summary>
-    /// Erstellt eine neue Instanz von <see cref="JwtBaererOptionsSetup"/> mit den angegebenen JWT-Optionen.
-    /// </summary>
-    /// <param name="options">Die konfigurierten JWT-Optionen.</param>
-    public JwtBaererOptionsSetup(IOptions<JwtOptions> options)
+public class JwtBaererOptionsSetup : IConfigureNamedOptions<JwtBearerOptions>
+{
+    private readonly JwtOptions _jwtOptions;
+    private readonly ILogger<JwtBaererOptionsSetup> _logger;
+
+    public JwtBaererOptionsSetup(IOptions<JwtOptions> options, ILogger<JwtBaererOptionsSetup> logger)
     {
         _jwtOptions = options.Value;
+        _logger = logger;
     }
 
-    /// <summary>
-    /// Konfiguriert die Tokenvalidierungsparameter für die JWT-Authentifizierung.
-    /// </summary>
-    /// <param name="options">Die zu konfigurierenden <see cref="JwtBearerOptions"/>.</param>
+    public void Configure(string name, JwtBearerOptions options)
+    {
+        Configure(options);
+    }
+
     public void Configure(JwtBearerOptions options)
     {
-        options.TokenValidationParameters = new()
+        _logger.LogInformation("JWT Validation mit SecretKey: {Key}", _jwtOptions.SecretKey);
+
+        options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateAudience = true,
             ValidateIssuer = true,

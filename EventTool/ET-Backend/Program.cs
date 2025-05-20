@@ -17,6 +17,7 @@ using System.Net;
 using ET_Backend.Repository;
 using Microsoft.Data.SqlClient;
 using ET_Backend.Repository.Authentication;
+using Microsoft.Extensions.Options;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -97,12 +98,16 @@ builder.Services.Configure<EmailSettings>(
 builder.Services.AddScoped<IEMailService, EMailService>();
 builder.Services.AddScoped<IEmailVerificationTokenRepository, EmailVerificationTokenRepository>();
 
-// JWT-Authentifizierung
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer();
+// JWT Setup
+builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection("Jwt"));
+builder.Services.AddSingleton<IConfigureOptions<JwtBearerOptions>, JwtBaererOptionsSetup>();
 
-builder.Services.ConfigureOptions<JwtOptionsSetup>();
-builder.Services.ConfigureOptions<JwtBaererOptionsSetup>();
+// JWT aktivieren
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+}).AddJwtBearer();
 
 // AdminOnly-Policy zum Organisationen anlegen und löschen
 builder.Services.AddAuthorization(options =>
