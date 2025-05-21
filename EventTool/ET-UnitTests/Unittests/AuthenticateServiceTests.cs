@@ -9,6 +9,8 @@ using ET_Backend.Services.Helper.Authentication;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Logging;
 using FluentResults;
+using ET_Backend.Repository.Authentication;
+using ET_Backend.Services.Helper;
 
 namespace ET_UnitTests.Unittests
 {
@@ -22,6 +24,8 @@ namespace ET_UnitTests.Unittests
             var mockUserRepo = new Mock<IUserRepository>();
             var mockOrgRepo = new Mock<IOrganizationRepository>();
             var mockLogger = new Mock<ILogger<AuthenticateService>>();
+            var mockTokenRepo = new Mock<IEmailVerificationTokenRepository>();
+            var mockEmailService = new Mock<IEMailService>();
 
             var jwtOptions = Options.Create(new JwtOptions
             {
@@ -70,7 +74,9 @@ namespace ET_UnitTests.Unittests
                 mockUserRepo.Object,
                 mockOrgRepo.Object,
                 jwtOptions,
-                mockLogger.Object
+                mockLogger.Object,
+                mockTokenRepo.Object,
+                mockEmailService.Object
             );
 
             // Act
