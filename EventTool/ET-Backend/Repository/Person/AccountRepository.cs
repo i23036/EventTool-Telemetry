@@ -294,4 +294,19 @@ public class AccountRepository : IAccountRepository
             return Result.Fail($"DBError: {ex.Message}");
         }
     }
+
+    public async Task<Result> RemoveFromOrganization(int accountId)
+    {
+        try
+        {
+            var sql = "UPDATE Accounts SET OrganizationId = NULL WHERE Id = @Id";
+            var rows = await _db.ExecuteAsync(sql, new { Id = accountId });
+
+            return rows > 0 ? Result.Ok() : Result.Fail("No changes");
+        }
+        catch
+        {
+            return Result.Fail("DBError");
+        }
+    }
 }

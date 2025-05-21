@@ -1,196 +1,224 @@
 ﻿@page "/home"
-
+@using System.Net.Http.Headers
+@using ET.Shared.DTOs
+@using ET_Frontend.Models
+@using Blazored.SessionStorage
+@using ET_Frontend.Helpers
+@using ET_Frontend.Pages.Components
+@using Microsoft.AspNetCore.Components.Authorization
+@inject HttpClient Http
+@inject ISessionStorageService SessionStorage
 @inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthProvider
 
 
-<!-- Seitentitel -->
 <PageTitle>Home</PageTitle>
 
-<!-- Inhaltstabs -->
 <div class="flex-md-column align-content-between justify-content-center w-100 h-100">
     <MudPaper Width="100%" Height="100%">
-        <MudTabs class="h-100" Elevation="2" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-6 h-100">
+        <MudTabs Class="h-100" Elevation="2" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-6 h-100">
 
-
-            <!-- Tab für Events -->
+            <!-- Events Tab -->
             <MudTabPanel Text="Events">
                 <MudText Typo="Typo.h4" Class="mb-3">Events</MudText>
-
-                <!-- Datenraster für Event-Daten -->
-                <MudDataGrid Items="@Elements.Take(4)">
+                <MudDataGrid T="EventListDto" Items="@Events" Dense="true">
                     <Columns>
                         <PropertyColumn Property="x => x.Name" Title="Name" />
                         <PropertyColumn Property="x => x.Description" Title="Beschreibung" />
-                        <PropertyColumn Property="x => x.RegisteredUsers" Title="Teilnehmer" />
-                        <PropertyColumn Property="x => x.MaxUsers" Title="Maximale Teilnehmer" />
-
+                        <PropertyColumn Property="x => x.Participants" Title="Teilnehmer" />
+                        <PropertyColumn Property="x => x.MaxParticipants" Title="Maximale Teilnehmer" />
                         <TemplateColumn CellClass="d-flex justify-end">
                             <CellTemplate Context="eventItem">
                                 <MudStack Row Spacing="1">
-                                    <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary" OnClick="@(() => NavigateToEventDetails(eventItem.Item))">
+                                    <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary" OnClick="@(() => NavigateToEventDetails(eventItem.Item.EventId))">
                                         Details
                                     </MudButton>
-                                    @if (eventItem.Item.CanBeEdited)
+                                    @if (eventItem.Item.IsOrganizer)
                                     {
-                                        <MudButton Size="Size.Small"
-                                                   Variant="Variant.Outlined"
-                                                   Color="Color.Secondary"
-                                                   OnClick="@(() => Navigation.NavigateTo($"/EventBearbeiten/{eventItem.Item.ID}"))">
+                                        <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Secondary" OnClick="@(() => Navigation.NavigateTo($"/EventBearbeiten/{eventItem.Item.EventId}"))">
                                             Bearbeiten
                                         </MudButton>
                                     }
-
                                     <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary">
-                                        Anmelden
+                                        @(eventItem.Item.IsSubscribed ? "Abmelden" : "Anmelden")
                                     </MudButton>
                                 </MudStack>
                             </CellTemplate>
                         </TemplateColumn>
                     </Columns>
                 </MudDataGrid>
-                    <MudButton Class="float-end mt-4" Variant="Variant.Filled" Color="Color.Primary" OnClick="NavigateToEventCreation">
-                        Event erstellen
-                    </MudButton>
+                <MudButton Class="float-end mt-4" Variant="Variant.Filled" Color="Color.Primary" OnClick="NavigateToEventCreation">
+                    Event erstellen
+                </MudButton>
             </MudTabPanel>
 
-            <!-- Tab für Organisation -->
+            <!-- Organisation Tab -->
             <MudTabPanel Text="Organisation">
                 <MudText Typo="Typo.h4" Class="mb-3">Members</MudText>
-
                 <ClaimViewer />
-
-                <MudDataGrid T="Member" Items="@Members" Dense="true">
+                <MudDataGrid T="OrganizationMemberViewModel" Items="@OrgMembers" Dense="true">
                     <Columns>
                         <PropertyColumn Property="x => x.LastName" Title="Nachname" />
                         <PropertyColumn Property="x => x.Email" Title="E-Mail" />
-
-
-
                         <TemplateColumn Title="Rolle">
                             <CellTemplate Context="ctx">
-                                <MudSelect T="Role"
-                                           Dense="true"
-                                           @bind-Value="ctx.Item.Role">
-                                    <MudSelectItem Value="Role.Owner">Owner</MudSelectItem>
-                                    <MudSelectItem Value="Role.Member">Member</MudSelectItem>
-                                    <MudSelectItem Value="Role.Organisator">Organisator</MudSelectItem>
+	                            <MudSelect T="int" Dense="true" Value="ctx.Item.Role" ValueChanged="async r => await UpdateRolle(ctx.Item, r)">
+                                    <MudSelectItem Value="0">Owner</MudSelectItem>
+                                    <MudSelectItem Value="1">Member</MudSelectItem>
+                                    <MudSelectItem Value="2">Organisator</MudSelectItem>
                                 </MudSelect>
-
                             </CellTemplate>
                         </TemplateColumn>
-
-
                         <TemplateColumn Title="" CellClass="text-end">
                             <CellTemplate Context="ctx">
-                                <MudButton Variant="Variant.Filled"
-                                           Color="Color.Error"
-                                           Size="Size.Small"
-                                           OnClick="@(() => RemoveMember(ctx.Item))">
+                                <MudButton Variant="Variant.Filled" Color="Color.Error" Size="Size.Small" OnClick="@(() => RemoveMember(ctx.Item))">
                                     Entfernen
                                 </MudButton>
                             </CellTemplate>
                         </TemplateColumn>
                     </Columns>
                 </MudDataGrid>
-
                 <MudButton Class="float-end" OnClick="ChangeOrgaData" Variant="Variant.Filled" Color="Color.Primary">Organisationsdaten ändern</MudButton>
-
+                @if (ShowConfirmDialog)
+                {
+	                <SimpleConfirm Message="Willst du das Mitglied wirklich entfernen?"
+	                               OnConfirm="HandleDeleteConfirm" />
+                }
             </MudTabPanel>
 
-            <!-- Tab für Vorlagen -->
+            <!-- Vorlagen Tab -->
             <MudTabPanel Text="Vorlagen">
                 <MudText>Events</MudText>
                 <MudText>Prozesse</MudText>
                 <MudText>Prozessschritte</MudText>
             </MudTabPanel>
+
         </MudTabs>
     </MudPaper>
 </div>
 
 @code {
-    /// <summary>
-    /// Repräsentiert ein Event mit Namen, Beschreibung und Teilnehmerzahlen.
-    /// </summary>
-    public class MyEvent
-    {
-        public int ID { get; set; }
-        public string Name { get; set; }
-        public string Description { get; set; }
-        public int RegisteredUsers { get; set; }
-        public int MaxUsers { get; set; }
-        public bool CanBeEdited { get; set; }
+    private List<OrganizationMemberViewModel> OrgMembers = new();
+    private List<EventListDto> Events = new();
 
-        public MyEvent(int id, string name, string description, int registeredUsers, int maxUsers, bool canBeEdited)
-        {
-            ID = id;
-            Name = name;
-            Description = description;
-            RegisteredUsers = registeredUsers;
-            MaxUsers = maxUsers;
-            CanBeEdited = canBeEdited;
-        }
-    }
+    private bool ShowConfirmDialog = false;
+    private OrganizationMemberViewModel MemberToDelete;
 
-    public enum Role { Owner, Member, Organisator }
-
-    public void ChangeOrgaData()
-    {
-        Navigation.NavigateTo("/Organisationsdaten");
-    }
-
-
-    public class Member
-    {
-        public Role Role { get; set; }
-        public string LastName { get; set; }
-        public string Email { get; set; }
-
-        public Member() { }
-
-        public Member(string lastName, string email, Role role)
-        {
-            LastName = lastName;
-            Email = email;
-            Role = role;
-        }
-    }
-
-
-    private IEnumerable<MyEvent> Elements;
-    private List<Member> Members;
-
-
-    /// <summary>
-    /// Wird beim Initialisieren der Komponente aufgerufen. Lädt Beispiel-Events.
-    /// </summary>
     protected override async Task OnInitializedAsync()
     {
-        Elements = new List<MyEvent>
-        {
-            new MyEvent(1, "Grillfest", "lecker!", 5, 10, false),
-            new MyEvent(2, "Sommerfest", "heiß!", 40, 150, true)
-        };   
+        await LoadEvents();
+        await LoadMembers();
     }
 
-    private Task UpdateRolle(Member Member, Role neueRolle)
+    private async Task LoadEvents()
     {
-        Member.Role = neueRolle;
-        StateHasChanged();
-        return Task.CompletedTask;
+        var token = await SessionStorage.GetItemAsync<string>("authToken");
+        var request = new HttpRequestMessage(HttpMethod.Get, $"api/event/eventList");
+        request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+
+        var response = await Http.SendAsync(request);
+        if (response.IsSuccessStatusCode)
+        {
+            var dtoList = await response.Content.ReadFromJsonAsync<List<EventListDto>>();
+            Events = dtoList ?? new();
+        }
+        else
+        {
+            Console.WriteLine("Fehler beim Laden der Events");
+        }
     }
 
+    private async Task LoadMembers()
+    {
+        var token = await SessionStorage.GetItemAsync<string>("authToken");
+        var domain = await JwtClaimHelper.GetUserDomainAsync(AuthProvider);
+        var request = new HttpRequestMessage(HttpMethod.Get, $"api/organization/{domain}/members");
+        request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+
+        var response = await Http.SendAsync(request);
+        if (response.IsSuccessStatusCode)
+        {
+            var dtoList = await response.Content.ReadFromJsonAsync<List<OrganizationMemberDto>>();
+            OrgMembers = dtoList.Select(dto => new OrganizationMemberViewModel(dto.Email, dto.Lastname, dto.Role)).ToList();
+        }
+        else
+        {
+            Console.WriteLine("Fehler beim Laden der Mitglieder");
+        }
+    }
+
+    private async Task UpdateRolle(OrganizationMemberViewModel member, int neueRolle)
+    {
+	    if (member.Role == neueRolle) return;
+
+	    var token = await SessionStorage.GetItemAsync<string>("authToken");
+	    var domain = await JwtClaimHelper.GetUserDomainAsync(AuthProvider);
+
+	    var request = new HttpRequestMessage(
+		    HttpMethod.Put,
+		    $"api/organization/{domain}/members/{member.Email}"
+	    );
+	    request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+	    request.Content = JsonContent.Create(neueRolle);
+
+	    var response = await Http.SendAsync(request);
+
+	    if (response.IsSuccessStatusCode)
+	    {
+		    member.Role = neueRolle;
+	    }
+	    else
+	    {
+		    Console.WriteLine($"Fehler beim Rollenwechsel: {response.StatusCode}");
+	    }
+    }
+
+
+    private void RemoveMember(OrganizationMemberViewModel member)
+    {
+	    MemberToDelete = member;
+	    ShowConfirmDialog = true;
+    }
+
+    private async Task HandleDeleteConfirm(bool confirmed)
+    {
+	    if (confirmed && MemberToDelete is not null)
+	    {
+		    var token = await SessionStorage.GetItemAsync<string>("authToken");
+		    var domain = await JwtClaimHelper.GetUserDomainAsync(AuthProvider);
+
+		    var request = new HttpRequestMessage(HttpMethod.Delete, $"api/organization/{domain}/members/{MemberToDelete.Email}");
+		    request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+		    var response = await Http.SendAsync(request);
+
+		    if (response.IsSuccessStatusCode)
+		    {
+			    OrgMembers.Remove(MemberToDelete);
+			    StateHasChanged(); // UI aktualisieren
+		    }
+		    else
+		    {
+			    Console.WriteLine($"Fehler beim Löschen: {response.StatusCode}");
+		    }
+	    }
+
+	    ShowConfirmDialog = false;
+	    MemberToDelete = null;
+    }
+	
     private void NavigateToEventCreation()
     {
         Navigation.NavigateTo("/EventErstellen");
     }
 
-    private void RemoveMember(Member Member)
+    private void NavigateToEventDetails(int eventId)
     {
-        Members.Remove(Member);
+        Navigation.NavigateTo($"/EventDetails/{eventId}");
     }
 
-    private void NavigateToEventDetails(MyEvent clickedEvent)
+    private void ChangeOrgaData()
     {
-        Navigation.NavigateTo($"/EventDetails/{clickedEvent.ID}");
+        Navigation.NavigateTo("/Organisationsdaten");
     }
 }

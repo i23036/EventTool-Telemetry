@@ -55,4 +55,6 @@ public interface IOrganizationService
 
     /// <summary>Löscht eine Organisation anhand der ID.</summary>
     Task<Result> DeleteOrganization(int id);
+
+    Task<Result> RemoveMember(string domain, string email);
 }

@@ -119,4 +119,16 @@ public class OrganizationController : ControllerBase
 
         return result.IsSuccess ? Ok() : BadRequest(result.Errors);
     }
+
+    [HttpDelete("{domain}/members/{email}")]
+    public async Task<IActionResult> RemoveMember(string domain, string email)
+    {
+        var result = await _organizationService.RemoveMember(domain, email);
+    
+        if (result.IsSuccess)
+            return Ok();
+    
+        return BadRequest(result.Errors);
+    }
+
 }

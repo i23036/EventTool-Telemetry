@@ -1,4 +1,5 @@
 ﻿using ET_Backend.Repository.Organization;
+using ET_Backend.Repository.Person;
 using ET.Shared.DTOs;
 using FluentResults;
 
@@ -10,12 +11,15 @@ namespace ET_Backend.Services.Organization;
 public class OrganizationService : IOrganizationService
 {
     private readonly IOrganizationRepository _organizationRepository;
+    private readonly IAccountRepository _accountRepository;
 
-    public OrganizationService(IOrganizationRepository organizationRepository)
+
+    public OrganizationService(IOrganizationRepository organizationRepository, IAccountRepository accountRepository)
     {
         _organizationRepository = organizationRepository;
+        _accountRepository = accountRepository;
     }
-
+    
     // === Abfragen ===
 
     public async Task<Result<bool>> OrganizationExists(string domain) =>
@@ -86,4 +90,19 @@ public class OrganizationService : IOrganizationService
 
     public async Task<Result> DeleteOrganization(int id) =>
         await _organizationRepository.DeleteOrganization(id);
+
+    public async Task<Result> RemoveMember(string domain, string email)
+    {
+        var orgResult = await _organizationRepository.GetOrganization(domain);
+        if (orgResult.IsFailed) return Result.Fail("Organization not found");
+
+        var accountResult = await _accountRepository.GetAccount(email);
+        if (accountResult.IsFailed) return Result.Fail("Account not found");
+
+        var account = accountResult.Value;
+        if (account.Organization.Id != orgResult.Value.Id)
+            return Result.Fail("Account not part of this organization");
+
+        return await _accountRepository.RemoveFromOrganization(account.Id);
+    }
 }
