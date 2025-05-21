@@ -2,7 +2,6 @@
 using Dapper;
 using ET_Backend.Models;
 using FluentResults;
-using Microsoft.Data.Sqlite;
 
 namespace ET_Backend.Repository.Person;
 
@@ -20,43 +19,11 @@ public class AccountRepository : IAccountRepository
         _db = db;
     }
 
-    //Helfermethoden
-
-    /// <summary>
-    /// Liefert den vollqualifizierten Tabellennamen – unter SQL Server wird
-    /// automatisch "dbo." vorangestellt.
-    /// </summary>
-    private string Tbl(string baseName) => _db.IsSQLite() ? baseName : $"dbo.{baseName}";
-
-    /// <summary>
-    /// Fügt einen Datensatz ein und gibt die generierte Id zurück.
-    /// * SQLite → INSERT … <c>RETURNING Id</c>
-    /// * SQL Server/Azure SQL → <c>SELECT CAST(SCOPE_IDENTITY() AS int)</c>
-    /// </summary>
-    private async Task<int> InsertAndGetIdAsync(string sql, object param, IDbTransaction tx)
-    {
-        if (_db.IsSQLite())
-        {
-            // Moderner, race‑condition‑sicherer Weg ab SQLite 3.35
-            return await _db.ExecuteScalarAsync<int>($"{sql} RETURNING Id;", param, tx);
-        }
-        else
-        {
-            var fullSql = $"{sql}; SELECT CAST(SCOPE_IDENTITY() AS int);";
-            return await _db.ExecuteScalarAsync<int>(fullSql, param, tx);
-        }
-    }
-
-    private Type RoleSplitType() => _db.IsSQLite() ? typeof(long) : typeof(int);
-
-
-    //Hauptmethoden
-
     public async Task<Result<bool>> AccountExists(string accountEMail)
     {
         try
         {
-            var count = await _db.ExecuteScalarAsync<int>($"SELECT COUNT(1) FROM {Tbl("Accounts")} WHERE Email = @Email", new { Email = accountEMail });
+            var count = await _db.ExecuteScalarAsync<int>($"SELECT COUNT(1) FROM {_db.Tbl("Accounts")} WHERE Email = @Email", new { Email = accountEMail });
             return Result.Ok(count > 0);
         }
         catch (Exception ex)
@@ -69,7 +36,7 @@ public class AccountRepository : IAccountRepository
     {
         try
         {
-            var count = await _db.ExecuteScalarAsync<int>($"SELECT COUNT(1) FROM {Tbl("Accounts")} WHERE Id = @Id", new { Id = accountId });
+            var count = await _db.ExecuteScalarAsync<int>($"SELECT COUNT(1) FROM {_db.Tbl("Accounts")} WHERE Id = @Id", new { Id = accountId });
             return Result.Ok(count > 0);
         }
         catch (Exception ex)
@@ -84,16 +51,16 @@ public class AccountRepository : IAccountRepository
         try
         {
             // 1) User
-            var userInsert = $"INSERT INTO {Tbl("Users")}(Firstname, Lastname, Password) VALUES (@Firstname, @Lastname, @Password)";
-            var userId = await InsertAndGetIdAsync(userInsert, new { user.Firstname, user.Lastname, user.Password }, tx);
+            var userInsert = $"INSERT INTO {_db.Tbl("Users")}(Firstname, Lastname, Password) VALUES (@Firstname, @Lastname, @Password)";
+            var userId = await _db.InsertAndGetIdAsync(userInsert, new { user.Firstname, user.Lastname, user.Password }, tx);
             user.Id = userId;
 
             // 2) Account
-            var accInsert = $"INSERT INTO {Tbl("Accounts")}(Email, UserId) VALUES (@Email, @UserId)";
-            var accountId = await InsertAndGetIdAsync(accInsert, new { Email = accountEMail, UserId = userId }, tx);
+            var accInsert = $"INSERT INTO {_db.Tbl("Accounts")}(Email, UserId) VALUES (@Email, @UserId)";
+            var accountId = await _db.InsertAndGetIdAsync(accInsert, new { Email = accountEMail, UserId = userId }, tx);
 
             // 3) Org‑Member
-            await _db.ExecuteAsync($"INSERT INTO {Tbl("OrganizationMembers")}(AccountId, OrganizationId, Role) VALUES (@AccountId, @OrganizationId, @Role);",
+            await _db.ExecuteAsync($"INSERT INTO {_db.Tbl("OrganizationMembers")}(AccountId, OrganizationId, Role) VALUES (@AccountId, @OrganizationId, @Role);",
                                    new { AccountId = accountId, OrganizationId = organization.Id, Role = (int)role }, tx);
 
             tx.Commit();
@@ -120,7 +87,7 @@ public class AccountRepository : IAccountRepository
     {
         try
         {
-            var rows = await _db.ExecuteAsync($"DELETE FROM {Tbl("Accounts")} WHERE Email = @Email", new { Email = accountEMail });
+            var rows = await _db.ExecuteAsync($"DELETE FROM {_db.Tbl("Accounts")} WHERE Email = @Email", new { Email = accountEMail });
             return rows > 0 ? Result.Ok() : Result.Fail("NotFound");
         }
         catch (Exception ex)
@@ -133,7 +100,7 @@ public class AccountRepository : IAccountRepository
     {
         try
         {
-            var rows = await _db.ExecuteAsync($"DELETE FROM {Tbl("Accounts")} WHERE Id = @Id", new { Id = accountId });
+            var rows = await _db.ExecuteAsync($"DELETE FROM {_db.Tbl("Accounts")} WHERE Id = @Id", new { Id = accountId });
             return rows > 0 ? Result.Ok() : Result.Fail("NotFound");
         }
         catch (Exception ex)
@@ -159,10 +126,10 @@ public class AccountRepository : IAccountRepository
                             o.Description,
                             o.Domain,
                             om.Role
-                          FROM {Tbl("Accounts")} a
-                          JOIN {Tbl("Users")} u             ON a.UserId       = u.Id
-                          JOIN {Tbl("OrganizationMembers")} om ON om.AccountId   = a.Id
-                          JOIN {Tbl("Organizations")} o     ON o.Id           = om.OrganizationId
+                          FROM {_db.Tbl("Accounts")} a
+                          JOIN {_db.Tbl("Users")} u             ON a.UserId       = u.Id
+                          JOIN {_db.Tbl("OrganizationMembers")} om ON om.AccountId   = a.Id
+                          JOIN {_db.Tbl("Organizations")} o     ON o.Id           = om.OrganizationId
                           WHERE a.Email = @Email";
 
             if (_db.IsSQLite())
@@ -222,10 +189,10 @@ public class AccountRepository : IAccountRepository
                             o.Description,
                             o.Domain,
                             om.Role
-                          FROM {Tbl("Accounts")} a
-                          JOIN {Tbl("Users")} u             ON a.UserId       = u.Id
-                          JOIN {Tbl("OrganizationMembers")} om ON om.AccountId   = a.Id
-                          JOIN {Tbl("Organizations")} o     ON o.Id           = om.OrganizationId
+                          FROM {_db.Tbl("Accounts")} a
+                          JOIN {_db.Tbl("Users")} u             ON a.UserId       = u.Id
+                          JOIN {_db.Tbl("OrganizationMembers")} om ON om.AccountId   = a.Id
+                          JOIN {_db.Tbl("Organizations")} o     ON o.Id           = om.OrganizationId
                           WHERE a.Id = @Id";
 
             if (_db.IsSQLite())
@@ -274,15 +241,15 @@ public class AccountRepository : IAccountRepository
         try
         {
             // Account
-            await _db.ExecuteAsync($"UPDATE {Tbl("Accounts")} SET Email = @Email, IsVerified = @IsVerified WHERE Id = @Id;",
+            await _db.ExecuteAsync($"UPDATE {_db.Tbl("Accounts")} SET Email = @Email, IsVerified = @IsVerified WHERE Id = @Id;",
                                    new { Email = account.EMail, IsVerified = account.IsVerified ? 1 : 0, account.Id }, tx);
 
             // User
-            await _db.ExecuteAsync($"UPDATE {Tbl("Users")} SET Firstname = @Firstname, Lastname = @Lastname, Password = @Password WHERE Id = @UserId;",
+            await _db.ExecuteAsync($"UPDATE {_db.Tbl("Users")} SET Firstname = @Firstname, Lastname = @Lastname, Password = @Password WHERE Id = @UserId;",
                                    new { UserId = account.User.Id, account.User.Firstname, account.User.Lastname, account.User.Password }, tx);
 
             // Org‑Member
-            await _db.ExecuteAsync($"UPDATE {Tbl("OrganizationMembers")} SET Role = @Role WHERE AccountId = @AccountId AND OrganizationId = @OrganizationId;",
+            await _db.ExecuteAsync($"UPDATE {_db.Tbl("OrganizationMembers")} SET Role = @Role WHERE AccountId = @AccountId AND OrganizationId = @OrganizationId;",
                                    new { Role = (int)account.Role, AccountId = account.Id, OrganizationId = account.Organization.Id }, tx);
 
             tx.Commit();

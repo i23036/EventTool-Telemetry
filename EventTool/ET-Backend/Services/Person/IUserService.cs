@@ -1,6 +1,11 @@
-﻿namespace ET_Backend.Services.Person;
+﻿using ET_Backend.Models;
+using System.Security.Claims;
+using System.Threading.Tasks;
 
-public interface IUserService
+namespace ET_Backend.Services.Person
 {
-
+    public interface IUserService
+    {
+        Task<Account?> GetCurrentUserAsync(ClaimsPrincipal user);
+    }
 }

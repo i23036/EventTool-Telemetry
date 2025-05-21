@@ -35,7 +35,7 @@
                                     </MudButton>
                                     @if (eventItem.Item.IsOrganizer)
                                     {
-                                        <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Secondary" OnClick="@(() => Navigation.NavigateTo($"/EventBearbeiten/{eventItem.Item.EventId}"))">
+                                        <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Secondary" OnClick="@(() => Navigation.NavigateTo($"/EventBearbeiten/{eventItem.Item.EventId.ToString()}"))">
                                             Bearbeiten
                                         </MudButton>
                                     }

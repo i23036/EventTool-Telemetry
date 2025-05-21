@@ -1,4 +1,5 @@
 ﻿using System.Data;
+using Dapper;
 using Microsoft.Data.SqlClient;
 using Microsoft.Data.Sqlite;
 
@@ -36,6 +37,34 @@ public static class DbUtils
     public static bool IsSqlServer(this IDbConnection connection) => connection is SqlConnection;
 
     /// <summary>
+    /// Liefert den vollqualifizierten Tabellennamen – unter SQL Server wird automatisch "dbo." vorangestellt.
+    /// </summary>
+    public static string Tbl(this IDbConnection db, string baseName)
+        => db.IsSQLite() ? baseName : $"dbo.{baseName}";
+
+    /// <summary>
+    /// Führt ein INSERT aus und gibt die generierte ID zurück (SQLite/SQL Server kompatibel).
+    /// </summary>
+    public static async Task<int> InsertAndGetIdAsync(this IDbConnection db, string sql, object param, IDbTransaction? tx = null)
+    {
+        if (db.IsSQLite())
+        {
+            return await db.ExecuteScalarAsync<int>($"{sql} RETURNING Id;", param, tx);
+        }
+        else
+        {
+            var fullSql = $"{sql}; SELECT CAST(SCOPE_IDENTITY() AS int);";
+            return await db.ExecuteScalarAsync<int>(fullSql, param, tx);
+        }
+    }
+
+    /// <summary>
+    /// Gibt den Split-Typ für Rollen zurück (long in SQLite, int in SQL Server).
+    /// </summary>
+    public static Type RoleSplitType(this IDbConnection db)
+        => db.IsSQLite() ? typeof(long) : typeof(int);
+    
+    /// <summary>
     /// Liest eine Bilddatei vom angegebenen relativen Pfad (bezogen auf das aktuelle Arbeitsverzeichnis)
     /// und konvertiert deren Inhalt in einen Base64-codierten String.
     /// Diese Methode wird z. B. beim Initial-Seeding von Bilddaten (z. B. Logos) verwendet.
@@ -48,7 +77,6 @@ public static class DbUtils
     /// Ein Base64-codierter String des Bildes – <b>ohne</b> "data:image/...;base64,"-Präfix.
     /// Gibt <c>null</c> zurück, wenn die Datei nicht gefunden oder nicht gelesen werden konnte.
     /// </returns>
-
     public static string GetBase64FromImage(string relativePath)
     {
         try
