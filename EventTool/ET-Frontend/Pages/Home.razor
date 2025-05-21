@@ -63,9 +63,9 @@
                         <TemplateColumn Title="Rolle">
                             <CellTemplate Context="ctx">
 	                            <MudSelect T="int" Dense="true" Value="ctx.Item.Role" ValueChanged="async r => await UpdateRolle(ctx.Item, r)">
-                                    <MudSelectItem Value="0">Owner</MudSelectItem>
-                                    <MudSelectItem Value="1">Member</MudSelectItem>
-                                    <MudSelectItem Value="2">Organisator</MudSelectItem>
+		                            <MudSelectItem Value="0">Owner</MudSelectItem>
+		                            <MudSelectItem Value="1">Organisator</MudSelectItem>
+		                            <MudSelectItem Value="2">Mitglied</MudSelectItem>
                                 </MudSelect>
                             </CellTemplate>
                         </TemplateColumn>
