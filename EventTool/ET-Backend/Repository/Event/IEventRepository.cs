@@ -8,5 +8,6 @@ public interface IEventRepository
     public Task<Result<Models.Event>> CreateEvent(String name, Models.Organization organization);
     public Task<Result> DeleteEvent(int eventId);
     public Task<Result<Models.Event>> GetEvent(int eventId);
+    public Task<Result<List<Models.Event>>> GetEventsByOrganizationId(int organizationId);
     public Task<Result> EditEvent(Models.Event currentEvent);
 }

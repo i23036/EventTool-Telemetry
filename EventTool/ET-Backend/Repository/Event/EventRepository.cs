@@ -116,6 +116,29 @@ public class EventRepository : IEventRepository
         }
     }
 
+    public async Task<Result<List<Models.Event>>> GetEventsByOrganizationId(int organizationId)
+    {
+        try
+        {
+            var sql = $@"
+            SELECT 
+                Id, Name, Description, OrganizationId, ProcessId,
+                StartDate, EndDate, StartTime, EndTime,
+                Location, MinParticipants, MaxParticipants,
+                RegistrationStart, RegistrationEnd, IsBlueprint
+            FROM {_db.Tbl("Events")}
+            WHERE OrganizationId = @OrgId";
+
+            var events = await _db.QueryAsync<Models.Event>(sql, new { OrgId = organizationId });
+
+            return Result.Ok(events.ToList());
+        }
+        catch
+        {
+            return Result.Fail("DBError");
+        }
+    }
+
     public async Task<Result> EditEvent(Models.Event currentEvent)
     {
         try

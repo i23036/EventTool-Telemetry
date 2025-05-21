@@ -16,7 +16,7 @@ public class EventService : IEventService
 
     public async Task<Result<List<Models.Event>>> GetEventsFromOrganization(int organizationId)
     {
-        return null;
+        return await _eventRepository.GetEventsByOrganizationId(organizationId);
     }
 
     public async Task<Result<List<Models.Event>>> GetEventsFromOrganization(String domain)
