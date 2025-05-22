@@ -293,18 +293,33 @@ public class AccountRepository : IAccountRepository
         using var tx = _db.BeginSafeTransaction();
         try
         {
-            // 1) Mitgliedschaft löschen
-            var rows = await _db.ExecuteAsync(
-                $"DELETE FROM {_db.Tbl("OrganizationMembers")} " +
-                "WHERE AccountId = @Acc;",
+            // 1) UserId zum Account ermitteln
+            var userId = await _db.ExecuteScalarAsync<int>(
+                $"SELECT UserId FROM {_db.Tbl("Accounts")} WHERE Id = @Acc;",
                 new { Acc = accountId }, tx);
 
-            Console.WriteLine($"Rows affected: {rows}");
-
-            // 2) Event-Teilnahmen aufräumen (falls Tabelle existiert)
+            // 2) Mitgliedschaft löschen
             await _db.ExecuteAsync(
-                $"DELETE FROM {_db.Tbl("EventMembers")} WHERE AccountId = @Acc;",
+                $"DELETE FROM {_db.Tbl("OrganizationMembers")} " +
+                "WHERE AccountId = @Acc;",                          
                 new { Acc = accountId }, tx);
+
+            // 3) Account löschen
+            await _db.ExecuteAsync(
+                $"DELETE FROM {_db.Tbl("Accounts")} WHERE Id = @Acc;",
+                new { Acc = accountId }, tx);
+
+            // 4) Prüfen, ob der User noch andere Accounts besitzt
+            var remaining = await _db.ExecuteScalarAsync<int>(
+                $"SELECT COUNT(1) FROM {_db.Tbl("Accounts")} WHERE UserId = @Usr;",
+                new { Usr = userId }, tx);
+
+            if (remaining == 0)
+            {
+                await _db.ExecuteAsync(
+                    $"DELETE FROM {_db.Tbl("Users")} WHERE Id = @Usr;",
+                    new { Usr = userId }, tx);
+            }
 
             tx.Commit();
             return Result.Ok();
