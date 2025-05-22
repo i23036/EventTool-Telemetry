@@ -8,7 +8,6 @@
 @inject ILoginService LoginService
 @inject AuthenticationStateProvider AuthProvider
 
-
 @* Required *@
 <MudThemeProvider />
 <MudPopoverProvider />
@@ -21,49 +20,56 @@
 
 <!--Main Page-->
 <main class="h-100">
-	<article class="h-100">
-		<div class="flex-md-column align-content-between justify-content-center w-100 h-100">
+    <article class="h-100">
+        <div class="flex-md-column align-content-between justify-content-center w-100 h-100">
             <div class="d-flex align-items-center justify-content-between p-4 bg-light">
-                <div class="d-flex align-content-center">
+                <!-- Klickbarer Bereich für Logo + Name -->
+                <div class="d-flex align-content-center" @onclick="NavigateHome" style="cursor: pointer;">
                     <MudPaper Class="d-flex align-items-center mr-3" Elevation="0">
-                    <img src="images/BitWorksSimpel-Gro.png" alt="BitWorks Logo" width="55" height="55" />
+                        <img src="images/BitWorksSimpel-Gro.png" alt="BitWorks Logo" width="55" height="55" />
                     </MudPaper>
                     <div class="d-flex display-6 align-items-center">
                         <p class="m-0">@organisationName</p>
                     </div>
                 </div>
+
+                <!-- Avatar & Logout -->
                 <div class="d-flex align-content-center justify-content-end w-25">
-	                <NavLink href="/User">
-		                <MudAvatar Color="Color.Primary" Size="Size.Medium">U</MudAvatar>
-	                </NavLink>
-	                <AuthorizeView>
-		                <Authorized>
-			                <MudButton Variant="Variant.Outlined"
-			                           Color="Color.Error"
-			                           OnClick="LogoutAsync"
-			                           Class="ml-2">
-				                Logout
-			                </MudButton>
-		                </Authorized>
-	                </AuthorizeView>
+                    <NavLink href="/User">
+                        <MudAvatar Color="Color.Primary" Size="Size.Medium">U</MudAvatar>
+                    </NavLink>
+                    <AuthorizeView>
+                        <Authorized>
+                            <MudButton Variant="Variant.Outlined"
+                                       Color="Color.Error"
+                                       OnClick="LogoutAsync"
+                                       Class="ml-2">
+                                Logout
+                            </MudButton>
+                        </Authorized>
+                    </AuthorizeView>
                 </div>
             </div>
-		    @Body
+            @Body
         </div>
-	</article>
+    </article>
 </main>
 
-
 @code {
-	private string organisationName = "…";
+    private string organisationName = "…";
 
-	protected override async Task OnInitializedAsync()
-	{
-		organisationName = await JwtClaimHelper.GetUserOrganizationNameAsync(AuthProvider);
-	}
+    protected override async Task OnInitializedAsync()
+    {
+        organisationName = await JwtClaimHelper.GetUserOrganizationNameAsync(AuthProvider);
+    }
 
     private async Task LogoutAsync()
     {
-	    await LoginService.LogoutAsync();
+        await LoginService.LogoutAsync();
+    }
+
+    private void NavigateHome()
+    {
+        Navigation.NavigateTo("/home");
     }
 }
