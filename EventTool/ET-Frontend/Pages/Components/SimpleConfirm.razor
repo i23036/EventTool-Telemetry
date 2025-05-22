@@ -1,5 +1,6 @@
 ﻿@code {
 	[Parameter] public string Message { get; set; }
+    [Parameter] public string ConfirmText { get; set; } = "Fortfahren";
 	[Parameter] public EventCallback<bool> OnConfirm { get; set; }
 
 	private void Confirm(bool result)
@@ -28,7 +29,7 @@
                 Abbrechen
             </MudButton>
             <MudButton Variant="Variant.Filled" Color="Color.Error" OnClick="@(() => Confirm(true))">
-                Löschen
+                @ConfirmText
             </MudButton>
         </div>
     </MudPaper>
