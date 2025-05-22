@@ -15,210 +15,206 @@
 <PageTitle>Home</PageTitle>
 
 <div class="flex-md-column align-content-between justify-content-center w-100 h-100">
-    <MudPaper Width="100%" Height="100%">
-        <MudTabs Class="h-100" Elevation="2" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-6 h-100">
+	<MudPaper Width="100%" Height="100%">
+		<MudTabs Class="h-100" Elevation="2" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-6 h-100">
 
-            <!-- Events Tab -->
-            <MudTabPanel Text="Events">
-                <MudText Typo="Typo.h4" Class="mb-3">Events</MudText>
-                <MudDataGrid T="EventListDto" Items="@Events" Dense="true">
-                    <Columns>
-                        <PropertyColumn Property="x => x.Name" Title="Name" />
-                        <PropertyColumn Property="x => x.Description" Title="Beschreibung" />
-                        <PropertyColumn Property="x => x.Participants" Title="Teilnehmer" />
-                        <PropertyColumn Property="x => x.MaxParticipants" Title="Maximale Teilnehmer" />
-                        <TemplateColumn CellClass="d-flex justify-end">
-                            <CellTemplate Context="eventItem">
-                                <MudStack Row Spacing="1">
-                                    <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary" OnClick="@(() => NavigateToEventDetails(eventItem.Item.EventId))">
-                                        Details
-                                    </MudButton>
-                                    @if (eventItem.Item.IsOrganizer)
-                                    {
-                                        <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Secondary" OnClick="@(() => Navigation.NavigateTo($"/EventBearbeiten/{eventItem.Item.EventId.ToString()}"))">
-                                            Bearbeiten
-                                        </MudButton>
-                                    }
-                                    <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary">
-                                        @(eventItem.Item.IsSubscribed ? "Abmelden" : "Anmelden")
-                                    </MudButton>
-                                </MudStack>
-                            </CellTemplate>
-                        </TemplateColumn>
-                    </Columns>
-                </MudDataGrid>
-                <MudButton Class="float-end mt-4" Variant="Variant.Filled" Color="Color.Primary" OnClick="NavigateToEventCreation">
-                    Event erstellen
-                </MudButton>
-            </MudTabPanel>
+			<!-- Events Tab -->
+			<MudTabPanel Text="Events">
+				<MudText Typo="Typo.h4" Class="mb-3">Events</MudText>
+				<MudDataGrid T="EventListDto" Items="@Events" Dense="true">
+					<Columns>
+						<PropertyColumn Property="x => x.Name" Title="Name" />
+						<PropertyColumn Property="x => x.Description" Title="Beschreibung" />
+						<PropertyColumn Property="x => x.Participants" Title="Teilnehmer" />
+						<PropertyColumn Property="x => x.MaxParticipants" Title="Maximale Teilnehmer" />
+						<TemplateColumn CellClass="d-flex justify-end">
+							<CellTemplate Context="eventItem">
+								<MudStack Row Spacing="1">
+									<MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary" OnClick="@(() => NavigateToEventDetails(eventItem.Item.EventId))">
+										Details
+									</MudButton>
+									@if (eventItem.Item.IsOrganizer)
+									{
+										<MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Secondary" OnClick="@(() => Navigation.NavigateTo($"/EventBearbeiten/{eventItem.Item.EventId}"))">
+											Bearbeiten
+										</MudButton>
+									}
+									<MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary">
+										@(eventItem.Item.IsSubscribed ? "Abmelden" : "Anmelden")
+									</MudButton>
+								</MudStack>
+							</CellTemplate>
+						</TemplateColumn>
+					</Columns>
+				</MudDataGrid>
+				<MudButton Class="float-end mt-4" Variant="Variant.Filled" Color="Color.Primary" OnClick="NavigateToEventCreation">
+					Event erstellen
+				</MudButton>
+			</MudTabPanel>
 
-            <!-- Organisation Tab -->
-            <MudTabPanel Text="Organisation">
-                <MudText Typo="Typo.h4" Class="mb-3">Members</MudText>
-                <ClaimViewer />
-                <MudDataGrid T="OrganizationMemberViewModel" Items="@OrgMembers" Dense="true">
-                    <Columns>
-                        <PropertyColumn Property="x => x.LastName" Title="Nachname" />
-                        <PropertyColumn Property="x => x.Email" Title="E-Mail" />
-                        <TemplateColumn Title="Rolle">
-                            <CellTemplate Context="ctx">
-	                            <MudSelect T="int" Dense="true" Value="ctx.Item.Role" ValueChanged="async r => await UpdateRolle(ctx.Item, r)">
-		                            <MudSelectItem Value="0">Owner</MudSelectItem>
-		                            <MudSelectItem Value="1">Organisator</MudSelectItem>
-		                            <MudSelectItem Value="2">Mitglied</MudSelectItem>
-                                </MudSelect>
-                            </CellTemplate>
-                        </TemplateColumn>
-                        <TemplateColumn Title="" CellClass="text-end">
-                            <CellTemplate Context="ctx">
-                                <MudButton Variant="Variant.Filled" Color="Color.Error" Size="Size.Small" OnClick="@(() => RemoveMember(ctx.Item))">
-                                    Entfernen
-                                </MudButton>
-                            </CellTemplate>
-                        </TemplateColumn>
-                    </Columns>
-                </MudDataGrid>
-                <MudButton Class="float-end" OnClick="ChangeOrgaData" Variant="Variant.Filled" Color="Color.Primary">Organisationsdaten ändern</MudButton>
-                @if (ShowConfirmDialog)
-                {
-	                <SimpleConfirm Message="Willst du das Mitglied wirklich entfernen?"
-	                               OnConfirm="HandleDeleteConfirm" />
-                }
-            </MudTabPanel>
+			<!-- Organisation Tab -->
+			<MudTabPanel Text="Organisation">
+				<MudText Typo="Typo.h4" Class="mb-3">Members</MudText>
+				<ClaimViewer />
+				<MudDataGrid T="OrganizationMemberViewModel" Items="@OrgMembers" Dense="true">
+					<Columns>
+						<PropertyColumn Property="x => x.LastName" Title="Nachname" />
+						<PropertyColumn Property="x => x.Email" Title="E-Mail" />
+						<TemplateColumn Title="Rolle">
+							<CellTemplate Context="ctx">
+								<MudSelect T="int" Dense="true" Value="ctx.Item.Role" ValueChanged="async r => await UpdateRolle(ctx.Item, r)">
+									<MudSelectItem Value="0">Owner</MudSelectItem>
+									<MudSelectItem Value="1">Organisator</MudSelectItem>
+									<MudSelectItem Value="2">Mitglied</MudSelectItem>
+								</MudSelect>
+							</CellTemplate>
+						</TemplateColumn>
+						<TemplateColumn Title="" CellClass="text-end">
+							<CellTemplate Context="ctx">
+								<MudButton Variant="Variant.Filled" Color="Color.Error" Size="Size.Small" OnClick="@(() => RemoveMember(ctx.Item))">
+									Entfernen
+								</MudButton>
+							</CellTemplate>
+						</TemplateColumn>
+					</Columns>
+				</MudDataGrid>
+				<MudButton Class="float-end" OnClick="ChangeOrgaData" Variant="Variant.Filled" Color="Color.Primary">Organisationsdaten ändern</MudButton>
+				@if (ShowConfirmDialog)
+				{
+					<SimpleConfirm Message="Willst du das Mitglied wirklich entfernen?"
+								   OnConfirm="HandleDeleteConfirm" />
+				}
+			</MudTabPanel>
 
-            <!-- Vorlagen Tab -->
-            <MudTabPanel Text="Vorlagen">
-                <MudText>Events</MudText>
-                <MudText>Prozesse</MudText>
-                <MudText>Prozessschritte</MudText>
-            </MudTabPanel>
+			<!-- Vorlagen Tab -->
+			<MudTabPanel Text="Vorlagen">
+				<MudText>Events</MudText>
+				<MudText>Prozesse</MudText>
+				<MudText>Prozessschritte</MudText>
+			</MudTabPanel>
 
-        </MudTabs>
-    </MudPaper>
+		</MudTabs>
+	</MudPaper>
 </div>
 
 @code {
-    private List<OrganizationMemberViewModel> OrgMembers = new();
-    private List<EventListDto> Events = new();
+	private List<OrganizationMemberViewModel> OrgMembers = new();
+	private List<EventListDto> Events = new();
 
-    private bool ShowConfirmDialog = false;
-    private OrganizationMemberViewModel MemberToDelete;
+	private bool ShowConfirmDialog = false;
+	private OrganizationMemberViewModel MemberToDelete;
 
-    protected override async Task OnInitializedAsync()
-    {
-        await LoadEvents();
-        await LoadMembers();
-    }
+	protected override async Task OnInitializedAsync()
+	{
+		await LoadEvents();
+		await LoadMembers();
+	}
 
-    private async Task LoadEvents()
-    {
-        var token = await SessionStorage.GetItemAsync<string>("authToken");
-        var request = new HttpRequestMessage(HttpMethod.Get, $"api/event/eventList");
-        request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+	private async Task LoadEvents()
+	{
+		var token = await SessionStorage.GetItemAsync<string>("authToken");
+		var request = new HttpRequestMessage(HttpMethod.Get, $"api/event/eventList");
+		request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
 
-        var response = await Http.SendAsync(request);
-        if (response.IsSuccessStatusCode)
-        {
-            var dtoList = await response.Content.ReadFromJsonAsync<List<EventListDto>>();
-            Events = dtoList ?? new();
-        }
-        else
-        {
-            Console.WriteLine("Fehler beim Laden der Events");
-        }
-    }
+		var response = await Http.SendAsync(request);
+		if (response.IsSuccessStatusCode)
+		{
+			var dtoList = await response.Content.ReadFromJsonAsync<List<EventListDto>>();
+			Events = dtoList ?? new();
+		}
+		else
+		{
+			Console.WriteLine("Fehler beim Laden der Events");
+		}
+	}
 
-    private async Task LoadMembers()
-    {
-        var token = await SessionStorage.GetItemAsync<string>("authToken");
-        var domain = await JwtClaimHelper.GetUserDomainAsync(AuthProvider);
-        var request = new HttpRequestMessage(HttpMethod.Get, $"api/organization/{domain}/members");
-        request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+	private async Task LoadMembers()
+	{
+		var token = await SessionStorage.GetItemAsync<string>("authToken");
+		var domain = await JwtClaimHelper.GetUserDomainAsync(AuthProvider);
+		var request = new HttpRequestMessage(HttpMethod.Get, $"api/organization/{domain}/members");
+		request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
 
-        var response = await Http.SendAsync(request);
-        if (response.IsSuccessStatusCode)
-        {
-            var dtoList = await response.Content.ReadFromJsonAsync<List<OrganizationMemberDto>>();
-            OrgMembers = dtoList.Select(dto => new OrganizationMemberViewModel(dto.Email, dto.Lastname, dto.Role)).ToList();
-        }
-        else
-        {
-            Console.WriteLine("Fehler beim Laden der Mitglieder");
-        }
-    }
+		var response = await Http.SendAsync(request);
+		if (response.IsSuccessStatusCode)
+		{
+			var dtoList = await response.Content.ReadFromJsonAsync<List<OrganizationMemberDto>>();
+			OrgMembers = dtoList.Select(dto => new OrganizationMemberViewModel(dto.Email, dto.Lastname, dto.Role)).ToList();
+		}
+		else
+		{
+			Console.WriteLine("Fehler beim Laden der Mitglieder");
+		}
+	}
 
-    private async Task UpdateRolle(OrganizationMemberViewModel member, int neueRolle)
-    {
-	    if (member.Role == neueRolle) return;
+	// Rollen-Drop-down
+	private async Task UpdateRolle(OrganizationMemberViewModel member, int neueRolle)
+	{
+		if (member.Role == neueRolle) return;
 
-	    var token = await SessionStorage.GetItemAsync<string>("authToken");
-	    var domain = await JwtClaimHelper.GetUserDomainAsync(AuthProvider);
+		var token = await SessionStorage.GetItemAsync<string>("authToken");
+		var domain = await JwtClaimHelper.GetUserDomainAsync(AuthProvider);
 
-	    var request = new HttpRequestMessage(
-		    HttpMethod.Put,
-		    $"api/organization/{domain}/members/{member.Email}"
-	    );
-	    request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
-	    request.Content = JsonContent.Create(neueRolle);
+		var request = new HttpRequestMessage(
+			HttpMethod.Put,
+			$"api/organization/{domain}/members/{member.Email}/role/{neueRolle}");
+		request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
-	    var response = await Http.SendAsync(request);
+		var response = await Http.SendAsync(request);
 
-	    if (response.IsSuccessStatusCode)
-	    {
-		    member.Role = neueRolle;
-	    }
-	    else
-	    {
-		    Console.WriteLine($"Fehler beim Rollenwechsel: {response.StatusCode}");
-	    }
-    }
+		if (response.IsSuccessStatusCode)
+			member.Role = neueRolle;                     // UI-Model updaten
+		else
+			Console.WriteLine($"Fehler beim Rollenwechsel: {response.StatusCode}");
+	}
 
+	// „Entfernen“-Button
+	private void RemoveMember(OrganizationMemberViewModel member)
+	{
+		MemberToDelete = member;
+		ShowConfirmDialog = true;
+	}
 
-    private void RemoveMember(OrganizationMemberViewModel member)
-    {
-	    MemberToDelete = member;
-	    ShowConfirmDialog = true;
-    }
+	// Bestätigungs-Dialog
+	private async Task HandleDeleteConfirm(bool confirmed)
+	{
+		if (confirmed && MemberToDelete is not null)
+		{
+			var token = await SessionStorage.GetItemAsync<string>("authToken");
+			var domain = await JwtClaimHelper.GetUserDomainAsync(AuthProvider);
 
-    private async Task HandleDeleteConfirm(bool confirmed)
-    {
-	    if (confirmed && MemberToDelete is not null)
-	    {
-		    var token = await SessionStorage.GetItemAsync<string>("authToken");
-		    var domain = await JwtClaimHelper.GetUserDomainAsync(AuthProvider);
+			var request = new HttpRequestMessage(
+				HttpMethod.Delete,
+				$"api/organization/{domain}/members/{MemberToDelete.Email}");
+			request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
-		    var request = new HttpRequestMessage(HttpMethod.Delete, $"api/organization/{domain}/members/{MemberToDelete.Email}");
-		    request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+			var response = await Http.SendAsync(request);
 
-		    var response = await Http.SendAsync(request);
+			if (response.IsSuccessStatusCode)
+			{
+				OrgMembers.Remove(MemberToDelete);   // aus Liste kicken
+				StateHasChanged();
+			}
+			else
+				Console.WriteLine($"Fehler beim Löschen: {response.StatusCode}");
+		}
 
-		    if (response.IsSuccessStatusCode)
-		    {
-			    OrgMembers.Remove(MemberToDelete);
-			    StateHasChanged(); // UI aktualisieren
-		    }
-		    else
-		    {
-			    Console.WriteLine($"Fehler beim Löschen: {response.StatusCode}");
-		    }
-	    }
+		ShowConfirmDialog = false;
+		MemberToDelete = null;
+	}
 
-	    ShowConfirmDialog = false;
-	    MemberToDelete = null;
-    }
-	
-    private void NavigateToEventCreation()
-    {
-        Navigation.NavigateTo("/EventErstellen");
-    }
+	private void NavigateToEventCreation()
+	{
+		Navigation.NavigateTo("/EventErstellen");
+	}
 
-    private void NavigateToEventDetails(int eventId)
-    {
-        Navigation.NavigateTo($"/EventDetails/{eventId}");
-    }
+	private void NavigateToEventDetails(int eventId)
+	{
+		Navigation.NavigateTo($"/EventDetails/{eventId}");
+	}
 
-    private void ChangeOrgaData()
-    {
-        Navigation.NavigateTo("/Organisationsdaten");
-    }
+	private void ChangeOrgaData()
+	{
+		Navigation.NavigateTo("/Organisationsdaten");
+	}
 }

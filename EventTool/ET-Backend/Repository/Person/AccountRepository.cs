@@ -140,6 +140,7 @@ public class AccountRepository : IAccountRepository
                     {
                         acc.User = usr;
                         acc.Organization = org;
+                        acc.Organization.Id = org.Id;
                         acc.Role = (Role)(int)role; // cast long → int → enum
                         return acc;
                     },
@@ -203,6 +204,7 @@ public class AccountRepository : IAccountRepository
                     {
                         acc.User = usr;
                         acc.Organization = org;
+                        acc.Organization.Id = org.Id;
                         acc.Role = (Role)(int)role; // cast long → int → enum
                         return acc;
                     },
@@ -240,17 +242,31 @@ public class AccountRepository : IAccountRepository
         using var tx = _db.BeginSafeTransaction();
         try
         {
-            // Account
-            await _db.ExecuteAsync($"UPDATE {_db.Tbl("Accounts")} SET Email = @Email, IsVerified = @IsVerified WHERE Id = @Id;",
-                                   new { Email = account.EMail, IsVerified = account.IsVerified ? 1 : 0, account.Id }, tx);
+            // Accounts-Tabelle: nur E-Mail + Verified + Passwort
+            await _db.ExecuteAsync(
+                $"UPDATE {_db.Tbl("Accounts")} " +
+                "SET Email = @Email, IsVerified = @IsVerified " +
+                "WHERE Id = @Id;",
+                new { Email = account.EMail, IsVerified = account.IsVerified ? 1 : 0, account.Id },
+                tx);
 
-            // User
-            await _db.ExecuteAsync($"UPDATE {_db.Tbl("Users")} SET Firstname = @Firstname, Lastname = @Lastname, Password = @Password WHERE Id = @UserId;",
-                                   new { UserId = account.User.Id, account.User.Firstname, account.User.Lastname, account.User.Password }, tx);
+            // Users-Tabelle
+            await _db.ExecuteAsync(
+                $"UPDATE {_db.Tbl("Users")} " +
+                "SET Firstname = @Firstname, Lastname = @Lastname, Password = @Password " +
+                "WHERE Id = @UserId;",
+                new { UserId = account.User.Id, account.User.Firstname,
+                    account.User.Lastname, account.User.Password },
+                tx);
 
-            // Org‑Member
-            await _db.ExecuteAsync($"UPDATE {_db.Tbl("OrganizationMembers")} SET Role = @Role WHERE AccountId = @AccountId AND OrganizationId = @OrganizationId;",
-                                   new { Role = (int)account.Role, AccountId = account.Id, OrganizationId = account.Organization.Id }, tx);
+            // OrganizationMembers  – **nur** Rolle ändern
+            await _db.ExecuteAsync(
+                $"UPDATE {_db.Tbl("OrganizationMembers")} " +
+                "SET Role = @Role " +
+                "WHERE AccountId = @AccountId AND OrganizationId = @OrganizationId;",
+                new { Role = (int)account.Role, AccountId = account.Id,
+                    OrganizationId = account.Organization.Id },
+                tx);
 
             tx.Commit();
             return Result.Ok();
@@ -262,18 +278,29 @@ public class AccountRepository : IAccountRepository
         }
     }
 
-    public async Task<Result> RemoveFromOrganization(int accountId)
+    public async Task<Result> RemoveFromOrganization(int accountId, int orgId)
     {
+        using var tx = _db.BeginSafeTransaction();
         try
         {
-            var sql = "UPDATE Accounts SET OrganizationId = NULL WHERE Id = @Id";
-            var rows = await _db.ExecuteAsync(sql, new { Id = accountId });
+            // 1. Mitgliedschaft entfernen
+            await _db.ExecuteAsync(
+                $"DELETE FROM {_db.Tbl("OrganizationMembers")} " +
+                "WHERE AccountId = @Acc AND OrganizationId = @Org;",
+                new { Acc = accountId, Org = orgId }, tx);
 
-            return rows > 0 ? Result.Ok() : Result.Fail("No changes");
+            // 2. (optional) auch Event-Teilnahmen o. Ä. bereinigen
+            await _db.ExecuteAsync(
+                $"DELETE FROM {_db.Tbl("EventMembers")} " +
+                "WHERE AccountId = @Acc;", new { Acc = accountId }, tx);
+
+            tx.Commit();
+            return Result.Ok();
         }
-        catch
+        catch (Exception ex)
         {
-            return Result.Fail("DBError");
+            tx.Rollback();
+            return Result.Fail($"DBError: {ex.Message}");
         }
     }
 }
