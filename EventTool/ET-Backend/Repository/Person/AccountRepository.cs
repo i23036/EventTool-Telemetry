@@ -263,9 +263,8 @@ public class AccountRepository : IAccountRepository
             await _db.ExecuteAsync(
                 $"UPDATE {_db.Tbl("OrganizationMembers")} " +
                 "SET Role = @Role " +
-                "WHERE AccountId = @AccountId AND OrganizationId = @OrganizationId;",
-                new { Role = (int)account.Role, AccountId = account.Id,
-                    OrganizationId = account.Organization.Id },
+                "WHERE AccountId = @AccountId;",          
+                new { Role = (int)account.Role, AccountId = account.Id },
                 tx);
 
             tx.Commit();
@@ -283,16 +282,18 @@ public class AccountRepository : IAccountRepository
         using var tx = _db.BeginSafeTransaction();
         try
         {
-            // 1. Mitgliedschaft entfernen
-            await _db.ExecuteAsync(
+            // 1) Mitgliedschaft löschen
+            var rows = await _db.ExecuteAsync(
                 $"DELETE FROM {_db.Tbl("OrganizationMembers")} " +
-                "WHERE AccountId = @Acc AND OrganizationId = @Org;",
-                new { Acc = accountId, Org = orgId }, tx);
+                "WHERE AccountId = @Acc;",                         
+                new { Acc = accountId }, tx);
 
-            // 2. (optional) auch Event-Teilnahmen o. Ä. bereinigen
+            Console.WriteLine($"Rows affected: {rows}");
+        
+            // 2) Event-Teilnahmen aufräumen (falls Tabelle existiert)
             await _db.ExecuteAsync(
-                $"DELETE FROM {_db.Tbl("EventMembers")} " +
-                "WHERE AccountId = @Acc;", new { Acc = accountId }, tx);
+                $"DELETE FROM {_db.Tbl("EventMembers")} WHERE AccountId = @Acc;",
+                new { Acc = accountId }, tx);
 
             tx.Commit();
             return Result.Ok();
