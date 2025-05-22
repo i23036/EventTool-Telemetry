@@ -115,7 +115,7 @@ namespace ET_Backend.Controllers
             newEvent.Organizers.Add(user);
             // TODO: Alle Werte einfügen
 
-            Result<Event> result = await _eventService.CreateEvent(newEvent);
+            Result<Event> result = await _eventService.CreateEvent(newEvent, user.Organization.Id);
 
             if (result.IsSuccess)
             {

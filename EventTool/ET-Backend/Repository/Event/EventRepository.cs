@@ -32,7 +32,7 @@ public class EventRepository : IEventRepository
         }
     }
 
-    public async Task<Result<Models.Event>> CreateEvent(string name, Models.Organization organization)
+    public async Task<Result<Models.Event>> CreateEvent(Models.Event newEvent, int organizationId)
     {
         try
         {
@@ -50,8 +50,8 @@ public class EventRepository : IEventRepository
 
             var eventId = await _db.InsertAndGetIdAsync(insertSql, new
             {
-                Name = name,
-                OrganizationId = organization.Id,
+                Name = "",
+                OrganizationId = organizationId,
                 StartDate = DateOnly.FromDateTime(DateTime.Today),
                 EndDate = DateOnly.FromDateTime(DateTime.Today),
                 StartTime = TimeOnly.FromDateTime(DateTime.Now),
@@ -116,7 +116,7 @@ public class EventRepository : IEventRepository
         }
     }
 
-    public async Task<Result<List<Models.Event>>> GetEventsByOrganizationId(int organizationId)
+    public async Task<Result<List<Models.Event>>> GetEventsByOrganization(int organizationId)
     {
         try
         {
@@ -138,6 +138,7 @@ public class EventRepository : IEventRepository
             return Result.Fail("DBError");
         }
     }
+
 
     public async Task<Result> EditEvent(Models.Event currentEvent)
     {
