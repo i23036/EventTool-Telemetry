@@ -80,7 +80,7 @@
                 <MudButton Class="float-end mt-4" OnClick="ChangeOrgaData" Variant="Variant.Filled" Color="Color.Primary">Organisationsdaten ändern</MudButton>
                 @if (ShowConfirmDialog)
                 {
-	                <SimpleConfirm Message="Willst du das Mitglied wirklich entfernen?"
+					<SimpleConfirm Message="Das Mitglied wird dauerhaft aus der Organisation entfernt. Möchten Sie fortfahren?"
 	                               OnConfirm="HandleDeleteConfirm" />
                 }
             </MudTabPanel>
