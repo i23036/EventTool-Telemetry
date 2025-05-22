@@ -65,6 +65,16 @@ public class OrganizationController : ControllerBase
         ));
     }
 
+    /// <summary>
+    /// Gibt alle Mitglieder einer Organisation anhand der Domain zurück.
+    /// </summary>
+    [HttpGet("{domain}/members")]
+    [Authorize]
+    public async Task<IActionResult> GetMembersByDomain(string domain)
+    {
+        var result = await _organizationService.GetMembersByDomain(domain);
+        return result.IsSuccess ? Ok(result.Value) : BadRequest(result.Errors);
+    }
 
     /// <summary>
     /// Erstellt eine neue Organisation mit einem initialen Owner.
@@ -109,4 +119,28 @@ public class OrganizationController : ControllerBase
 
         return result.IsSuccess ? Ok() : BadRequest(result.Errors);
     }
+
+    [HttpPut("{domain}/members/{email}")]
+    [Authorize]
+    public async Task<IActionResult> UpdateMemberRole(string domain, string email, [FromBody] int newRole)
+    {
+        var result = await _organizationService.UpdateMemberRole(domain, email, newRole);
+
+        if (result.IsSuccess)
+            return Ok();
+
+        return BadRequest(result.Errors);
+    }
+
+    [HttpDelete("{domain}/members/{email}")]
+    public async Task<IActionResult> RemoveMember(string domain, string email)
+    {
+        var result = await _organizationService.RemoveMember(domain, email);
+    
+        if (result.IsSuccess)
+            return Ok();
+    
+        return BadRequest(result.Errors);
+    }
+
 }

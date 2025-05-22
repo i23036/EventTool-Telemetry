@@ -403,3 +403,4 @@ FodyWeavers.xsd
 # JetBrains Rider
 *.sln.iml
 
+/EventTool/ET-Backend/et-dev.db

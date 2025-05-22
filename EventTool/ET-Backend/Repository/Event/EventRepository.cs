@@ -1,6 +1,5 @@
 ﻿using System.Data;
 using Dapper;
-using ET_Backend.Models;
 using FluentResults;
 
 namespace ET_Backend.Repository.Event;
@@ -37,29 +36,29 @@ public class EventRepository : IEventRepository
     {
         try
         {
-            var eventId = await _db.ExecuteScalarAsync<int>(@"
-                INSERT INTO Events (
-                    Name, Description, OrganizationId, ProcessId,
-                    StartDate, EndDate, StartTime, EndTime,
-                    Location, MinParticipants, MaxParticipants,
-                    RegistrationStart, RegistrationEnd, IsBlueprint
-                ) VALUES (
-                    @Name, '', @OrganizationId, NULL,
-                    @StartDate, @EndDate, @StartTime, @EndTime,
-                    '', 0, 0, @RegistrationStart, @RegistrationEnd, 0
-                );
-                SELECT last_insert_rowid();",
-                new
-                {
-                    Name = name,
-                    OrganizationId = organization.Id,
-                    StartDate = DateOnly.FromDateTime(DateTime.Today),
-                    EndDate = DateOnly.FromDateTime(DateTime.Today),
-                    StartTime = TimeOnly.FromDateTime(DateTime.Now),
-                    EndTime = TimeOnly.FromDateTime(DateTime.Now),
-                    RegistrationStart = DateOnly.FromDateTime(DateTime.Today),
-                    RegistrationEnd = DateOnly.FromDateTime(DateTime.Today)
-                });
+            var insertSql = @"
+            INSERT INTO " + _db.Tbl("Events") + @" (
+                Name, Description, OrganizationId, ProcessId,
+                StartDate, EndDate, StartTime, EndTime,
+                Location, MinParticipants, MaxParticipants,
+                RegistrationStart, RegistrationEnd, IsBlueprint
+            ) VALUES (
+                @Name, '', @OrganizationId, NULL,
+                @StartDate, @EndDate, @StartTime, @EndTime,
+                '', 0, 0, @RegistrationStart, @RegistrationEnd, 0
+            )";
+
+            var eventId = await _db.InsertAndGetIdAsync(insertSql, new
+            {
+                Name = name,
+                OrganizationId = organization.Id,
+                StartDate = DateOnly.FromDateTime(DateTime.Today),
+                EndDate = DateOnly.FromDateTime(DateTime.Today),
+                StartTime = TimeOnly.FromDateTime(DateTime.Now),
+                EndTime = TimeOnly.FromDateTime(DateTime.Now),
+                RegistrationStart = DateOnly.FromDateTime(DateTime.Today),
+                RegistrationEnd = DateOnly.FromDateTime(DateTime.Today)
+            });
 
             return await GetEvent(eventId);
         }
@@ -68,6 +67,7 @@ public class EventRepository : IEventRepository
             return Result.Fail("DBError");
         }
     }
+
 
     public async Task<Result> DeleteEvent(int eventId)
     {
@@ -109,6 +109,29 @@ public class EventRepository : IEventRepository
             //     "SELECT * FROM Processes WHERE Id = @Id", new { Id = evt.ProcessId });
 
             return Result.Ok(evt);
+        }
+        catch
+        {
+            return Result.Fail("DBError");
+        }
+    }
+
+    public async Task<Result<List<Models.Event>>> GetEventsByOrganizationId(int organizationId)
+    {
+        try
+        {
+            var sql = $@"
+            SELECT 
+                Id, Name, Description, OrganizationId, ProcessId,
+                StartDate, EndDate, StartTime, EndTime,
+                Location, MinParticipants, MaxParticipants,
+                RegistrationStart, RegistrationEnd, IsBlueprint
+            FROM {_db.Tbl("Events")}
+            WHERE OrganizationId = @OrgId";
+
+            var events = await _db.QueryAsync<Models.Event>(sql, new { OrgId = organizationId });
+
+            return Result.Ok(events.ToList());
         }
         catch
         {

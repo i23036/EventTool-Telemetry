@@ -25,6 +25,10 @@ public interface IOrganizationService
     /// <summary>Gibt eine Organisation anhand der ID zurück.</summary>
     Task<Result<Models.Organization>> GetOrganization(int id);
 
+    Task<Result<List<OrganizationMemberDto>>> GetMembersByDomain(string domain);
+
+
+
     // === Erstellen & Bearbeiten ===
 
     /// <summary>Erstellt eine neue Organisation.</summary>
@@ -51,4 +55,8 @@ public interface IOrganizationService
 
     /// <summary>Löscht eine Organisation anhand der ID.</summary>
     Task<Result> DeleteOrganization(int id);
+
+    Task<Result> UpdateMemberRole(string domain, string email, int newRole);
+
+    Task<Result> RemoveMember(string domain, string email);
 }
