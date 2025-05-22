@@ -54,8 +54,7 @@
 
             <!-- Organisation Tab -->
             <MudTabPanel Text="Organisation">
-                <MudText Typo="Typo.h4" Class="mb-3">Members</MudText>
-                <ClaimViewer />
+                <MudText Typo="Typo.h4" Class="mb-3">Mitglieder</MudText>
                 <MudDataGrid T="OrganizationMemberViewModel" Items="@OrgMembers" Dense="true">
                     <Columns>
                         <PropertyColumn Property="x => x.LastName" Title="Nachname" />
@@ -78,21 +77,13 @@
                         </TemplateColumn>
                     </Columns>
                 </MudDataGrid>
-                <MudButton Class="float-end" OnClick="ChangeOrgaData" Variant="Variant.Filled" Color="Color.Primary">Organisationsdaten ändern</MudButton>
+                <MudButton Class="float-end mt-4" OnClick="ChangeOrgaData" Variant="Variant.Filled" Color="Color.Primary">Organisationsdaten ändern</MudButton>
                 @if (ShowConfirmDialog)
                 {
 	                <SimpleConfirm Message="Willst du das Mitglied wirklich entfernen?"
 	                               OnConfirm="HandleDeleteConfirm" />
                 }
             </MudTabPanel>
-
-            <!-- Vorlagen Tab -->
-            <MudTabPanel Text="Vorlagen">
-                <MudText>Events</MudText>
-                <MudText>Prozesse</MudText>
-                <MudText>Prozessschritte</MudText>
-            </MudTabPanel>
-
         </MudTabs>
     </MudPaper>
 </div>

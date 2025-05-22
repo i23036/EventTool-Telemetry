@@ -33,21 +33,29 @@
                     </div>
                 </div>
 
-                <!-- Avatar & Logout -->
-                <div class="d-flex align-content-center justify-content-end w-25">
-                    <NavLink href="/User">
-                        <MudAvatar Color="Color.Primary" Size="Size.Medium">U</MudAvatar>
-                    </NavLink>
-                    <AuthorizeView>
-                        <Authorized>
-                            <MudButton Variant="Variant.Outlined"
-                                       Color="Color.Error"
-                                       OnClick="LogoutAsync"
-                                       Class="ml-2">
+                <!-- Avatar mit Menü (inkl. farblich hervorgehobenem Logout) -->
+                <div class="d-flex align-items-center justify-content-end w-25">
+                    <MudMenu>
+                        <ActivatorContent>
+                            <MudAvatar Color="Color.Primary" Size="Size.Medium">U</MudAvatar>
+                        </ActivatorContent>
+                        <ChildContent>
+                            <MudMenuItem OnClick="@NavigateToUserData">
+                                <MudIcon Icon="@Icons.Material.Rounded.Person" Class="mr-2" />
+                                Benutzerdaten
+                            </MudMenuItem>
+                            <MudDivider />
+                            <MudMenuItem OnClick="@NavigateToMemberships">
+                                <MudIcon Icon="@Icons.Material.Filled.Domain" Class="mr-2" />
+                                Mitgliedschaften                            
+                            </MudMenuItem>
+                            <MudDivider />
+                            <MudMenuItem OnClick="@LogoutAsync" Style="color: red; font-weight: bold;">
+                                <MudIcon Icon="@Icons.Material.Filled.Logout" Class="mr-2" />
                                 Logout
-                            </MudButton>
-                        </Authorized>
-                    </AuthorizeView>
+                            </MudMenuItem>
+                        </ChildContent>
+                    </MudMenu>
                 </div>
             </div>
             @Body
@@ -71,5 +79,15 @@
     private void NavigateHome()
     {
         Navigation.NavigateTo("/home");
+    }
+
+    private void NavigateToUserData()
+    {
+        Navigation.NavigateTo("/User/edit");
+    }
+
+    private void NavigateToMemberships()
+    {
+        Navigation.NavigateTo("/User");
     }
 }
