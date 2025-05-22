@@ -52,49 +52,40 @@
 				</MudButton>
 			</MudTabPanel>
 
-			<!-- Organisation Tab -->
-			<MudTabPanel Text="Organisation">
-				<MudText Typo="Typo.h4" Class="mb-3">Members</MudText>
-				<ClaimViewer />
-				<MudDataGrid T="OrganizationMemberViewModel" Items="@OrgMembers" Dense="true">
-					<Columns>
-						<PropertyColumn Property="x => x.LastName" Title="Nachname" />
-						<PropertyColumn Property="x => x.Email" Title="E-Mail" />
-						<TemplateColumn Title="Rolle">
-							<CellTemplate Context="ctx">
-								<MudSelect T="int" Dense="true" Value="ctx.Item.Role" ValueChanged="async r => await UpdateRolle(ctx.Item, r)">
-									<MudSelectItem Value="0">Owner</MudSelectItem>
-									<MudSelectItem Value="1">Organisator</MudSelectItem>
-									<MudSelectItem Value="2">Mitglied</MudSelectItem>
-								</MudSelect>
-							</CellTemplate>
-						</TemplateColumn>
-						<TemplateColumn Title="" CellClass="text-end">
-							<CellTemplate Context="ctx">
-								<MudButton Variant="Variant.Filled" Color="Color.Error" Size="Size.Small" OnClick="@(() => RemoveMember(ctx.Item))">
-									Entfernen
-								</MudButton>
-							</CellTemplate>
-						</TemplateColumn>
-					</Columns>
-				</MudDataGrid>
-				<MudButton Class="float-end" OnClick="ChangeOrgaData" Variant="Variant.Filled" Color="Color.Primary">Organisationsdaten ändern</MudButton>
-				@if (ShowConfirmDialog)
-				{
-					<SimpleConfirm Message="Willst du das Mitglied wirklich entfernen?"
-								   OnConfirm="HandleDeleteConfirm" />
-				}
-			</MudTabPanel>
-
-			<!-- Vorlagen Tab -->
-			<MudTabPanel Text="Vorlagen">
-				<MudText>Events</MudText>
-				<MudText>Prozesse</MudText>
-				<MudText>Prozessschritte</MudText>
-			</MudTabPanel>
-
-		</MudTabs>
-	</MudPaper>
+            <!-- Organisation Tab -->
+            <MudTabPanel Text="Organisation">
+                <MudText Typo="Typo.h4" Class="mb-3">Mitglieder</MudText>
+                <MudDataGrid T="OrganizationMemberViewModel" Items="@OrgMembers" Dense="true">
+                    <Columns>
+                        <PropertyColumn Property="x => x.LastName" Title="Nachname" />
+                        <PropertyColumn Property="x => x.Email" Title="E-Mail" />
+                        <TemplateColumn Title="Rolle">
+                            <CellTemplate Context="ctx">
+	                            <MudSelect T="int" Dense="true" Value="ctx.Item.Role" ValueChanged="async r => await UpdateRolle(ctx.Item, r)">
+		                            <MudSelectItem Value="0">Owner</MudSelectItem>
+		                            <MudSelectItem Value="1">Organisator</MudSelectItem>
+		                            <MudSelectItem Value="2">Mitglied</MudSelectItem>
+                                </MudSelect>
+                            </CellTemplate>
+                        </TemplateColumn>
+                        <TemplateColumn Title="" CellClass="text-end">
+                            <CellTemplate Context="ctx">
+                                <MudButton Variant="Variant.Filled" Color="Color.Error" Size="Size.Small" OnClick="@(() => RemoveMember(ctx.Item))">
+                                    Entfernen
+                                </MudButton>
+                            </CellTemplate>
+                        </TemplateColumn>
+                    </Columns>
+                </MudDataGrid>
+                <MudButton Class="float-end mt-4" OnClick="ChangeOrgaData" Variant="Variant.Filled" Color="Color.Primary">Organisationsdaten ändern</MudButton>
+                @if (ShowConfirmDialog)
+                {
+	                <SimpleConfirm Message="Willst du das Mitglied wirklich entfernen?"
+	                               OnConfirm="HandleDeleteConfirm" />
+                }
+            </MudTabPanel>
+        </MudTabs>
+    </MudPaper>
 </div>
 
 @code {
