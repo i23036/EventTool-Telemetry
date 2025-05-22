@@ -1,0 +1,47 @@
+﻿@namespace ET_Frontend.Components
+@using ET_Frontend.Models
+@inject IDialogService DialogService
+
+<MudText Typo="Typo.h4" Class="mb-4">Prozess</MudText>
+<MudText Typo="Typo.body1" Class="mb-4">Hier können Sie Ihren Prozess bearbeiten.</MudText>
+<MudSpacer />
+<MudDataGrid T="ProcessStepModel" Items="@_processStepsList" Dense="true">
+    <Columns>
+        <PropertyColumn Property="x => x.TypeName" Title="Prozesschritt" />
+        <TemplateColumn CellClass="d-flex justify-end">
+            <CellTemplate Context="processStepItem">
+                <MudStack Row Spacing="1">
+                    <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary" OnClick="@(() => ConfigureProzessStep())">
+                        Bearbeiten
+                    </MudButton>
+                </MudStack>
+            </CellTemplate>
+        </TemplateColumn>
+    </Columns>
+</MudDataGrid>
+<MudStack Row Justify="Justify.FlexEnd" Class="mt-6">
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveProzess">
+        Speichern
+    </MudButton>
+</MudStack>
+
+@code {
+    private List<ProcessStepModel> _processStepsList = new()
+    {
+        new ProcessStepModel { TypeName = "P1", Type = ProcessStepType.SendEMail, Trigger = ProcessStepTrigger.EndOfEventLogins, Condition = ProcessStepCondition.ParticipantsOverMin, OffsetInHours = 2},
+        new ProcessStepModel { TypeName = "P2"},
+        new ProcessStepModel { TypeName = "P3"}
+    };
+
+    private async Task SaveProzess()
+    {
+        //TODO save Prozess
+    }
+
+    private Task ConfigureProzessStep()
+    {
+        var options = new DialogOptions { CloseOnEscapeKey = true };
+
+        return DialogService.ShowAsync<EMailDialog>("ProzessStep Dialog", options);
+    }
+}
