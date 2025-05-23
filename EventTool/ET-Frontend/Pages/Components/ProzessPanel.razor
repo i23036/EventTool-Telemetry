@@ -10,7 +10,23 @@
         <PropertyColumn Property="x => x.TypeName" Title="Prozesschritt" />
         <TemplateColumn CellClass="d-flex justify-end">
             <CellTemplate Context="processStepItem">
-                <MudStack Row Spacing="1">
+                <MudStack Row Spacing="5">
+                    <MudSelect @bind-Value="processStepItem.Item.Trigger"
+                               FitContent="true"
+                               HelperText="Auslöser">
+                               <MudSelectItem Value="ProcessStepTrigger.MinParticipantsReached">Minimale Teilnehmer erreicht</MudSelectItem>
+                               <MudSelectItem Value="ProcessStepTrigger.MaxParticipantsReached">Maximale Teilnehmer erreicht</MudSelectItem>
+                               <MudSelectItem Value="ProcessStepTrigger.StatusChanged">Statusänderung</MudSelectItem>
+                               <MudSelectItem Value="ProcessStepTrigger.DateArrived">Spezielles Datum</MudSelectItem>
+                               <MudSelectItem Value="ProcessStepTrigger.StartOfEventLogins">Anmeldestart</MudSelectItem>
+                               <MudSelectItem Value="ProcessStepTrigger.EndOfEventLogins">Anmeldeschluss</MudSelectItem>
+                    </MudSelect>
+                    <MudSelect @bind-Value="processStepItem.Item.Condition"
+                               FitContent="true"
+                               HelperText="Bedingung">
+                               <MudSelectItem Value="ProcessStepCondition.ParticipantsOverMin">Anmeldezahlen über Minima</MudSelectItem>
+                               <MudSelectItem Value="ProcessStepCondition.none">Keine Bedingung</MudSelectItem>
+                    </MudSelect>
                     <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary" OnClick="@(() => ConfigureProzessStep())">
                         Bearbeiten
                     </MudButton>
@@ -26,11 +42,12 @@
 </MudStack>
 
 @code {
+    private ProcessStepTrigger trigger1 = ProcessStepTrigger.EndOfEventLogins;
     private List<ProcessStepModel> _processStepsList = new()
     {
         new ProcessStepModel { TypeName = "P1", Type = ProcessStepType.SendEMail, Trigger = ProcessStepTrigger.EndOfEventLogins, Condition = ProcessStepCondition.ParticipantsOverMin, OffsetInHours = 2},
-        new ProcessStepModel { TypeName = "P2"},
-        new ProcessStepModel { TypeName = "P3"}
+        new ProcessStepModel { TypeName = "P2", Type = ProcessStepType.SendEMail, Trigger = ProcessStepTrigger.DateArrived, Condition = ProcessStepCondition.ParticipantsOverMin, OffsetInHours = 2},
+        new ProcessStepModel { TypeName = "P3", Type = ProcessStepType.SendEMail, Trigger = ProcessStepTrigger.EndOfEventLogins, Condition = ProcessStepCondition.ParticipantsOverMin, OffsetInHours = 2}
     };
 
     private async Task SaveProzess()
