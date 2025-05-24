@@ -232,40 +232,45 @@ public class DatabaseInitializer(IDbConnection db, ILogger<DatabaseInitializer> 
         }
 
         // Events
-        var eventCount = _db.ExecuteScalar<int>("SELECT COUNT(1) FROM Events;");
-        if (eventCount == 0)
+        var eventExists = _db.ExecuteScalar<int>("SELECT COUNT(1) FROM Events;") > 0;
+        if (!eventExists)
         {
-            _db.Execute(@"
-            INSERT INTO Events (
-                Name, Description, OrganizationId, ProcessId,
-                StartDate, EndDate, StartTime, EndTime, Location,
-                MinParticipants, MaxParticipants,
-                RegistrationStart, RegistrationEnd, IsBlueprint
-            )
-            VALUES (
-                'Kickoff Meeting', 'Erstes Demo-Event',
-                (SELECT Id FROM Organizations WHERE Domain = 'demo.org'),
-                (SELECT Id FROM Processes WHERE Name = 'Onboarding'),
-                '2025-06-01', '2025-06-01', '10:00:00', '12:00:00', 'Konferenzraum A',
-                5, 20,
-                '2025-05-15', '2025-05-31',
-                0
-            );
-        ");
-        }
+            var today = DateTime.Today;
+            var startTime = new TimeOnly(10, 0);
+            var endTime = new TimeOnly(12, 0);
 
-        // EventMembers
-        var eventMemberCount = _db.ExecuteScalar<int>("SELECT COUNT(1) FROM EventMembers;");
-        if (eventMemberCount == 0)
-        {
+            var orgId = _db.ExecuteScalar<int>("SELECT Id FROM Organizations WHERE Domain = 'demo.org'");
+            var processId = _db.ExecuteScalar<int>("SELECT Id FROM Processes WHERE Name = 'Onboarding'");
+
+            var parameters = new DynamicParameters();
+            parameters.Add("Name", "Kickoff Meeting");
+            parameters.Add("Description", "Erstes Demo-Event");
+            parameters.Add("OrgId", orgId);
+            parameters.Add("ProcessId", processId);
+            parameters.Add("StartDate", today, DbType.Date);
+            parameters.Add("EndDate", today, DbType.Date);
+            parameters.Add("StartTime", today.Add(startTime.ToTimeSpan()), DbType.DateTime);
+            parameters.Add("EndTime", today.Add(endTime.ToTimeSpan()), DbType.DateTime);
+            parameters.Add("Location", "Konferenzraum A");
+            parameters.Add("MinParticipants", 5);
+            parameters.Add("MaxParticipants", 20);
+            parameters.Add("RegStart", today, DbType.Date);
+            parameters.Add("RegEnd", today.AddDays(6), DbType.Date);
+            parameters.Add("IsBlueprint", false);
+
             _db.Execute(@"
-            INSERT INTO EventMembers (AccountId, EventId, IsOrganizer, IsContactPerson)
-            VALUES (
-                (SELECT Id FROM Accounts WHERE Email = 'admin@demo.org'),
-                (SELECT Id FROM Events WHERE Name = 'Kickoff Meeting'),
-                1, 1
-            );
-        ");
+        INSERT INTO Events (
+            Name, Description, OrganizationId, ProcessId,
+            StartDate, EndDate, StartTime, EndTime, Location,
+            MinParticipants, MaxParticipants,
+            RegistrationStart, RegistrationEnd, IsBlueprint
+        )
+        VALUES (
+            @Name, @Description, @OrgId, @ProcessId,
+            @StartDate, @EndDate, @StartTime, @EndTime, @Location,
+            @MinParticipants, @MaxParticipants,
+            @RegStart, @RegEnd, @IsBlueprint
+        );", parameters);
         }
     }
 }

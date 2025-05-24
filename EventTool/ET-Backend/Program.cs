@@ -14,6 +14,7 @@ using ET_Backend.Services.Person;
 using ET_Backend.Services.Processes;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using System.Net;
+using Dapper;
 using ET_Backend.Repository;
 using Microsoft.Data.SqlClient;
 using ET_Backend.Repository.Authentication;
@@ -27,6 +28,10 @@ Console.WriteLine($"Geladener SecretKey: {builder.Configuration["Jwt:SecretKey"]
 
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
+
+SqlMapper.AddTypeHandler(new DateOnlyTypeHandler());
+SqlMapper.AddTypeHandler(new TimeOnlyTypeHandler());
+
 
 // Service-Registrierung (vor Build)
 
