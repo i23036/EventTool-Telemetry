@@ -18,8 +18,6 @@ public class EventService : IEventService
         _accountRepository = accountRepository;
     }
 
-    // TODO: Methoden implementieren
-
     public async Task<Result<List<Models.Event>>> GetEventsFromOrganization(int organizationId)
     {
         return await _eventRepository.GetEventsByOrganization(organizationId);
