@@ -1,49 +1,52 @@
 ﻿@page "/User/Edit"
 
 @using System.ComponentModel.DataAnnotations
+@using ET_Frontend.Helpers
+@using ET_Frontend.Models.AccountManagement
 @using ET.Shared.DTOs;
 @using MudBlazor
 
-@inject HttpClient Http
+@inject ET_Frontend.Services.ApiClients.IUserApi UserApi
+@inject Microsoft.AspNetCore.Components.Authorization.AuthenticationStateProvider AuthProvider
 
 <PageTitle>Nutzerdaten bearbeiten</PageTitle>
 
 <div class="flex-md-column w-100 h-100 p-4">
     <MudText Typo="Typo.h4">Benutzerdaten </MudText>
-    <MudForm Model="@registerModel" @ref="_editForm" OnValidSubmit="toRegister">
+    <MudForm Model="@userModel" @ref="_editForm" OnValidSubmit="toRegister">
 
-        <MudTextField @bind-Value="registerModel.firstName"
+        <MudTextField @bind-Value="userModel.FirstName"
                       Label="Vorname"
-                      For="@(() => registerModel.firstName)"
+                      For="@(() => userModel.FirstName)"
                       Required="true"
                       RequiredError="Vorname ist erforderlich."
                       Variant="Variant.Filled"
                       Margin="Margin.Dense"
                       Class="mb-3" />
 
-        <MudTextField @bind-Value="registerModel.lastName"
+        <MudTextField @bind-Value="userModel.LastName"
                       Label="Nachname"
-                      For="@(() => registerModel.lastName)"
+                      For="@(() => userModel.LastName)"
                       Required="true"
                       RequiredError="Nachname ist erforderlich."
                       Variant="Variant.Filled"
                       Margin="Margin.Dense"
                       Class="mb-3" />
 
-        <MudTextField @bind-Value="registerModel.password"
+        <MudTextField @bind-Value="userModel.Password"
                       Label="Passwort"
                       InputType="InputType.Password"
-                      For="@(() => registerModel.password)"
+                      For="@(() => userModel.Password)"
                       Required="true"
                       RequiredError="Passwort ist erforderlich."
                       Variant="Variant.Filled"
                       Margin="Margin.Dense"
                       Class="mb-3" />
 
-        <MudTextField @bind-Value="registerModel.Reppassword"
+        <MudTextField @bind-Value="userModel.Reppassword"
                       Label="Passwort wiederholen"
                       InputType="InputType.Password"
-                      For="@(() => registerModel.Reppassword)"
+                      For="@(() => userModel.Reppassword)"
                       Required="true"
                       RequiredError="Wiederholtes Passwort ist erforderlich."
                       Variant="Variant.Filled"
@@ -78,63 +81,51 @@
 </div>
 
 @code {
-    private Boolean popupState = false;
-    private string popupText = "Wir tun mal so, als wäre das ein Easter Egg. Glückwunsch!"; //Fallback falls es wer schafft, das Popup ohne Button auszulösen? XD
+	private MudForm _editForm;
+	private UserEditViewModel userModel = new();
 
-    private MudForm _editForm;
-    private RegisterModel registerModel = new();
+	private bool popupState = false;
+    private string popupText = "Wir tun mal so, als wäre das ein Easter Egg. Glückwunsch!";
 
-    private void ChangeUserInfo()
-    {
-        UserDto userDTO = new UserDto(registerModel.firstName, registerModel.lastName, registerModel.password);
+	protected override async Task OnInitializedAsync()
+	{
+		var id = await JwtClaimHelper.GetUserIdAsync(AuthProvider);
+		if (id < 1)
+		{
+			popupText = "Nicht eingeloggt oder ID ungültig.";
+			popupState = true;
+			return;
+		}
 
-        //TODO _ServiceClient.UserAsync(userDTO);
+		var data = await UserApi.GetCurrentUserAsync();
+		if (data != null)
+		{
+			userModel = new UserEditViewModel
+			{
+				FirstName = data.FirstName,
+				LastName = data.LastName,
+				Password = string.Empty,
+				Reppassword = string.Empty
+			};
+		}
+		else
+		{
+			popupText = "Fehler beim Laden der Benutzerdaten.";
+			popupState = true;
+		}
+	}
 
-        // Console.WriteLine($"Registrierung mit DTO: {userRegDTO}");
-        // z. B. Navigation.NavigateTo("/dashboard");
+	private async Task ChangeUserInfo()
+	{
+		var success = await UserApi.UpdateUserAsync(userModel);
+		popupText = success ? "Änderungen gespeichert" : "Fehler beim Speichern der Daten";
+		popupState = true;
+	}
 
-        if (true)                                       //TODO hier Variable die sagt ob erfolgreich geladen oder nicht
-        {
-            popupText = "Änderungen gespeichert";
-            popupState = true;
-        }
-        else
-        {
-            popupText = "Fehler beim Speichern der Daten";
-            popupState = true;
-        }
-
-    }
-
-    private void ResetChanges()
-    {
-        //TODO funktion um Daten aus der Datenbank zu Laden, Idee ist das Bearbeitbare Felder die gespeicherten Infos haben und bei BHutton diese wiederhergestellt werden
-        if (true)                                       //TODO hier Variable die sagt ob erfolgreich geladen oder nicht
-        {
-            popupText = "Änderungen verworfen";
-            popupState = true;
-        }
-        else
-        {
-            popupText = "Fehler beim Laden der Daten";
-            popupState = true;
-        }
-    }
-
-    public class RegisterModel
-    {
-        [Required(ErrorMessage = "Vorname ist erforderlich.")]
-        public string firstName { get; set; }
-
-        [Required(ErrorMessage = "Nachname ist erforderlich.")]
-        public string lastName { get; set; }
-
-        [Required(ErrorMessage = "Passwort ist erforderlich.")]
-        [MinLength(6, ErrorMessage = "Passwort muss mindestens 6 Zeichen lang sein.")]
-        public string password { get; set; }
-
-        [Required(ErrorMessage = "Wiederholtes Passwort ist erforderlich.")]
-        [Compare(nameof(password), ErrorMessage = "Passwörter stimmen nicht überein.")]
-        public string Reppassword { get; set; }
-    }
+	private async Task ResetChanges()
+	{
+		await OnInitializedAsync();
+		popupText = "Änderungen verworfen";
+		popupState = true;
+	}
 }
