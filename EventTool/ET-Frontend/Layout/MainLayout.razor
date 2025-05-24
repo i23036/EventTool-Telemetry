@@ -1,63 +1,73 @@
 ﻿@using Blazored.SessionStorage
 @using ET_Frontend.Helpers
 @using ET_Frontend.Services.Authentication
+@using ET.Shared.DTOs
 @using Microsoft.AspNetCore.Components.Authorization
-@inherits LayoutComponentBase
 @inject NavigationManager Navigation
 @inject ISessionStorageService SessionStorage
 @inject ILoginService LoginService
 @inject AuthenticationStateProvider AuthProvider
+@inject HttpClient Http
 
-@* Required *@
+@inherits LayoutComponentBase
+
 <MudThemeProvider />
 <MudPopoverProvider />
-
-@* Needed for dialogs *@
 <MudDialogProvider />
-
-@* Needed for snackbars *@
 <MudSnackbarProvider />
 
-<!--Main Page-->
 <main class="h-100">
     <article class="h-100">
-        <div class="flex-md-column align-content-between justify-content-center w-100 h-100">
+        <div class="flex-md-column align-content-between justify-content-center w-100 h-100" style="overflow: visible;">
             <div class="d-flex align-items-center justify-content-between p-4 bg-light">
+
                 <!-- Klickbarer Bereich für Logo + Name -->
                 <div class="d-flex align-content-center" @onclick="NavigateHome" style="cursor: pointer;">
                     <MudPaper Class="d-flex align-items-center mr-3" Elevation="0">
-                        <img src="images/BitWorksSimpel-Gro.png" alt="BitWorks Logo" width="55" height="55" />
+                        @if (!string.IsNullOrWhiteSpace(organisationLogoBase64))
+                        {
+                            <img src="@organisationLogoBase64" alt="Logo" width="55" height="55" class="rounded-3" />
+                        }
+                        else
+                        {
+                            <img src="images/BitWorksSimpel-Gro.png" alt="Standardlogo" width="55" height="55" class="rounded-3" />
+                        }
                     </MudPaper>
                     <div class="d-flex display-6 align-items-center">
                         <p class="m-0">@organisationName</p>
                     </div>
                 </div>
 
-                <!-- Avatar mit Menü (inkl. farblich hervorgehobenem Logout) -->
-                <div class="d-flex align-items-center justify-content-end w-25">
-                    <MudMenu>
-                        <ActivatorContent>
-                            <MudAvatar Color="Color.Primary" Size="Size.Medium">U</MudAvatar>
-                        </ActivatorContent>
-                        <ChildContent>
-                            <MudMenuItem OnClick="@NavigateToUserData">
-                                <MudIcon Icon="@Icons.Material.Rounded.Person" Class="mr-2" />
-                                Benutzerdaten
-                            </MudMenuItem>
-                            <MudDivider />
-                            <MudMenuItem OnClick="@NavigateToMemberships">
-                                <MudIcon Icon="@Icons.Material.Filled.Domain" Class="mr-2" />
-                                Mitgliedschaften                            
-                            </MudMenuItem>
-                            <MudDivider />
-                            <MudMenuItem OnClick="@LogoutAsync" Style="color: red; font-weight: bold;">
-                                <MudIcon Icon="@Icons.Material.Filled.Logout" Class="mr-2" />
-                                Logout
-                            </MudMenuItem>
-                        </ChildContent>
-                    </MudMenu>
-                </div>
+                <!-- Avatar mit Menü – erst anzeigen wenn isReady -->
+                @if (isReady)
+                {
+                    <div class="d-flex align-items-center justify-content-end w-25" style="overflow: visible;">
+                        <MudMenu AnchorOrigin="Origin.BottomRight"
+                                 TransformOrigin="Origin.TopRight">
+                            <ActivatorContent>
+                                <MudAvatar Color="Color.Primary" Size="Size.Medium">U</MudAvatar>
+                            </ActivatorContent>
+                            <ChildContent>
+                                <MudMenuItem OnClick="@NavigateToUserData">
+                                    <MudIcon Icon="@Icons.Material.Rounded.Person" Class="mr-2" />
+                                    Benutzerdaten
+                                </MudMenuItem>
+                                <MudDivider />
+                                <MudMenuItem OnClick="@NavigateToMemberships">
+                                    <MudIcon Icon="@Icons.Material.Filled.Domain" Class="mr-2" />
+                                    Mitgliedschaften
+                                </MudMenuItem>
+                                <MudDivider />
+                                <MudMenuItem OnClick="@LogoutAsync" Style="color: red; font-weight: bold;">
+                                    <MudIcon Icon="@Icons.Material.Filled.Logout" Class="mr-2" />
+                                    Logout
+                                </MudMenuItem>
+                            </ChildContent>
+                        </MudMenu>
+                    </div>
+                }
             </div>
+
             @Body
         </div>
     </article>
@@ -65,10 +75,34 @@
 
 @code {
     private string organisationName = "…";
+    private string? organisationLogoBase64;
+    private bool isReady = false;
 
     protected override async Task OnInitializedAsync()
     {
+        await LoadOrgData();
+        isReady = true;
+        StateHasChanged(); // neu rendern, sobald Daten da sind
+    }
+
+    private async Task LoadOrgData()
+    {
         organisationName = await JwtClaimHelper.GetUserOrganizationNameAsync(AuthProvider);
+
+        var domain = await JwtClaimHelper.GetUserDomainAsync(AuthProvider);
+        var request = new HttpRequestMessage(HttpMethod.Get, $"api/organization/{domain}");
+        request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", await SessionStorage.GetItemAsync<string>("authToken"));
+
+        var response = await Http.SendAsync(request);
+        if (response.IsSuccessStatusCode)
+        {
+            var dto = await response.Content.ReadFromJsonAsync<OrganizationDto>();
+            if (dto != null)
+            {
+                var model = DtoMapper.FromDto(dto);
+                organisationLogoBase64 = model.orgaPicBase64;
+            }
+        }
     }
 
     private async Task LogoutAsync()

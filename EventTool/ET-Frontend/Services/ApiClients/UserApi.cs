@@ -1,9 +1,11 @@
 ﻿using ET_Frontend.Models.AccountManagement;
+using ET_Frontend.Helpers;
+using ET_Frontend.Mapping;
+using ET.Shared.DTOs;
+using Microsoft.AspNetCore.Components.Authorization;
 using System.Net.Http;
 using System.Net.Http.Json;
 using System.Threading.Tasks;
-using ET_Frontend.Helpers;
-using Microsoft.AspNetCore.Components.Authorization;
 
 namespace ET_Frontend.Services.ApiClients
 {
@@ -15,27 +17,26 @@ namespace ET_Frontend.Services.ApiClients
         private readonly HttpClient _httpClient;
         private readonly AuthenticationStateProvider _authProvider;
 
-        /// <summary>
-        /// Konstruktor mit HttpClient- und AuthenticationStateProvider-Injektion.
-        /// </summary>
         public UserApi(HttpClient httpClient, AuthenticationStateProvider authProvider)
         {
             _httpClient = httpClient;
             _authProvider = authProvider;
         }
 
-        /// <inheritdoc />
         public async Task<UserEditViewModel?> GetCurrentUserAsync()
         {
-            var userId = JwtClaimHelper.GetUserIdAsync(_authProvider);
-            return await _httpClient.GetFromJsonAsync<UserEditViewModel>($"user/{userId}");
+            var userId = await JwtClaimHelper.GetUserIdAsync(_authProvider);
+            var dto = await _httpClient.GetFromJsonAsync<UserDto>($"user/{userId}");
+
+            return dto == null ? null : UserViewMapper.ToViewModel(dto);
         }
 
-        /// <inheritdoc />
         public async Task<bool> UpdateUserAsync(UserEditViewModel model)
         {
-            var userId = JwtClaimHelper.GetUserIdAsync(_authProvider);
-            var response = await _httpClient.PutAsJsonAsync($"user/{userId}", model);
+            var userId = await JwtClaimHelper.GetUserIdAsync(_authProvider);
+            var dto = UserViewMapper.ToDto(model);
+
+            var response = await _httpClient.PutAsJsonAsync($"user/{userId}", dto);
             return response.IsSuccessStatusCode;
         }
     }

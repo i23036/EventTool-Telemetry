@@ -1,7 +1,9 @@
 ﻿@page "/EventDetails/{ID:int}"
-@inject NavigationManager Navigation
+@attribute [Authorize]
+@using Microsoft.AspNetCore.Authorization
 @using MudBlazor
 @using System.Linq
+@inject NavigationManager Navigation
 
 <PageTitle>Event Details</PageTitle>
 

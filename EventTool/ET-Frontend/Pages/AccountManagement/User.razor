@@ -1,4 +1,6 @@
 ﻿@page "/User"
+@attribute [Authorize]
+@using Microsoft.AspNetCore.Authorization
 @inject NavigationManager Navigation
 
 <PageTitle>Nutzerkonto</PageTitle>
@@ -18,14 +20,30 @@
             <!-- E-Mail + Speichern (links) -->
             <TemplateColumn Title="E-Mail bearbeiten" CellClass="text-start">
                 <CellTemplate Context="ctx">
-                    <div style="display: inline-flex; align-items: center; gap: 6px;">
-                        <MudTextField @bind-Value="ctx.Item.Email"
+                    @{
+                        var email = ctx.Item.Email ?? "";
+                        var atIndex = email.IndexOf('@');
+                        var domain = atIndex >= 0 ? email[atIndex..] : "";
+                        var id = ctx.Item.OrganisationId;
+
+                        // Initialisieren, wenn nötig
+                        if (!EmailLocalParts.ContainsKey(id))
+                        {
+                            var local = atIndex >= 0 ? email[..atIndex] : email;
+                            EmailLocalParts[id] = local;
+                        }
+                    }
+
+                    <div class="d-inline-flex align-items-center" style="gap: 6px;">
+                        <MudTextField @bind-Value="EmailLocalParts[id]"
                                       Dense="true"
-                                      Style="width: 200px;" />
+                                      Margin="Margin.Dense"
+                                      Style="width: 150px;" />
+                        <span class="text-muted">@domain</span>
                         <MudButton Size="Size.Small"
                                    Color="Color.Primary"
                                    Variant="Variant.Outlined"
-                                   OnClick="@(() => SpeichereEmail(ctx.Item))">
+                                   OnClick="@(() => SpeichereEmail(ctx.Item, EmailLocalParts[id], domain))">
                             Speichern
                         </MudButton>
                     </div>
@@ -52,6 +70,7 @@
                     </div>
                 </CellTemplate>
             </TemplateColumn>
+
         </Columns>
     </MudDataGrid>
 </div>
@@ -63,6 +82,9 @@
         new Mitgliedschaft { OrganisationName = "CodeLab", Email = "du@codelab.org", OrganisationId = "codelab" }
     };
 
+    // Speichert den LocalPart für jede Mitgliedschaft
+    private Dictionary<string, string> EmailLocalParts = new();
+
     public class Mitgliedschaft
     {
         public string OrganisationName { get; set; }
@@ -70,8 +92,9 @@
         public string OrganisationId { get; set; }
     }
 
-    private void SpeichereEmail(Mitgliedschaft eintrag)
+    private void SpeichereEmail(Mitgliedschaft eintrag, string localPart, string domain)
     {
+        eintrag.Email = $"{localPart}{domain}";
         Console.WriteLine($"Email gespeichert: {eintrag.Email} für {eintrag.OrganisationName}");
     }
 
