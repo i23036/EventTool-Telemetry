@@ -5,14 +5,8 @@
 
 <!-- Inhalt -->
 <div class="flex-md-column w-100 h-100 p-4">
-
-    <!-- Button über dem Grid -->
-    <MudButton Variant="Variant.Filled"
-               Color="Color.Primary"
-               Class="mb-4"
-               OnClick="changeUserInfo">
-        Nutzerdaten bearbeiten
-    </MudButton>
+    <!-- Überschrift -->
+    <MudText Typo="Typo.h4">Mitgliedschaften</MudText>
 
     <!-- Grid -->
     <MudDataGrid T="Mitgliedschaft" Items="@Mitgliedschaften" Dense="true">

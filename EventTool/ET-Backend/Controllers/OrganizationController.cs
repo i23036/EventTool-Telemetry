@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using ET_Backend.Services.Organization;
 using ET.Shared.DTOs;
 using FluentResults;
+using FluentResults.Extensions.AspNetCore;
 
 namespace ET_Backend.Controllers;
 
@@ -120,27 +121,22 @@ public class OrganizationController : ControllerBase
         return result.IsSuccess ? Ok() : BadRequest(result.Errors);
     }
 
-    [HttpPut("{domain}/members/{email}")]
-    [Authorize]
-    public async Task<IActionResult> UpdateMemberRole(string domain, string email, [FromBody] int newRole)
+    // Rollen­änderung – neue Route, damit Role-Id im Pfad steckt
+    [HttpPut("{domain}/members/{email}/role/{roleId:int}")]
+    public async Task<IActionResult> UpdateRole(
+        string domain,
+        string email,
+        int    roleId)                // Enum-Wert (int)
     {
-        var result = await _organizationService.UpdateMemberRole(domain, email, newRole);
-
-        if (result.IsSuccess)
-            return Ok();
-
-        return BadRequest(result.Errors);
+        var result = await _organizationService.UpdateMemberRole(domain, email, roleId);
+        return result.ToActionResult();   // FluentResultsExtension macht aus dem FluentResult direkt ein ActionResult 
     }
 
+    // Mitglied entfernen (Domain + E-Mail)
     [HttpDelete("{domain}/members/{email}")]
     public async Task<IActionResult> RemoveMember(string domain, string email)
     {
         var result = await _organizationService.RemoveMember(domain, email);
-    
-        if (result.IsSuccess)
-            return Ok();
-    
-        return BadRequest(result.Errors);
+        return result.ToActionResult();
     }
-
 }

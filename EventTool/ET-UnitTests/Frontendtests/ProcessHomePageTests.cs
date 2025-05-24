@@ -10,19 +10,17 @@ namespace ET_UnitTests.Frontendtests
         public ProcessHomePageTests()
         {
             Services.AddMudServices();
-            JSInterop.SetupVoid("mudElementRef.addOnBlurEvent", _ => true);
+            // Falls die Komponente weitere Services benötigt, hier mocken und registrieren
         }
 
         [Fact]
         public void ProcessHomePage_ShouldRenderAllElements()
         {
-            // Act
+            // Beispiel: Passe die erwarteten Texte an deine Komponente an!
             var cut = RenderComponent<ProcessHome>();
 
-            // Assert: Überschrift oder zentrale Elemente prüfen
+            // ASSERTIONS MÜSSEN ANGEPASST WERDEN AN TATSÄCHLICHE KEYWORDS IN PROCESSHOME!!!
             Assert.Contains("Prozess", cut.Markup, System.StringComparison.OrdinalIgnoreCase);
-
-            // Assert: Weitere typische Elemente (passe ggf. an)
             Assert.Contains("Start", cut.Markup, System.StringComparison.OrdinalIgnoreCase);
         }
     }

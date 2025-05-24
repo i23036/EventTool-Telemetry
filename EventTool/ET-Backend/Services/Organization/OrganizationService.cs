@@ -94,47 +94,45 @@ public class OrganizationService : IOrganizationService
 
     public async Task<Result> UpdateMemberRole(string domain, string email, int newRole)
     {
-        // 1. Organisation anhand Domain laden
+        // 1) Organisation holen
         var orgResult = await _organizationRepository.GetOrganization(domain);
-        if (orgResult.IsFailed)
-            return Result.Fail("Organisation wurde nicht gefunden.");
+        if (orgResult.IsFailed) return Result.Fail(orgResult.Errors);
 
-        // 2. Account anhand E-Mail laden
-        var accountResult = await _accountRepository.GetAccount(email);
-        if (accountResult.IsFailed)
-            return Result.Fail("Benutzerkonto wurde nicht gefunden.");
+        // 2) Account holen
+        var accResult = await _accountRepository.GetAccount(email);
+        if (accResult.IsFailed) return Result.Fail(accResult.Errors);
 
-        var account = accountResult.Value;
+        var account = accResult.Value;
 
-        // 3. Prüfen, ob Account zur Organisation gehört (Domainvergleich)
+        // 3) Gehört der Account wirklich zu dieser Domain?
         if (!string.Equals(account.Organization?.Domain, domain, StringComparison.OrdinalIgnoreCase))
             return Result.Fail("Benutzer gehört nicht zu dieser Organisation.");
 
-        // 4. Rolle setzen
+        // 4) Rolle setzen + speichern
         account.Role = (Role)newRole;
+        var upd = await _accountRepository.EditAccount(account);
+        if (upd.IsFailed) return Result.Fail(upd.Errors);
 
-        var updateResult = await _accountRepository.EditAccount(account);
-        if (updateResult.IsFailed)
-            return Result.Fail("Rollenänderung konnte nicht gespeichert werden.");
-
-        // 5. Erfolgsmeldung im Dev-Log
-        Console.WriteLine($"[ROLLE GEÄNDERT] {email} → Rolle: {(Role)newRole} in Organisation '{domain}'");
-
+        Console.WriteLine($"[ROLE UPDATED] {email} → {(Role)newRole} in '{domain}'");
         return Result.Ok();
     }
 
     public async Task<Result> RemoveMember(string domain, string email)
     {
+        // 1) Org + Account holen
         var orgResult = await _organizationRepository.GetOrganization(domain);
-        if (orgResult.IsFailed) return Result.Fail("Organization not found");
+        if (orgResult.IsFailed) return Result.Fail(orgResult.Errors);
 
-        var accountResult = await _accountRepository.GetAccount(email);
-        if (accountResult.IsFailed) return Result.Fail("Account not found");
+        var accResult = await _accountRepository.GetAccount(email);
+        if (accResult.IsFailed) return Result.Fail(accResult.Errors);
 
-        var account = accountResult.Value;
-        if (account.Organization.Id != orgResult.Value.Id)
-            return Result.Fail("Account not part of this organization");
+        var account = accResult.Value;
 
-        return await _accountRepository.RemoveFromOrganization(account.Id);
+        // 2) Domain-Check (robust falls OrgId bereits null)
+        if (!string.Equals(account.Organization?.Domain, domain, StringComparison.OrdinalIgnoreCase))
+            return Result.Fail("Benutzer gehört nicht (mehr) zu dieser Organisation.");
+
+        // 3) Entfernen
+        return await _accountRepository.RemoveFromOrganization(account.Id, orgResult.Value.Id);
     }
 }

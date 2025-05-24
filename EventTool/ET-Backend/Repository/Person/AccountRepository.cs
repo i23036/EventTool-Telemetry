@@ -2,6 +2,7 @@
 using Dapper;
 using ET_Backend.Models;
 using FluentResults;
+using Microsoft.Identity.Client;
 
 namespace ET_Backend.Repository.Person;
 
@@ -64,7 +65,7 @@ public class AccountRepository : IAccountRepository
                                    new { AccountId = accountId, OrganizationId = organization.Id, Role = (int)role }, tx);
 
             tx.Commit();
-            
+
             var account = new Account
             {
                 Id = accountId,
@@ -108,29 +109,30 @@ public class AccountRepository : IAccountRepository
             return Result.Fail($"DBError: {ex.Message}");
         }
     }
-    
+
     public async Task<Result<Account>> GetAccount(string accountEMail)
     {
         try
         {
-            var sql = $@"SELECT 
-                            a.Id              AS AccountId,
-                            a.Email           AS EMail,
-                            a.IsVerified,
-                            u.Id              AS UserId,
-                            u.Firstname,
-                            u.Lastname,
-                            u.Password,
-                            o.Id              AS OrgId,
-                            o.Name            AS Name,
-                            o.Description,
-                            o.Domain,
-                            om.Role
-                          FROM {_db.Tbl("Accounts")} a
-                          JOIN {_db.Tbl("Users")} u             ON a.UserId       = u.Id
-                          JOIN {_db.Tbl("OrganizationMembers")} om ON om.AccountId   = a.Id
-                          JOIN {_db.Tbl("Organizations")} o     ON o.Id           = om.OrganizationId
-                          WHERE a.Email = @Email";
+            var sql = $@"
+            SELECT 
+                a.Id               
+              , a.Email      AS EMail
+              , a.IsVerified
+              , u.Id         AS UserId
+              , u.Firstname
+              , u.Lastname
+              , u.Password
+              , o.Id         AS OrgId
+              , o.Name
+              , o.Description
+              , o.Domain
+              , om.Role
+            FROM {_db.Tbl("Accounts")}             a
+            JOIN {_db.Tbl("Users")}                u  ON a.UserId       = u.Id
+            JOIN {_db.Tbl("OrganizationMembers")}  om ON om.AccountId   = a.Id
+            JOIN {_db.Tbl("Organizations")}        o  ON o.Id           = om.OrganizationId
+            WHERE a.Email = @Email";
 
             if (_db.IsSQLite())
             {
@@ -140,13 +142,15 @@ public class AccountRepository : IAccountRepository
                     {
                         acc.User = usr;
                         acc.Organization = org;
-                        acc.Role = (Role)(int)role; // cast long → int → enum
+                        acc.Organization.Id = org.Id;
+                        acc.Role = (Role)(int)role;
                         return acc;
                     },
                     new { Email = accountEMail },
                     splitOn: "UserId,OrgId,Role");
 
-                return result.FirstOrDefault() is { } a ? Result.Ok(a) : Result.Fail("NotFound");
+                return result.FirstOrDefault() is { } a ? Result.Ok(a)
+                                                        : Result.Fail("NotFound");
             }
             else
             {
@@ -156,44 +160,45 @@ public class AccountRepository : IAccountRepository
                     {
                         acc.User = usr;
                         acc.Organization = org;
+                        acc.Organization.Id = org.Id;
                         acc.Role = (Role)role;
                         return acc;
                     },
                     new { Email = accountEMail },
                     splitOn: "UserId,OrgId,Role");
 
-                return result.FirstOrDefault() is { } a ? Result.Ok(a) : Result.Fail("NotFound");
+                return result.FirstOrDefault() is { } a ? Result.Ok(a)
+                                                        : Result.Fail("NotFound");
             }
-
         }
         catch (Exception ex)
         {
             return Result.Fail($"DBError: {ex.Message}");
         }
     }
-
     public async Task<Result<Account>> GetAccount(int accountId)
     {
         try
         {
-            var sql = $@"SELECT 
-                            a.Id              AS AccountId,
-                            a.Email           AS EMail,
-                            a.IsVerified,
-                            u.Id              AS UserId,
-                            u.Firstname,
-                            u.Lastname,
-                            u.Password,
-                            o.Id              AS OrgId,
-                            o.Name            AS Name,
-                            o.Description,
-                            o.Domain,
-                            om.Role
-                          FROM {_db.Tbl("Accounts")} a
-                          JOIN {_db.Tbl("Users")} u             ON a.UserId       = u.Id
-                          JOIN {_db.Tbl("OrganizationMembers")} om ON om.AccountId   = a.Id
-                          JOIN {_db.Tbl("Organizations")} o     ON o.Id           = om.OrganizationId
-                          WHERE a.Id = @Id";
+            var sql = $@"
+            SELECT 
+                a.Id
+              , a.Email      AS EMail
+              , a.IsVerified
+              , u.Id         AS UserId
+              , u.Firstname
+              , u.Lastname
+              , u.Password
+              , o.Id         AS OrgId
+              , o.Name
+              , o.Description
+              , o.Domain
+              , om.Role
+            FROM {_db.Tbl("Accounts")}             a
+            JOIN {_db.Tbl("Users")}                u  ON a.UserId       = u.Id
+            JOIN {_db.Tbl("OrganizationMembers")}  om ON om.AccountId   = a.Id
+            JOIN {_db.Tbl("Organizations")}        o  ON o.Id           = om.OrganizationId
+            WHERE a.Id = @Id";
 
             if (_db.IsSQLite())
             {
@@ -203,13 +208,15 @@ public class AccountRepository : IAccountRepository
                     {
                         acc.User = usr;
                         acc.Organization = org;
-                        acc.Role = (Role)(int)role; // cast long → int → enum
+                        acc.Organization.Id = org.Id;
+                        acc.Role = (Role)(int)role;
                         return acc;
                     },
                     new { Id = accountId },
                     splitOn: "UserId,OrgId,Role");
 
-                return result.FirstOrDefault() is { } a ? Result.Ok(a) : Result.Fail("NotFound");
+                return result.FirstOrDefault() is { } a ? Result.Ok(a)
+                                                        : Result.Fail("NotFound");
             }
             else
             {
@@ -219,15 +226,16 @@ public class AccountRepository : IAccountRepository
                     {
                         acc.User = usr;
                         acc.Organization = org;
+                        acc.Organization.Id = org.Id;
                         acc.Role = (Role)role;
                         return acc;
                     },
                     new { Id = accountId },
                     splitOn: "UserId,OrgId,Role");
 
-                return result.FirstOrDefault() is { } a ? Result.Ok(a) : Result.Fail("NotFound");
+                return result.FirstOrDefault() is { } a ? Result.Ok(a)
+                                                        : Result.Fail("NotFound");
             }
-
         }
         catch (Exception ex)
         {
@@ -240,17 +248,35 @@ public class AccountRepository : IAccountRepository
         using var tx = _db.BeginSafeTransaction();
         try
         {
-            // Account
-            await _db.ExecuteAsync($"UPDATE {_db.Tbl("Accounts")} SET Email = @Email, IsVerified = @IsVerified WHERE Id = @Id;",
-                                   new { Email = account.EMail, IsVerified = account.IsVerified ? 1 : 0, account.Id }, tx);
+            // Accounts-Tabelle: nur E-Mail + Verified + Passwort
+            await _db.ExecuteAsync(
+                $"UPDATE {_db.Tbl("Accounts")} " +
+                "SET Email = @Email, IsVerified = @IsVerified " +
+                "WHERE Id = @Id;",
+                new { Email = account.EMail, IsVerified = account.IsVerified ? 1 : 0, account.Id },
+                tx);
 
-            // User
-            await _db.ExecuteAsync($"UPDATE {_db.Tbl("Users")} SET Firstname = @Firstname, Lastname = @Lastname, Password = @Password WHERE Id = @UserId;",
-                                   new { UserId = account.User.Id, account.User.Firstname, account.User.Lastname, account.User.Password }, tx);
+            // Users-Tabelle
+            await _db.ExecuteAsync(
+                $"UPDATE {_db.Tbl("Users")} " +
+                "SET Firstname = @Firstname, Lastname = @Lastname, Password = @Password " +
+                "WHERE Id = @UserId;",
+                new
+                {
+                    UserId = account.User.Id,
+                    account.User.Firstname,
+                    account.User.Lastname,
+                    account.User.Password
+                },
+                tx);
 
-            // Org‑Member
-            await _db.ExecuteAsync($"UPDATE {_db.Tbl("OrganizationMembers")} SET Role = @Role WHERE AccountId = @AccountId AND OrganizationId = @OrganizationId;",
-                                   new { Role = (int)account.Role, AccountId = account.Id, OrganizationId = account.Organization.Id }, tx);
+            // OrganizationMembers  – **nur** Rolle ändern
+            await _db.ExecuteAsync(
+                $"UPDATE {_db.Tbl("OrganizationMembers")} " +
+                "SET Role = @Role " +
+                "WHERE AccountId = @AccountId;",
+                new { Role = (int)account.Role, AccountId = account.Id },
+                tx);
 
             tx.Commit();
             return Result.Ok();
@@ -262,18 +288,46 @@ public class AccountRepository : IAccountRepository
         }
     }
 
-    public async Task<Result> RemoveFromOrganization(int accountId)
+    public async Task<Result> RemoveFromOrganization(int accountId, int orgId)
     {
+        using var tx = _db.BeginSafeTransaction();
         try
         {
-            var sql = "UPDATE Accounts SET OrganizationId = NULL WHERE Id = @Id";
-            var rows = await _db.ExecuteAsync(sql, new { Id = accountId });
+            // 1) UserId zum Account ermitteln
+            var userId = await _db.ExecuteScalarAsync<int>(
+                $"SELECT UserId FROM {_db.Tbl("Accounts")} WHERE Id = @Acc;",
+                new { Acc = accountId }, tx);
 
-            return rows > 0 ? Result.Ok() : Result.Fail("No changes");
+            // 2) Mitgliedschaft löschen
+            await _db.ExecuteAsync(
+                $"DELETE FROM {_db.Tbl("OrganizationMembers")} " +
+                "WHERE AccountId = @Acc;",                          
+                new { Acc = accountId }, tx);
+
+            // 3) Account löschen
+            await _db.ExecuteAsync(
+                $"DELETE FROM {_db.Tbl("Accounts")} WHERE Id = @Acc;",
+                new { Acc = accountId }, tx);
+
+            // 4) Prüfen, ob der User noch andere Accounts besitzt
+            var remaining = await _db.ExecuteScalarAsync<int>(
+                $"SELECT COUNT(1) FROM {_db.Tbl("Accounts")} WHERE UserId = @Usr;",
+                new { Usr = userId }, tx);
+
+            if (remaining == 0)
+            {
+                await _db.ExecuteAsync(
+                    $"DELETE FROM {_db.Tbl("Users")} WHERE Id = @Usr;",
+                    new { Usr = userId }, tx);
+            }
+
+            tx.Commit();
+            return Result.Ok();
         }
-        catch
+        catch (Exception ex)
         {
-            return Result.Fail("DBError");
+            tx.Rollback();
+            return Result.Fail($"DBError: {ex.Message}");
         }
     }
 }
