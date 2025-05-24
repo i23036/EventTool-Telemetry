@@ -1,5 +1,6 @@
 ﻿@code {
 	[Parameter] public string Message { get; set; }
+    [Parameter] public string ConfirmText { get; set; } = "Fortfahren";
 	[Parameter] public EventCallback<bool> OnConfirm { get; set; }
 
 	private void Confirm(bool result)
@@ -8,11 +9,28 @@
 	}
 }
 
-<MudPaper Class="p-4" Style="width: 300px;">
-	<MudText Typo="Typo.body1">@Message</MudText>
-	<MudDivider Class="my-2" />
-	<div class="d-flex justify-content-end">
-		<MudButton Variant="Variant.Text" Color="Color.Default" OnClick="@(() => Confirm(false))">Abbrechen</MudButton>
-		<MudButton Variant="Variant.Filled" Color="Color.Error" OnClick="@(() => Confirm(true))" Class="ms-2">Löschen</MudButton>
-	</div>
-</MudPaper>
+<div style="
+    position: fixed;
+    top: 0; left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 2000;">
+
+
+    <MudPaper Class="p-4" Style="width: 300px; border-radius: 8px;">
+        <MudText Typo="Typo.body1">@Message</MudText>
+        <MudDivider Class="my-2" />
+        <div style="display: flex; justify-content: center; gap: 1rem; margin-top: 1rem;">
+            <MudButton Variant="Variant.Text" Color="Color.Default" OnClick="@(() => Confirm(false))">
+                Abbrechen
+            </MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Error" OnClick="@(() => Confirm(true))">
+                @ConfirmText
+            </MudButton>
+        </div>
+    </MudPaper>
+</div>
