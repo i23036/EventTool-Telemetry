@@ -78,13 +78,4 @@ public UserApi(HttpClient client, AuthenticationStateProvider auth)
 
 ---
 
-## 📎 Hinweise zum Weiterarbeiten
-
-* Die Codebasis ist modular und kann unabhängig geladen werden
-* Bei Bedarf: alle API-Clients und Services analog zu Story 5.1 aufbauen
-* Bei Bugs: Netzwerkanalyse/Fehlermeldung ansehen → vermutlich Auth- oder Routingproblem
-* Alle bisherigen Entscheidungen sind dokumentiert und für Wiederverwendung geeignet ✅
-
----
-
 > **Erstellt am 23.05.2025 – als Basis für Endabnahme und Refactoringphase**
