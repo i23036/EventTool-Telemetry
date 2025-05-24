@@ -4,6 +4,7 @@ using ET_Backend.Repository.Person;
 using ET_Backend.Services.Mapping;
 using ET.Shared.DTOs;
 using FluentResults;
+using Microsoft.IdentityModel.JsonWebTokens;
 
 namespace ET_Backend.Services.Person
 {
@@ -13,17 +14,25 @@ namespace ET_Backend.Services.Person
     public class UserService : IUserService
     {
         private readonly IUserRepository _userRepository;
+        private readonly IAccountRepository _accountRepo;
 
-        public UserService(IUserRepository userRepository)
+        public UserService(IUserRepository userRepository, IAccountRepository accountRepo)
         {
             _userRepository = userRepository;
+            _accountRepo = accountRepo;
         }
 
         /// <inheritdoc />
         public async Task<Account?> GetCurrentUserAsync(ClaimsPrincipal user)
         {
-            var email = user.FindFirst(ClaimTypes.Email)?.Value;
-            return null; // Wird aktuell nicht über UserRepository abgebildet
+            // E-Mail-Claim aus dem JWT holen (Custom-Claim: 'email')
+            var email = user.FindFirst(JwtRegisteredClaimNames.Email)?.Value;
+
+            if (string.IsNullOrWhiteSpace(email))
+                return null;
+
+            var result = await _accountRepo.GetAccount(email);
+            return result.IsSuccess ? result.Value : null;
         }
 
         /// <inheritdoc />
@@ -41,6 +50,7 @@ namespace ET_Backend.Services.Person
             user.Firstname = dto.FirstName;
             user.Lastname = dto.LastName;
 
+            // Nur aktualisieren, wenn Passwort gesetzt wurde
             if (!string.IsNullOrWhiteSpace(dto.Password))
                 user.Password = dto.Password;
 

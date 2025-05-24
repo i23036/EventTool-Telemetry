@@ -1,11 +1,15 @@
-﻿using ET_Backend.Models;
-using ET.Shared.DTOs;
+﻿using ET.Shared.DTOs;
+using ET_Backend.Models;
 using ET_Backend.Services.Event;
 using ET_Backend.Services.Helper.Authentication;
-using FluentResults;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.IdentityModel.Tokens;
+using ET_Backend.Services.Mapping;
+using ET_Backend.Services.Organization;
 using ET_Backend.Services.Person;
+using FluentResults;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
+using Microsoft.IdentityModel.Tokens;
 
 // For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
@@ -20,46 +24,43 @@ namespace ET_Backend.Controllers
     {
         private readonly IEventService _eventService;
         private readonly IUserService _userService;
+        private readonly IOrganizationService _organizationService;
 
-        public EventController(IEventService eventService, IUserService userService)
+        public EventController(IEventService eventService, IUserService userService, IOrganizationService organizationService)
         {
             _eventService = eventService;
             _userService = userService;
+            _organizationService = organizationService;
         }
 
-        [HttpGet("eventList")]
-        public async Task<IActionResult> EventList()
+        [HttpGet("eventList/{domain}")]
+        [Authorize]
+        public async Task<IActionResult> EventList(string domain)
         {
-            var user = await _userService.GetCurrentUserAsync(User);
-            if (user == null || user.Organization == null)
-                return Unauthorized("Ungültiger Benutzer oder keine Organisation gefunden.");
+            // Organisation holen
+            var orgResult = await _organizationService.GetOrganization(domain);
+            if (orgResult.IsFailed)
+                return Unauthorized("Organisation nicht gefunden.");
 
-            Result<List<Event>> result = await _eventService.GetEventsFromOrganization(user.Organization.Id);
+            var org = orgResult.Value;
+
+            // Benutzer holen (z. B. für IsOrganizer, IsSubscribed)
+            var account = await _userService.GetCurrentUserAsync(User);
+
+            // Events holen
+            var result = await _eventService.GetEventsFromOrganization(org.Id);
 
             if (result.IsSuccess)
             {
-                List<EventListDto> dtoList = new List<EventListDto>();
-                foreach (Event currentEvent in result.Value)
-                {
-                    EventListDto newDto = new EventListDto(
-                        currentEvent.Id,
-                        currentEvent.Name,
-                        currentEvent.Description,
-                        currentEvent.Participants.Count,
-                        currentEvent.MaxParticipants,
-                        currentEvent.Organizers.Contains(user),
-                        currentEvent.Participants.Contains(user)
-                    );
-                    dtoList.Add(newDto);
-                }
+                var dtoList = result.Value
+                    .Select(e => EventListMapper.ToDto(e, account))
+                    .ToList();
+
                 return Ok(dtoList);
             }
-            else
-            {
-                return BadRequest();
-            }
-        }
 
+            return BadRequest(result.Errors);
+        }
 
         [HttpPut("subsrcibeTo{eventId}")]
         public async Task<IActionResult> SubscribeToEvent(int eventId)
