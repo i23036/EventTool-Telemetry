@@ -18,7 +18,7 @@
 
 <main class="h-100">
     <article class="h-100">
-        <div class="flex-md-column align-content-between justify-content-center w-100 h-100">
+        <div class="flex-md-column align-content-between justify-content-center w-100 h-100" style="overflow: visible;">
             <div class="d-flex align-items-center justify-content-between p-4 bg-light">
 
                 <!-- Klickbarer Bereich für Logo + Name -->
@@ -38,32 +38,36 @@
                     </div>
                 </div>
 
-                <!-- Avatar mit Menü -->
-                <div class="d-flex align-items-center justify-content-end w-25">
-                    <MudMenu AnchorOrigin="Origin.BottomRight"
-                             TransformOrigin="Origin.TopRight">
-                        <ActivatorContent>
-                            <MudAvatar Color="Color.Primary" Size="Size.Medium">U</MudAvatar>
-                        </ActivatorContent>
-                        <ChildContent>
-                            <MudMenuItem OnClick="@NavigateToUserData">
-                                <MudIcon Icon="@Icons.Material.Rounded.Person" Class="mr-2" />
-                                Benutzerdaten
-                            </MudMenuItem>
-                            <MudDivider />
-                            <MudMenuItem OnClick="@NavigateToMemberships">
-                                <MudIcon Icon="@Icons.Material.Filled.Domain" Class="mr-2" />
-                                Mitgliedschaften
-                            </MudMenuItem>
-                            <MudDivider />
-                            <MudMenuItem OnClick="@LogoutAsync" Style="color: red; font-weight: bold;">
-                                <MudIcon Icon="@Icons.Material.Filled.Logout" Class="mr-2" />
-                                Logout
-                            </MudMenuItem>
-                        </ChildContent>
-                    </MudMenu>
-                </div>
+                <!-- Avatar mit Menü – erst anzeigen wenn isReady -->
+                @if (isReady)
+                {
+                    <div class="d-flex align-items-center justify-content-end w-25" style="overflow: visible;">
+                        <MudMenu AnchorOrigin="Origin.BottomRight"
+                                 TransformOrigin="Origin.TopRight">
+                            <ActivatorContent>
+                                <MudAvatar Color="Color.Primary" Size="Size.Medium">U</MudAvatar>
+                            </ActivatorContent>
+                            <ChildContent>
+                                <MudMenuItem OnClick="@NavigateToUserData">
+                                    <MudIcon Icon="@Icons.Material.Rounded.Person" Class="mr-2" />
+                                    Benutzerdaten
+                                </MudMenuItem>
+                                <MudDivider />
+                                <MudMenuItem OnClick="@NavigateToMemberships">
+                                    <MudIcon Icon="@Icons.Material.Filled.Domain" Class="mr-2" />
+                                    Mitgliedschaften
+                                </MudMenuItem>
+                                <MudDivider />
+                                <MudMenuItem OnClick="@LogoutAsync" Style="color: red; font-weight: bold;">
+                                    <MudIcon Icon="@Icons.Material.Filled.Logout" Class="mr-2" />
+                                    Logout
+                                </MudMenuItem>
+                            </ChildContent>
+                        </MudMenu>
+                    </div>
+                }
             </div>
+
             @Body
         </div>
     </article>
@@ -72,10 +76,17 @@
 @code {
     private string organisationName = "…";
     private string? organisationLogoBase64;
+    private bool isReady = false;
 
     protected override async Task OnInitializedAsync()
     {
+        await LoadOrgData();
+        isReady = true;
+        StateHasChanged(); // neu rendern, sobald Daten da sind
+    }
 
+    private async Task LoadOrgData()
+    {
         organisationName = await JwtClaimHelper.GetUserOrganizationNameAsync(AuthProvider);
 
         var domain = await JwtClaimHelper.GetUserDomainAsync(AuthProvider);
@@ -92,8 +103,6 @@
                 organisationLogoBase64 = model.orgaPicBase64;
             }
         }
-
-
     }
 
     private async Task LogoutAsync()

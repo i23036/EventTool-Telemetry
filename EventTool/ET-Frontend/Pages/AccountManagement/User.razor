@@ -1,4 +1,6 @@
 ﻿@page "/User"
+@attribute [Authorize]
+@using Microsoft.AspNetCore.Authorization
 @inject NavigationManager Navigation
 
 <PageTitle>Nutzerkonto</PageTitle>
