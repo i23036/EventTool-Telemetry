@@ -160,7 +160,7 @@ namespace ET_UnitTests.Unittests
             mockAccRepo.Setup(r => r.GetAccount("max@test.org"))
                 .ReturnsAsync(Result.Ok(account));
 
-            mockAccRepo.Setup(r => r.RemoveFromOrganization(1))
+            mockAccRepo.Setup(r => r.RemoveFromOrganization(1,1))
                 .ReturnsAsync(Result.Ok());
 
             var service = new OrganizationService(mockOrgRepo.Object, mockAccRepo.Object);
@@ -170,7 +170,7 @@ namespace ET_UnitTests.Unittests
 
             // Assert
             Assert.True(result.IsSuccess);
-            mockAccRepo.Verify(r => r.RemoveFromOrganization(1), Times.Once);
+            mockAccRepo.Verify(r => r.RemoveFromOrganization(1,1), Times.Once);
         }
     }
 }

@@ -158,7 +158,7 @@ namespace ET_UnitTests.Unittests
             db.Execute("INSERT INTO Accounts (Id, Email, UserId, IsVerified, OrganizationId) VALUES (1, 'foo@bar.de', 1, 0, 2)");
             var repo = new AccountRepository(db);
 
-            var result = await repo.RemoveFromOrganization(1);
+            var result = await repo.RemoveFromOrganization(1,1);
 
             Assert.True(result.IsSuccess);
 
