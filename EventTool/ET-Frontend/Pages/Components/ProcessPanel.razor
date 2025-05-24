@@ -1,11 +1,12 @@
 ﻿@namespace ET_Frontend.Components
 @using ET_Frontend.Models
+@using ET_Frontend.Models.Enums
 @inject IDialogService DialogService
 
 <MudText Typo="Typo.h4" Class="mb-4">Prozess</MudText>
 <MudText Typo="Typo.body1" Class="mb-4">Hier können Sie Ihren Prozess bearbeiten.</MudText>
 <MudSpacer />
-<MudDataGrid T="ProcessStepModel" Items="@_processStepsList" Dense="true">
+<MudDataGrid T="ProcessStepViewModel" Items="@_processStepsList" Dense="true">
     <Columns>
         <PropertyColumn Property="x => x.TypeName" Title="Prozesschritt" />
         <TemplateColumn CellClass="d-flex justify-end">
@@ -53,11 +54,11 @@
 
 @code {
     private ProcessStepTrigger trigger1 = ProcessStepTrigger.EndOfEventLogins;
-    private List<ProcessStepModel> _processStepsList = new()
+    private List<ProcessStepViewModel> _processStepsList = new()
     {
-        new ProcessStepModel { TypeName = "P1", Type = ProcessStepType.SendEMail, Trigger = ProcessStepTrigger.EndOfEventLogins, Condition = ProcessStepCondition.ParticipantsOverMin, OffsetInHours = 2},
-        new ProcessStepModel { TypeName = "P2", Type = ProcessStepType.ChangeStatus, Trigger = ProcessStepTrigger.DateArrived, Condition = ProcessStepCondition.ParticipantsOverMin, OffsetInHours = 1},
-        new ProcessStepModel { TypeName = "P3", Type = ProcessStepType.SendEMail, Trigger = ProcessStepTrigger.EndOfEventLogins, Condition = ProcessStepCondition.ParticipantsOverMin, OffsetInHours = -3}
+        new ProcessStepViewModel { TypeName = "P1", Type = ProcessStepType.SendEMail, Trigger = ProcessStepTrigger.EndOfEventLogins, Condition = ProcessStepCondition.ParticipantsOverMin, OffsetInHours = 2},
+        new ProcessStepViewModel { TypeName = "P2", Type = ProcessStepType.ChangeStatus, Trigger = ProcessStepTrigger.DateArrived, Condition = ProcessStepCondition.ParticipantsOverMin, OffsetInHours = 1},
+        new ProcessStepViewModel { TypeName = "P3", Type = ProcessStepType.SendEMail, Trigger = ProcessStepTrigger.EndOfEventLogins, Condition = ProcessStepCondition.ParticipantsOverMin, OffsetInHours = -3}
     };
 
     private async Task SaveProzess()
