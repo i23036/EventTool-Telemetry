@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Components.Authorization;
+using System.Security.Claims;
 
 namespace ET_Frontend.Helpers;
 
@@ -18,7 +19,6 @@ public static class JwtClaimHelper
         var authState = await provider.GetAuthenticationStateAsync();
         var user = authState.User;
 
-        // Rückgabe des Claims, falls vorhanden – sonst leer
         return user?.FindFirst(claimType)?.Value ?? string.Empty;
     }
 
@@ -37,4 +37,15 @@ public static class JwtClaimHelper
     /// </summary>
     public static Task<string> GetUserOrganizationNameAsync(AuthenticationStateProvider provider)
         => GetClaimAsync(provider, "orgName");
+
+    /// <summary>
+    /// Gibt die Benutzer-ID anhand des "sub"-Claims zurück.
+    /// </summary>
+    /// <param name="provider">Das Authentifizierungs-Provider-Objekt.</param>
+    /// <returns>Die Benutzer-ID als int, oder -1 bei Fehler.</returns>
+    public static async Task<int> GetUserIdAsync(AuthenticationStateProvider provider)
+    {
+        var claim = await GetClaimAsync(provider, ClaimTypes.NameIdentifier); // "sub" oder standardisiert
+        return int.TryParse(claim, out var id) ? id : -1;
+    }
 }
