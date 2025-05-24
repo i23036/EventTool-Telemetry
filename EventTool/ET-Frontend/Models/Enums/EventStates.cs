@@ -1,4 +1,4 @@
-﻿namespace ET_Frontend.Models;
+﻿namespace ET_Frontend.Models.Enums;
 
 public enum EventStates
 {
