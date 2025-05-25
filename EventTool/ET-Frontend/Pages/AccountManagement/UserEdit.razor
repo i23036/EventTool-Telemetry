@@ -12,6 +12,7 @@
 @inject ET_Frontend.Services.ApiClients.IUserApi UserApi
 @inject JwtAuthenticationStateProvider AuthProvider
 @inject NavigationManager Navigation
+@inject ISnackbar Snackbar
 
 <PageTitle>Nutzerdaten bearbeiten</PageTitle>
 
@@ -22,38 +23,24 @@
 
         <MudTextField @bind-Value="userModel.FirstName"
                       Label="Vorname"
-                      For="@(() => userModel.FirstName)"
-                      Required="true"
-                      RequiredError="Vorname ist erforderlich."
                       Variant="Variant.Filled"
                       Margin="Margin.Dense"
                       Class="mb-3" />
 
         <MudTextField @bind-Value="userModel.LastName"
                       Label="Nachname"
-                      For="@(() => userModel.LastName)"
-                      Required="true"
-                      RequiredError="Nachname ist erforderlich."
                       Variant="Variant.Filled"
                       Margin="Margin.Dense"
                       Class="mb-3" />
 
         <MudTextField @bind-Value="userModel.Password"
                       Label="Passwort"
-                      InputType="InputType.Password"
-                      For="@(() => userModel.Password)"
-                      Required="true"
-                      RequiredError="Passwort ist erforderlich."
                       Variant="Variant.Filled"
                       Margin="Margin.Dense"
                       Class="mb-3" />
 
         <MudTextField @bind-Value="userModel.Reppassword"
                       Label="Passwort wiederholen"
-                      InputType="InputType.Password"
-                      For="@(() => userModel.Reppassword)"
-                      Required="true"
-                      RequiredError="Wiederholtes Passwort ist erforderlich."
                       Variant="Variant.Filled"
                       Margin="Margin.Dense"
                       Class="mb-3" />
@@ -86,18 +73,7 @@
             </MudButton>
         </div>
 
-        <!-- Popup Feedback -->
-        <div class="d-flex w-100 align-content-center justify-content-center mt-3">
-            <MudPopover OverflowBehavior="OverflowBehavior.FlipNever"
-                        Open="@popupState"
-                        AnchorOrigin="Origin.CenterCenter"
-                        TransformOrigin="Origin.CenterCenter"
-                        Class="pa-4 flex-column">
-                <MudText Typo="Typo.body2" Class="px-4 py-1">@popupText</MudText>
-                <MudButton Class="float-end" OnClick="@(() => popupState = false)">OK</MudButton>
-            </MudPopover>
-        </div>
-
+       
     </MudForm>
 </div>
 
@@ -113,8 +89,6 @@
     private MudForm _editForm;
     private UserEditViewModel userModel = new();
 
-    private bool popupState = false;
-    private string popupText = "Wir tun mal so, als wäre das ein Easter Egg. Glückwunsch!";
 
     private bool showDeleteConfirmDialog = false;
 
@@ -123,8 +97,7 @@
         var id = await JwtClaimHelper.GetUserIdAsync(AuthProvider);
         if (id < 1)
         {
-            popupText = "Nicht eingeloggt oder ID ungültig.";
-            popupState = true;
+            Snackbar.Add("Nicht eingeloggt oder ID ungültig.", Severity.Error);
             return;
         }
 
@@ -141,23 +114,51 @@
         }
         else
         {
-            popupText = "Fehler beim Laden der Benutzerdaten.";
-            popupState = true;
+            Snackbar.Add("Fehler beim Laden der Benutzerdaten.", Severity.Error);
         }
     }
 
     private async Task ChangeUserInfo()
     {
+        // Wenn Passwort angegeben wurde, dann validieren
+        if (!string.IsNullOrWhiteSpace(userModel.Password))
+        {
+            if (userModel.Password.Length < 6)
+            {
+                Snackbar.Add("Das Passwort muss mindestens 6 Zeichen lang sein.", Severity.Warning);
+                return;
+            }
+
+            if (userModel.Password != userModel.Reppassword)
+            {
+                Snackbar.Add("Die Passwörter stimmen nicht überein.", Severity.Warning);
+                return;
+            }
+        }
+
+        // Leere Passwörter explizit auf null setzen, damit sie nicht überschrieben werden
+        if (string.IsNullOrWhiteSpace(userModel.Password))
+        {
+            userModel.Password = string.Empty;
+            userModel.Reppassword = string.Empty;
+        }
+
         var success = await UserApi.UpdateUserAsync(userModel);
-        popupText = success ? "Änderungen gespeichert" : "Fehler beim Speichern der Daten";
-        popupState = true;
+        if (success)
+        {
+            Snackbar.Add("Änderungen gespeichert.", Severity.Success);
+        }
+        else
+        {
+            Snackbar.Add("Fehler beim Speichern der Daten.", Severity.Error);
+        }
     }
+
 
     private async Task ResetChanges()
     {
         await OnInitializedAsync();
-        popupText = "Änderungen verworfen";
-        popupState = true;
+        Snackbar.Add("Änderungen verworfen.", Severity.Success);
     }
 
     private async Task HandleDeleteConfirm(bool confirmed)
