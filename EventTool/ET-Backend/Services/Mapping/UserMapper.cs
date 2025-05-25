@@ -12,12 +12,11 @@ public static class UserMapper
     /// Konvertiert ein UserDto in ein internes User-Modell.
     /// </summary>
     /// <param name="dto">Das DTO mit den übertragenen Benutzerdaten.</param>
-    /// <param name="id">Optional: Die Benutzer-ID (z. B. bei Updates).</param>
-    public static User ToModel(UserDto dto, int id = 0)
+    public static User ToModel(UserDto dto)
     {
         return new User
         {
-            Id = id,
+            Id = dto.Id,
             Firstname = dto.FirstName,
             Lastname = dto.LastName,
             Password = dto.Password
@@ -31,6 +30,7 @@ public static class UserMapper
     public static UserDto ToDto(User user)
     {
         return new UserDto(
+            user.Id,
             user.Firstname,
             user.Lastname,
             user.Password

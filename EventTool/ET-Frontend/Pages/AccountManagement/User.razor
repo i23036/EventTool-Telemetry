@@ -1,10 +1,18 @@
 ﻿@page "/User"
+
 @attribute [Authorize]
+
 @using System.Net
 @using System.Net.Http.Headers
 @using System.Text.Json
 @using Microsoft.AspNetCore.Authorization
+@using ET_Frontend.Models.AccountManagement
+@using ET_Frontend.Services.Authentication
+
 @inject NavigationManager Navigation
+@inject ET_Frontend.Services.ApiClients.IUserApi UserApi
+@inject Blazored.SessionStorage.ISessionStorageService SessionStorage
+@inject JwtAuthenticationStateProvider AuthProvider
 
 <PageTitle>Nutzerkonto</PageTitle>
 
@@ -14,7 +22,7 @@
     <MudText Typo="Typo.h4">Mitgliedschaften</MudText>
 
     <!-- Grid -->
-    <MudDataGrid T="Mitgliedschaft" Items="@Mitgliedschaften" Dense="true">
+    <MudDataGrid T="MembershipViewModel" Items="@Mitgliedschaften" Dense="true">
         <Columns>
 
             <!-- Organisation Name -->
@@ -67,7 +75,7 @@
                         <MudButton Color="Color.Success"
                                    Variant="Variant.Filled"
                                    Size="Size.Small"
-                                   OnClick="@(() => SwitchMembership(member.AccountId))">
+                                   OnClick="@(() => SwitchMembership(ctx.Item.AccountId))">
                             Öffnen
                         </MudButton>
                     </div>
@@ -79,62 +87,44 @@
 </div>
 
 @code {
-    private List<Mitgliedschaft> Mitgliedschaften = new()
-    {
-        new Mitgliedschaft { OrganisationName = "BitWorks", Email = "du@bitworks.de", OrganisationId = "bitworks" },
-        new Mitgliedschaft { OrganisationName = "CodeLab", Email = "du@codelab.org", OrganisationId = "codelab" }
-    };
+	private List<MembershipViewModel> Mitgliedschaften = new();
+	private Dictionary<int, string>   EmailLocalParts  = new(); 
+	private bool   popupState = false;
+	private string popupText  = "";
 
-    // Speichert den LocalPart für jede Mitgliedschaft
-    private Dictionary<string, string> EmailLocalParts = new();
+	protected override async Task OnInitializedAsync()
+	{
+		Mitgliedschaften = await UserApi.GetMembershipsAsync();
+		foreach (var m in Mitgliedschaften)
+			EmailLocalParts[m.AccountId] = m.Email[..m.Email.IndexOf('@')];
+	}
 
-    public class Mitgliedschaft
-    {
-        public string OrganisationName { get; set; }
-        public string Email { get; set; }
-        public string OrganisationId { get; set; }
-    }
+	private async Task SpeichereEmail(MembershipViewModel m, string localPart, string domain)
+	{
+		var ok = await UserApi.UpdateEmailAsync(m.AccountId, $"{localPart}{domain}");
+		popupText  = ok ? "E-Mail gespeichert" : "Fehler beim Speichern";
+		popupState = true;
+		if (ok) m.Email = $"{localPart}{domain}";
+	}
 
-    private void SpeichereEmail(Mitgliedschaft eintrag, string localPart, string domain)
-    {
-        eintrag.Email = $"{localPart}{domain}";
-        Console.WriteLine($"Email gespeichert: {eintrag.Email} für {eintrag.OrganisationName}");
-    }
+	private async Task EntferneMitgliedschaft(MembershipViewModel m)
+	{
+		var ok = await UserApi.DeleteMembershipAsync(m.AccountId, m.OrganisationId);
+		if (ok) Mitgliedschaften.Remove(m);
+	}
 
-    private void EntferneMitgliedschaft(Mitgliedschaft eintrag)
-    {
-        Mitgliedschaften.Remove(eintrag);
-    }
+	private async Task SwitchMembership(int accountId)
+	{
+		var token = await UserApi.SwitchAccountAsync(accountId);
+		if (token is null)
+		{
+			popupText  = "Organisation konnte nicht gewechselt werden.";
+			popupState = true;
+			return;
+		}
 
-    private async Task SwitchMembership(int accountId)
-    {
-	    var req = new HttpRequestMessage(HttpMethod.Post, $"api/auth/switch/{accountId}");
-	    req.Headers.Authorization =
-		    new AuthenticationHeaderValue("Bearer", await SessionStorage.GetItemAsync<string>("authToken"));
-
-	    var res = await WebRequestMethods.Http.SendAsync(req);
-	    if (!res.IsSuccessStatusCode)
-	    {
-		    popupText  = "Organisation konnte nicht gewechselt werden.";
-		    popupState = true;
-		    return;
-	    }
-
-	    var newJwt = (await res.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("token").GetString();
-	    await SessionStorage.SetItemAsync("authToken", newJwt);
-	    await AuthProvider.MarkUserAsAuthenticated(newJwt);
-
-	    Navigation.NavigateTo("/home", forceLoad: true);
-    }
-
-
-    private void WechselnZuOrganisation(Mitgliedschaft eintrag) //Deprecated
-    {
-        Navigation.NavigateTo($"/?org={eintrag.OrganisationId}");
-    }
-
-    private void changeUserInfo()
-    {
-        Navigation.NavigateTo("/User/Edit");
-    }
+		await SessionStorage.SetItemAsync("authToken", token);
+		await AuthProvider.MarkUserAsAuthenticated(token);
+		Navigation.NavigateTo("/home", true);
+	}
 }

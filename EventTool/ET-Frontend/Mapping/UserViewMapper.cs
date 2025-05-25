@@ -25,9 +25,10 @@ public static class UserViewMapper
     /// <summary>
     /// Wandelt ein ViewModel zurück in einen UserDto zur API-Übertragung.
     /// </summary>
-    public static UserDto ToDto(UserEditViewModel vm)
+    public static UserDto ToDto(UserEditViewModel vm, int id)
     {
         return new UserDto(
+            id,
             vm.FirstName,
             vm.LastName,
             vm.Password

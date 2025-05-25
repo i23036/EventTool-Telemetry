@@ -1,5 +1,6 @@
 ﻿using ET_Frontend.Models.AccountManagement;
 using System.Threading.Tasks;
+using System.Collections.Generic;
 
 namespace ET_Frontend.Services.ApiClients
 {
@@ -20,5 +21,9 @@ namespace ET_Frontend.Services.ApiClients
         /// <param name="model">Das geänderte ViewModel mit Benutzerinformationen.</param>
         /// <returns>True bei Erfolg, sonst false.</returns>
         Task<bool> UpdateUserAsync(UserEditViewModel model);
+        Task<List<MembershipViewModel>> GetMembershipsAsync();
+        Task<bool> UpdateEmailAsync(int accountId, string newEmail);
+        Task<bool> DeleteMembershipAsync(int accountId, int orgId);
+        Task<string?> SwitchAccountAsync(int accountId);
     }
 }

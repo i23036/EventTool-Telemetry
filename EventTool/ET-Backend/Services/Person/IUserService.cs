@@ -14,13 +14,17 @@ namespace ET_Backend.Services.Person
         /// Gibt den aktuell eingeloggten Benutzer zurück.
         /// </summary>
         /// <param name="user">Der ClaimsPrincipal des eingeloggten Nutzers.</param>
-        Task<Account?> GetCurrentUserAsync(ClaimsPrincipal user);
+        Task<Account?> GetCurrentUserAsync(ClaimsPrincipal user); // für EventController
+
+        Task<Result<UserDto>> GetUserAsync(int id);                    
+        Task<Result<List<MembershipDto>>> GetMembershipsAsync(int id); 
+        Task<Result> UpdateEmailAsync(int accountId, string newEmail); 
+        Task<Result> DeleteMembershipAsync(int accountId, int orgId);  
 
         /// <summary>
         /// Aktualisiert die Benutzerdaten.
         /// </summary>
-        /// <param name="id">ID des zu bearbeitenden Benutzers.</param>
         /// <param name="dto">Neue Benutzerdaten als DTO.</param>
-        Task<Result> UpdateUserAsync(int id, UserDto dto);
+        Task<Result> UpdateUserAsync(UserDto dto);
     }
 }

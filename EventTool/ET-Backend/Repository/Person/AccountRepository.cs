@@ -330,4 +330,56 @@ public class AccountRepository : IAccountRepository
             return Result.Fail($"DBError: {ex.Message}");
         }
     }
+
+    public async Task<Result<List<Account>>> GetAccountsByUser(int userId)
+    {
+        try
+        {
+            var sql = $@"
+        SELECT  a.Id, a.Email       AS EMail, a.IsVerified,
+                u.Id                AS UserId, u.Firstname, u.Lastname, u.Password,
+                o.Id                AS OrgId, o.Name, o.Description, o.Domain,
+                om.Role
+        FROM    {_db.Tbl("Accounts")}            a
+        JOIN    {_db.Tbl("Users")}               u  ON a.UserId = u.Id
+        JOIN    {_db.Tbl("OrganizationMembers")} om ON om.AccountId = a.Id
+        JOIN    {_db.Tbl("Organizations")}       o  ON o.Id      = om.OrganizationId
+        WHERE   a.UserId = @Uid;";
+
+            var list = await _db.QueryAsync<Account, User, Models.Organization, int, Account>(
+                sql,
+                (acc, usr, org, role) =>
+                {
+                    acc.User = usr;
+                    acc.Organization = org;
+                    acc.Organization.Id = org.Id;
+                    acc.Role = (Role)role;
+                    return acc;
+                },
+                new { Uid = userId },
+                splitOn: "UserId,OrgId,Role");
+
+            return Result.Ok(list.ToList());
+        }
+        catch (Exception ex)
+        {
+            return Result.Fail($"DBError: {ex.Message}");
+        }
+    }
+
+    public async Task<Result> UpdateEmail(int accountId, string email)
+    {
+        try
+        {
+            var rows = await _db.ExecuteAsync(
+                $"UPDATE {_db.Tbl("Accounts")} SET Email = @Email WHERE Id = @AccId;",
+                new { Email = email, AccId = accountId });
+
+            return rows > 0 ? Result.Ok() : Result.Fail("NotFound");
+        }
+        catch (Exception ex)
+        {
+            return Result.Fail($"DBError: {ex.Message}");
+        }
+    }
 }

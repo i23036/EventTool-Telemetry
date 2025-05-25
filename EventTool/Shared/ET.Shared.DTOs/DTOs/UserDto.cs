@@ -1,3 +1,3 @@
 ﻿namespace ET.Shared.DTOs;
 
-public record UserDto(string FirstName, string LastName, string Password);
+public record UserDto(int Id, string FirstName, string LastName, string Password);

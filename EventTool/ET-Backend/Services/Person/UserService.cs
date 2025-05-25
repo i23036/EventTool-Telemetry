@@ -36,12 +36,12 @@ namespace ET_Backend.Services.Person
         }
 
         /// <inheritdoc />
-        public async Task<Result> UpdateUserAsync(int id, UserDto dto)
+        public async Task<Result> UpdateUserAsync(UserDto dto)
         {
             if (string.IsNullOrWhiteSpace(dto.FirstName) || string.IsNullOrWhiteSpace(dto.LastName))
                 return Result.Fail("Name und Nachname dürfen nicht leer sein.");
 
-            var getResult = await _userRepository.GetUser(id);
+            var getResult = await _userRepository.GetUser(dto.Id);
             if (getResult.IsFailed || getResult.Value is null)
                 return Result.Fail("Benutzer nicht gefunden.");
 
@@ -56,5 +56,40 @@ namespace ET_Backend.Services.Person
 
             return await _userRepository.EditUser(user);
         }
+
+        public async Task<Result<UserDto>> GetUserAsync(int id)
+        {
+            var get = await _userRepository.GetUser(id);
+            if (get.IsFailed || get.Value is null)
+                return Result.Fail("Benutzer nicht gefunden.");
+
+            return Result.Ok(UserMapper.ToDto(get.Value));   // Password wird dort schon geleert
+        }
+
+        public async Task<Result<List<MembershipDto>>> GetMembershipsAsync(int id)
+        {
+            var accs = await _accountRepo.GetAccountsByUser(id);
+            if (accs.IsFailed) return Result.Fail(accs.Errors);
+
+            var list = accs.Value.Select(a => new MembershipDto(
+                a.Id,
+                a.Organization.Id,
+                a.Organization.Name,
+                a.EMail)).ToList();
+
+            return Result.Ok(list);
+        }
+
+        public async Task<Result> UpdateEmailAsync(int accountId, string newEmail)
+        {
+            // einfache E-Mail-Validierung
+            if (string.IsNullOrWhiteSpace(newEmail) || !newEmail.Contains('@'))
+                return Result.Fail("Ungültige E-Mail-Adresse.");
+
+            return await _accountRepo.UpdateEmail(accountId, newEmail);
+        }
+
+        public async Task<Result> DeleteMembershipAsync(int accountId, int orgId)
+            => await _accountRepo.RemoveFromOrganization(accountId, orgId);
     }
 }

@@ -5,11 +5,12 @@
 @using System.ComponentModel.DataAnnotations
 @using ET_Frontend.Helpers
 @using ET_Frontend.Models.AccountManagement
+@using ET_Frontend.Services.Authentication
 @using ET.Shared.DTOs;
 @using MudBlazor
 
 @inject ET_Frontend.Services.ApiClients.IUserApi UserApi
-@inject Microsoft.AspNetCore.Components.Authorization.AuthenticationStateProvider AuthProvider
+@inject JwtAuthenticationStateProvider AuthProvider
 
 <PageTitle>Nutzerdaten bearbeiten</PageTitle>
 
