@@ -226,6 +226,7 @@ public class AuthenticateService : IAuthenticateService
         var claims = new[]
         {
             new Claim(JwtRegisteredClaimNames.Sub, account.Id.ToString()),
+            new Claim(ClaimTypes.NameIdentifier, account.UserId.ToString()),
             new Claim(JwtRegisteredClaimNames.Email, account.EMail),
             new Claim("org", account.Organization.Domain),
             new Claim("orgName", account.Organization.Name),

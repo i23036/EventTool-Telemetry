@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Components.Authorization;
+﻿using System.IdentityModel.Tokens.Jwt;
+using Microsoft.AspNetCore.Components.Authorization;
 using System.Security.Claims;
 
 namespace ET_Frontend.Helpers;
@@ -45,7 +46,10 @@ public static class JwtClaimHelper
     /// <returns>Die Benutzer-ID als int, oder -1 bei Fehler.</returns>
     public static async Task<int> GetUserIdAsync(AuthenticationStateProvider provider)
     {
-        var claim = await GetClaimAsync(provider, ClaimTypes.NameIdentifier); // "sub" oder standardisiert
-        return int.TryParse(claim, out var id) ? id : -1;
+        var id = await GetClaimAsync(provider, ClaimTypes.NameIdentifier)
+                 ?? await GetClaimAsync(provider, "uid")
+                 ?? await GetClaimAsync(provider, JwtRegisteredClaimNames.Sub);
+
+        return int.TryParse(id, out var userId) ? userId : -1;
     }
 }
