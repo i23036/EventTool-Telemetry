@@ -1,5 +1,8 @@
 ﻿@page "/User"
 @attribute [Authorize]
+@using System.Net
+@using System.Net.Http.Headers
+@using System.Text.Json
 @using Microsoft.AspNetCore.Authorization
 @inject NavigationManager Navigation
 
@@ -64,7 +67,7 @@
                         <MudButton Color="Color.Success"
                                    Variant="Variant.Filled"
                                    Size="Size.Small"
-                                   OnClick="@(() => WechselnZuOrganisation(ctx.Item))">
+                                   OnClick="@(() => SwitchMembership(member.AccountId))">
                             Öffnen
                         </MudButton>
                     </div>
@@ -103,7 +106,29 @@
         Mitgliedschaften.Remove(eintrag);
     }
 
-    private void WechselnZuOrganisation(Mitgliedschaft eintrag)
+    private async Task SwitchMembership(int accountId)
+    {
+	    var req = new HttpRequestMessage(HttpMethod.Post, $"api/auth/switch/{accountId}");
+	    req.Headers.Authorization =
+		    new AuthenticationHeaderValue("Bearer", await SessionStorage.GetItemAsync<string>("authToken"));
+
+	    var res = await WebRequestMethods.Http.SendAsync(req);
+	    if (!res.IsSuccessStatusCode)
+	    {
+		    popupText  = "Organisation konnte nicht gewechselt werden.";
+		    popupState = true;
+		    return;
+	    }
+
+	    var newJwt = (await res.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("token").GetString();
+	    await SessionStorage.SetItemAsync("authToken", newJwt);
+	    await AuthProvider.MarkUserAsAuthenticated(newJwt);
+
+	    Navigation.NavigateTo("/home", forceLoad: true);
+    }
+
+
+    private void WechselnZuOrganisation(Mitgliedschaft eintrag) //Deprecated
     {
         Navigation.NavigateTo($"/?org={eintrag.OrganisationId}");
     }

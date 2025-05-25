@@ -17,4 +17,12 @@ public interface IAuthenticateService
     public Task<Result<string>> LoginUser(string eMail, string password);
 
     public Task<Result<string>> RegisterUser(String firstname, String lastname, String eMail, String password);
+
+    /// <summary>
+    /// Erstellt ein neues JWT für den angegebenen Account, sofern er
+    /// dem aktuell angemeldeten User gehört.
+    /// </summary>
+    /// <param name="accountId">Ziel-Account (Mitgliedschaft).</param>
+    /// <param name="currentUserId">User-Id aus dem aktuellen Token.</param>
+    Task<Result<string>> SwitchAccount(int accountId, int currentUserId); 
 }

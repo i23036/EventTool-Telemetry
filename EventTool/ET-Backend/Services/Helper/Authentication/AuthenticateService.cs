@@ -214,7 +214,21 @@ public class AuthenticateService : IAuthenticateService
         }
     }
 
+    public async Task<Result<string>> SwitchAccount(int accountId, int currentUserId)
+    {
+        var accResult = await _accountRepository.GetAccount(accountId);
+        if (accResult.IsFailed)
+            return Result.Fail("Account existiert nicht.");
 
+        var acc = accResult.Value;
+
+        if (acc.UserId != currentUserId)
+            return Result.Fail("Kein Zugriff auf diesen Account.");   // Controller macht daraus 403
+
+        // privater Helper bleibt privat
+        var token = GenerateJwtToken(acc);
+        return Result.Ok(token);
+    }
 
     /// <summary>
     /// Generiert ein JWT-Token für ein Benutzerkonto.
