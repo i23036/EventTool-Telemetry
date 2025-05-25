@@ -4,6 +4,7 @@
 
 @using ET_Frontend.Models
 @using ET_Frontend.Helpers
+@using ET_Frontend.Services.Authentication
 @using ET.Shared.DTOs
 @using Microsoft.AspNetCore.Components.Authorization
 
@@ -11,7 +12,6 @@
 @inject NavigationManager Navigation
 @inject AuthenticationStateProvider AuthProvider
 @inject Blazored.SessionStorage.ISessionStorageService SessionStorage
-
 
 <PageTitle>Organisationsdaten bearbeiten</PageTitle>
 
@@ -156,6 +156,13 @@
 
 		var dto = DtoMapper.ToDto(orgaModel);
 		var response = await Http.PutAsJsonAsync($"api/organization/{orgaModel.OrganizationId}", dto);
+
+		await SessionStorage.RemoveItemAsync("authToken");
+
+		if (AuthProvider is JwtAuthenticationStateProvider jwtProvider)
+			jwtProvider.NotifyAuthenticationStateChanged();
+
+		Navigation.NavigateTo("/login", forceLoad: true);
 
 		popupText = response.IsSuccessStatusCode
 			? "Änderungen gespeichert"
