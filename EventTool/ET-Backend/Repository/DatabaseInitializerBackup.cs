@@ -4,7 +4,7 @@ using Dapper;
 
 namespace ET_Backend.Repository;
 
-public class DatabaseInitializer(IDbConnection db, ILogger<DatabaseInitializer> logger)
+public class DatabaseInitializerBackup(IDbConnection db, ILogger<DatabaseInitializer> logger) // achtung eigentlicher Name: DatabaseInitializer, aber sonst fehler mit neuem
 {
     private readonly IDbConnection _db = db;
     private readonly ILogger _logger = logger;
@@ -55,7 +55,10 @@ public class DatabaseInitializer(IDbConnection db, ILogger<DatabaseInitializer> 
 
         _db.Execute(@"
             CREATE TABLE IF NOT EXISTS Processes (
-                Id INTEGER PRIMARY KEY AUTOINCREMENT
+                Id             INTEGER PRIMARY KEY AUTOINCREMENT,
+                Name           TEXT NOT NULL,
+                OrganizationId INTEGER NOT NULL,
+                FOREIGN KEY (OrganizationId) REFERENCES Organizations(Id)
             );
         ");
 
@@ -114,13 +117,11 @@ public class DatabaseInitializer(IDbConnection db, ILogger<DatabaseInitializer> 
         _db.Execute(@"
             CREATE TABLE IF NOT EXISTS ProcessSteps (
                 Id             INTEGER PRIMARY KEY AUTOINCREMENT,
-                TypeName       TEXT NOT NULL,
-                Type           INTEGER NOT NULL,
-                Trigger        INTEGER NOT NULL,
-                Condition      INTEGER NOT NULL,
-                OffsetInHours  INTEGER NOT NULL,
-                ProcessId      INTEGER NOT NULL,
-                FOREIGN KEY (ProcessId) REFERENCES Processes(Id)
+                Name           TEXT NOT NULL,
+                OrganizationId INTEGER NOT NULL,
+                TriggerId      INTEGER,
+                FOREIGN KEY (OrganizationId) REFERENCES Organizations(Id),
+                FOREIGN KEY (TriggerId) REFERENCES Triggers(Id)
             );
         ");
 
@@ -210,7 +211,10 @@ public class DatabaseInitializer(IDbConnection db, ILogger<DatabaseInitializer> 
         var processCount = _db.ExecuteScalar<int>("SELECT COUNT(1) FROM Processes;");
         if (processCount == 0)
         {
-            _db.Execute("INSERT INTO Processes DEFAULT VALUES;");
+            _db.Execute(@"
+            INSERT INTO Processes (Name, OrganizationId)
+            VALUES ('Onboarding', (SELECT Id FROM Organizations WHERE Domain = 'demo.org'));
+            ");
         }
 
         // ProcessSteps
@@ -218,15 +222,12 @@ public class DatabaseInitializer(IDbConnection db, ILogger<DatabaseInitializer> 
         if (stepCount == 0)
         {
             _db.Execute(@"
-                INSERT INTO ProcessSteps (TypeName, Type, Trigger, Condition, OffsetInHours, ProcessId)
-                VALUES (
-                    'Email anpassen',
-                    0,
-                    0,
-                    0,
-                    0,
-                    (SELECT Id FROM Processes LIMIT 1)
-                    );
+            INSERT INTO ProcessSteps (Name, OrganizationId, TriggerId)
+            VALUES (
+                'Willkommen',
+                (SELECT Id FROM Organizations WHERE Domain = 'demo.org'),
+                (SELECT Id FROM Triggers WHERE Attribut = 'E-Mail bestätigt')
+                );
             ");
         }
 
