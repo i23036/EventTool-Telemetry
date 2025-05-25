@@ -11,10 +11,6 @@ public class EventRepository : IEventRepository
     public EventRepository(IDbConnection db)
     {
         _db = db;
-
-        // Registrierung der TypeHandler
-        SqlMapper.AddTypeHandler(new DateOnlyTypeHandler());
-        SqlMapper.AddTypeHandler(new TimeOnlyTypeHandler());
     }
 
     public async Task<Result<bool>> EventExists(int eventId)
@@ -133,9 +129,9 @@ public class EventRepository : IEventRepository
 
             return Result.Ok(events.ToList());
         }
-        catch
+        catch (Exception ex)
         {
-            return Result.Fail("DBError");
+            return Result.Fail($"DBError: {ex.Message}");
         }
     }
 

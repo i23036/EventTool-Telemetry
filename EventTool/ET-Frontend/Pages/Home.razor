@@ -6,6 +6,8 @@
 @using ET_Frontend.Models
 @using Blazored.SessionStorage
 @using ET_Frontend.Helpers
+@using ET_Frontend.Mapping
+@using ET_Frontend.Models.Event
 @using ET_Frontend.Pages.Components
 @using Microsoft.AspNetCore.Components.Authorization
 @inject HttpClient Http
@@ -22,7 +24,7 @@
             <!-- Events Tab -->
             <MudTabPanel Text="Events">
                 <MudText Typo="Typo.h4" Class="mb-3">Events</MudText>
-                <MudDataGrid T="EventListDto" Items="@Events" Dense="true">
+                <MudDataGrid T="EventViewModel" Items="@Events" Dense="true">
                     <Columns>
                         <PropertyColumn Property="x => x.Name" Title="Name" />
                         <PropertyColumn Property="x => x.Description" Title="Beschreibung" />
@@ -100,7 +102,7 @@
 
 @code {
     private List<OrganizationMemberViewModel> OrgMembers = new();
-    private List<EventListDto> Events = new();
+    private List<EventViewModel> Events = new();
 
     private bool ShowConfirmDialog = false;
     private OrganizationMemberViewModel MemberToDelete;
@@ -117,20 +119,21 @@
 
     private async Task LoadEvents()
     {
-        var token = await SessionStorage.GetItemAsync<string>("authToken");
-        var request = new HttpRequestMessage(HttpMethod.Get, $"api/event/eventList");
-        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+	    var token = await SessionStorage.GetItemAsync<string>("authToken");
+	    var domain = await JwtClaimHelper.GetUserDomainAsync(AuthProvider);
+	    var request = new HttpRequestMessage(HttpMethod.Get, $"api/event/eventList/{domain}");
+	    request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
-        var response = await Http.SendAsync(request);
-        if (response.IsSuccessStatusCode)
-        {
-            var dtoList = await response.Content.ReadFromJsonAsync<List<EventListDto>>();
-            Events = dtoList ?? new();
-        }
-        else
-        {
-            Console.WriteLine("Fehler beim Laden der Events");
-        }
+	    var response = await Http.SendAsync(request);
+	    if (response.IsSuccessStatusCode)
+	    {
+		    var dtoList = await response.Content.ReadFromJsonAsync<List<EventListDto>>();
+		    Events = dtoList?.Select(EventListViewMapper.ToViewModel).ToList() ?? new();
+	    }
+	    else
+	    {
+		    Console.WriteLine("Fehler beim Laden der Events");
+	    }
     }
 
     private async Task LoadMembers()
