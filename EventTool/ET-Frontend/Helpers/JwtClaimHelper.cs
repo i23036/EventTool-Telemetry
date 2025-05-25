@@ -52,4 +52,13 @@ public static class JwtClaimHelper
 
         return int.TryParse(id, out var userId) ? userId : -1;
     }
+
+    public static async Task<string> GetUserRoleAsync(AuthenticationStateProvider provider)
+    {
+        var role = await GetClaimAsync(provider, ClaimTypes.Role);
+
+        return string.IsNullOrWhiteSpace(role)
+            ? string.Empty
+            : role.Trim().ToLower(); // z. B. "owner", "organisator", "mitglied"
+    }
 }
