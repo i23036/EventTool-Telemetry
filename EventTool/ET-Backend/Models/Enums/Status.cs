@@ -1,4 +1,4 @@
-﻿namespace ET_Backend.Models;
+﻿namespace ET_Backend.Models.Enums;
 
 public enum Status
 {
