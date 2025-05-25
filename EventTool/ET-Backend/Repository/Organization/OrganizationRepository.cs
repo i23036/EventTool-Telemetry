@@ -1,8 +1,8 @@
 ﻿using System.Data;
 using Dapper;
-using ET_Backend.Models;
 using ET.Shared.DTOs;
 using FluentResults;
+using ET_Backend.Models.Enums;
 
 namespace ET_Backend.Repository.Organization;
 

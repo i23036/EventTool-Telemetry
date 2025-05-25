@@ -2,6 +2,7 @@
 using System.Security.Claims;
 using System.Text;
 using ET_Backend.Models;
+using ET_Backend.Models.Enums;
 using ET_Backend.Repository.Authentication;
 using ET_Backend.Repository.Organization;
 using ET_Backend.Repository.Person;

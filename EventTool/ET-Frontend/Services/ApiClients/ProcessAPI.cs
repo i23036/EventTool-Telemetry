@@ -6,7 +6,7 @@ using System.Net.Http.Json;
 namespace ET_Frontend.Services.ApiClients
 {
     /// <summary>
-    /// Implementierung der Benutzer-API für das Frontend.
+    /// Implementierung der Prozess-API für das Frontend.
     /// </summary>
     public class ProcessAPI : IProcessAPI
     {
@@ -23,19 +23,18 @@ namespace ET_Frontend.Services.ApiClients
         }
 
         /// <inheritdoc />
-        public async Task<ProcessModel?> GetCurrentProcessAsync()
+        public async Task<ProcessViewModel?> GetCurrentProcessAsync()
         {
             var userId = JwtClaimHelper.GetUserIdAsync(_authProvider);
-            return await _httpClient.GetFromJsonAsync<ProcessModel>($"process/{userId}");
+            return await _httpClient.GetFromJsonAsync<ProcessViewModel>($"process/{userId}");
         }
 
         /// <inheritdoc />
-        public async Task<bool> UpdateProcessAsync(ProcessModel model)
+        public async Task<bool> UpdateProcessAsync(ProcessViewModel model)
         {
             var userId = JwtClaimHelper.GetUserIdAsync(_authProvider);
             var response = await _httpClient.PutAsJsonAsync($"process/{userId}", model);
             return response.IsSuccessStatusCode;
         }
     }
-}
 }

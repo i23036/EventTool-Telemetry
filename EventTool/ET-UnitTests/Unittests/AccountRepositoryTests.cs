@@ -4,6 +4,7 @@ using Dapper;
 using ET_Backend.Models;
 using ET_Backend.Repository.Person;
 using Xunit;
+using ET_Backend.Models.Enums;
 
 namespace ET_UnitTests.Unittests
 {
