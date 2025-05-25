@@ -9,6 +9,7 @@
 @inject Services.ApiClients.IUserApi UserApi
 @inject Blazored.SessionStorage.ISessionStorageService SessionStorage
 @inject JwtAuthenticationStateProvider AuthProvider
+@inject ISnackbar Snackbar
 
 <PageTitle>Nutzerkonto</PageTitle>
 
@@ -123,7 +124,7 @@
                box-shadow: 0 3px 6px rgba(0,0,0,0.25);
                border-radius: 8px;"
                            OnClick="AddMembership">
-                    HINZUFÜGEN
+	                HINZUFÜGEN
                 </MudButton>
             </div>
         </MudPaper>
@@ -225,9 +226,21 @@
 
     private async Task AddMembership()
     {
-        if (!string.IsNullOrWhiteSpace(newMembershipEmail))
-        {
-          //hier dann neue Mitgliedschaft machen
-        }
+	    if (!string.IsNullOrWhiteSpace(newMembershipEmail))
+	    {
+		    var success = await UserApi.AddMembershipAsync(newMembershipEmail);
+		    showAddDialog = false;
+		    newMembershipEmail = "";
+
+		    if (!success)
+		    {
+			   Snackbar.Add("Fehler beim Hinzufügen der Mitgliedschaft.", Severity.Error);
+		    }
+		    else
+		    {
+			    Snackbar.Add("Verifizierungslink wurde an die neue E-Mail gesendet.", Severity.Success);
+			    await OnInitializedAsync(); // reload Memberships
+		    }
+	    }
     }
 }

@@ -65,5 +65,11 @@ namespace ET_Frontend.Services.ApiClients
             var json = await res.Content.ReadFromJsonAsync<JsonElement>();
             return json.GetProperty("token").GetString();
         }
+
+        public async Task<bool> AddMembershipAsync(string email)
+        {
+            var response = await _http.PostAsJsonAsync("api/user/memberships/add", email);
+            return response.IsSuccessStatusCode;
+        }
     }
 }

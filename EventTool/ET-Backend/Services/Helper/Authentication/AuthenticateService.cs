@@ -37,7 +37,7 @@ public class AuthenticateService : IAuthenticateService
     public AuthenticateService(
         IAccountRepository accountRepository,
         IUserRepository userRepository,
-        IOrganizationRepository organizationRepository, 
+        IOrganizationRepository organizationRepository,
         IOptions<JwtOptions> jwtOptions,
         ILogger<AuthenticateService> logger,
         IEmailVerificationTokenRepository tokenRepo,
@@ -49,7 +49,7 @@ public class AuthenticateService : IAuthenticateService
         _jwtOptions = jwtOptions.Value;
         _logger = logger;
         _tokenRepo = tokenRepo;
-        _emailService = emailService;;
+        _emailService = emailService; ;
     }
 
     /// <summary>
@@ -180,11 +180,11 @@ public class AuthenticateService : IAuthenticateService
                 //var dbError = accountResult.Errors[0].Message;
                 //return Result.Fail<string>($"[DEBUG] {dbError}");
             }
-            
+
             var accountId = accountResult.Value.Id;
 
             _logger.LogInformation("Registrierung erfolgreich, neue Account-ID: {Id}", accountId);
-            
+
             var token = Guid.NewGuid().ToString("N");
 
             // Token speichern
@@ -230,6 +230,60 @@ public class AuthenticateService : IAuthenticateService
         return Result.Ok(token);
     }
 
+    public async Task<Result> AddMembership(int userId, string newEmail)
+    {
+        // 1. Prüfen, ob E-Mail bereits existiert
+        var exists = await _accountRepository.AccountExists(newEmail);
+        if (exists.IsFailed || exists.Value)
+            return Result.Fail("Ein Account mit dieser E-Mail existiert bereits.");
+
+        // 2. Domain extrahieren und Orga laden
+        var domain = newEmail.Substring(newEmail.LastIndexOf('@') + 1);
+        var orgResult = await _organizationRepository.GetOrganization(domain);
+        if (orgResult.IsFailed)
+            return Result.Fail("Es existiert keine Organisation mit dieser Domain.");
+
+        var organization = orgResult.Value;
+
+        // 3. User laden
+        var userResult = await _userRepository.GetUser(userId);
+        if (userResult.IsFailed)
+            return Result.Fail("Benutzer nicht gefunden.");
+
+        var user = userResult.Value;
+
+        // 4. Account + Mitgliedschaft anlegen
+        var createResult = await _accountRepository.CreateAccount(
+            newEmail,
+            organization,
+            Role.Member,
+            user
+        );
+
+        if (createResult.IsFailed)
+            return Result.Fail("Account konnte nicht erstellt werden.");
+
+        var accountId = createResult.Value.Id;
+
+        // 5. Verifizierungslink generieren
+        var token = Guid.NewGuid().ToString("N");
+        var tokenResult = await _tokenRepo.CreateAsync(accountId, token);
+        if (tokenResult.IsFailed)
+            return Result.Fail("Token konnte nicht gespeichert werden.");
+
+        var link = $"{_jwtOptions.BackendBaseUrl}api/authenticate/verify?token={token}";
+        var body = $"""
+                <p>Hallo {user.Firstname},</p>
+                <p>du wurdest als Mitglied der Organisation <b>{organization.Name}</b> hinzugefügt.</p>
+                <p>Bestätige deine neue Mitgliedschaft über diesen Link:</p>
+                <p><a href="{link}">Mitgliedschaft bestätigen</a></p>
+                <p><small>Dieser Link ist 48 Stunden gültig.</small></p>
+                """;
+
+        await _emailService.SendAsync(newEmail, "Neue Mitgliedschaft bestätigen", body);
+        return Result.Ok();
+    }
+    
     /// <summary>
     /// Generiert ein JWT-Token für ein Benutzerkonto.
     /// </summary>
