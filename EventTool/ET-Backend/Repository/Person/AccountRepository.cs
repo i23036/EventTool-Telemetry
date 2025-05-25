@@ -1,6 +1,7 @@
 ﻿using System.Data;
 using Dapper;
 using ET_Backend.Models;
+using ET_Backend.Models.Enums;
 using FluentResults;
 using Microsoft.Identity.Client;
 

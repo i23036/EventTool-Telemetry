@@ -1,4 +1,5 @@
 ﻿using ET_Backend.Models;
+using ET_Backend.Models.Enums;
 using FluentResults;
 
 namespace ET_Backend.Repository.Person;
