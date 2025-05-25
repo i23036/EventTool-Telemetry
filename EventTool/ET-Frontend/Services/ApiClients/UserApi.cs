@@ -26,7 +26,7 @@ namespace ET_Frontend.Services.ApiClients
         public async Task<UserEditViewModel?> GetCurrentUserAsync()
         {
             var userId = await JwtClaimHelper.GetUserIdAsync(_authProvider);
-            var dto = await _httpClient.GetFromJsonAsync<UserDto>($"user/{userId}");
+            var dto = await _httpClient.GetFromJsonAsync<UserDto>($"api/user/{userId}");
 
             return dto == null ? null : UserViewMapper.ToViewModel(dto);
         }
@@ -36,7 +36,7 @@ namespace ET_Frontend.Services.ApiClients
             var userId = await JwtClaimHelper.GetUserIdAsync(_authProvider);
             var dto = UserViewMapper.ToDto(model);
 
-            var response = await _httpClient.PutAsJsonAsync($"user/{userId}", dto);
+            var response = await _httpClient.PutAsJsonAsync($"api/user/{userId}", dto);
             return response.IsSuccessStatusCode;
         }
     }

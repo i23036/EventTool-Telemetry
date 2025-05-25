@@ -1,0 +1,34 @@
+﻿@namespace ET_Frontend.Components
+
+<MudDialog>
+    <TitleContent>
+        E-Mail Prozesschritt konfigurieren
+    </TitleContent>
+    <DialogContent>
+        <MudText>Hier können Sie Betreff und Inhalt der E-Mail bearbeiten.</MudText>
+        <MudTextField Label="Betreff" @bind-Value="test"/>
+        <MudTextField Label="Kontent" @bind-Value="test" Lines="5"/>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Abbrechen</MudButton>
+        <MudButton Color="Color.Primary" OnClick="SaveProcessStepChanges">Speichern</MudButton>
+    </DialogActions>
+</MudDialog>
+@code {
+    private String test;
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; }
+
+    protected override async Task OnInitializedAsync(){
+        //TODO Inhalt holen von Betreff und Kontent
+    }
+
+    private async Task SaveProcessStepChanges()
+    {
+        //TODO in DTO packen und speichern
+
+        MudDialog.Close(DialogResult.Ok(true));
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}

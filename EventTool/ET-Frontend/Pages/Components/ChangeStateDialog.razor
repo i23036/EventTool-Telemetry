@@ -1,0 +1,48 @@
+﻿@namespace ET_Frontend.Components
+@using ET_Frontend.Models.Enums
+
+<MudDialog>
+    <TitleContent>
+        Status ändern
+    </TitleContent>
+    <DialogContent>
+        <MudContainer>
+            <MudText Typo="Typo.body1">Wählen Sie aus, in welchen Zustand bei Aktivierung gewechselt werden soll.</MudText>
+            <MudText Typo="Typo.body1">Info: DIe Änderung auf dne Status "Entwurf ist hier leider nicht mehr möglich,
+                 da sich möglicherweise bereits Teilnehmer für das Event eingeschrieben haben"</MudText>
+            <MudText Typo="Typo.body1">Aktuell ausgewählter Status: @_state</MudText>
+            <MudContainer>
+                <MudButton @OnClick="@( () => _state = EventStates.Open)">Offen</MudButton>
+                <MudButton @OnClick="@( () => _state = EventStates.Closed)">Geschlossen</MudButton>
+            </MudContainer>
+            <MudContainer>
+                <MudButton @OnClick="@( () => _state = EventStates.Canceled)">Abgesagt</MudButton>
+                <MudButton @OnClick="@( () => _state = EventStates.Archived)">Archiviert</MudButton>
+            </MudContainer>
+        </MudContainer>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Abbrechen</MudButton>
+        <MudButton Color="Color.Primary" OnClick="SaveProcessStepChanges">Speichern</MudButton>
+    </DialogActions>
+</MudDialog>
+@code {
+    private String test; //TODO hier und bei EMail richtige Werte
+    private EventStates _state;
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        //TODO aktuellen Event status holen
+    }
+
+    private async Task SaveProcessStepChanges()
+    {
+        //TODO in DTO packen und speichern
+
+        MudDialog.Close(DialogResult.Ok(true));
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}

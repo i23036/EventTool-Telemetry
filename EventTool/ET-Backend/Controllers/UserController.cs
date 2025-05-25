@@ -6,7 +6,7 @@ using FluentResults;
 namespace ET_Backend.Controllers;
 
 [ApiController]
-[Route("[controller]")]
+[Route("api/user")]
 public class UserController : ControllerBase
 {
     private readonly IUserService _userService;
