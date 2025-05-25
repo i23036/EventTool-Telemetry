@@ -1,6 +1,7 @@
 ﻿namespace ET.Shared.DTOs;
 
 public record OrganizationDto(
+    int Id,
     string Name,
     string Domain,
     string Description,

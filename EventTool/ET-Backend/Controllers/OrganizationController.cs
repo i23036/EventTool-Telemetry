@@ -34,6 +34,7 @@ public class OrganizationController : ControllerBase
 
         var dtoList = result.Value
             .Select(org => new OrganizationDto(
+                org.Id,
                 org.Name,
                 org.Domain,
                 org.Description,
@@ -58,6 +59,7 @@ public class OrganizationController : ControllerBase
 
         var org = result.Value;
         return Ok(new OrganizationDto(
+            org.Id,
             org.Name,
             org.Domain,
             org.Description,
@@ -98,13 +100,20 @@ public class OrganizationController : ControllerBase
     }
 
     /// <summary>
-    /// Aktualisiert eine bestehende Organisation anhand der Domain.
+    /// Aktualisiert die Stammdaten einer Organisation.
     /// </summary>
-    [HttpPut("{domain}")]
+    /// <param name="id">Primärschlüssel der Organisation.</param>
+    /// <param name="dto">
+    ///     Datentransferobjekt mit den neuen Werten.
+    ///     <remarks>Owner-Felder werden ignoriert.</remarks>
+    /// </param>
+    /// <response code="200">Änderung erfolgreich gespeichert.</response>
+    /// <response code="400">Validierungsfehler oder Domain bereits vergeben.</response>
+    [HttpPut("{id:int}")]
     [Authorize]
-    public async Task<IActionResult> UpdateOrganization(string domain, [FromBody] OrganizationDto dto)
+    public async Task<IActionResult> UpdateOrganization(int id, [FromBody] OrganizationDto dto)
     {
-        var result = await _organizationService.UpdateOrganization(domain, dto);
+        var result = await _organizationService.UpdateOrganization(id, dto);
 
         return result.IsSuccess ? Ok() : BadRequest(result.Errors);
     }

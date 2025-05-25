@@ -16,6 +16,8 @@ public static class DtoMapper
     /// <returns>Ein vollständiges ViewModel zur Verwendung in der Razor-Komponente.</returns>
     public static OrgaChangeModel FromDto(OrganizationDto dto) => new()
     {
+        
+        OrganizationId = dto.Id,
         orgaName = dto.Name,
         description = dto.Description,
         domain = dto.Domain,
@@ -32,6 +34,7 @@ public static class DtoMapper
     /// </summary>
     public static OrganizationDto ToDto(OrgaChangeModel model) =>
         new(
+            model.OrganizationId,
             model.orgaName,
             model.domain,
             model.description,

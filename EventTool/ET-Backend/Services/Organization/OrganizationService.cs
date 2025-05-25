@@ -64,6 +64,7 @@ public class OrganizationService : IOrganizationService
 
         // Mapping zum DTO
         var dto = new OrganizationDto(
+            org.Id,
             org.Name,
             org.Domain,
             org.Description,
@@ -81,8 +82,8 @@ public class OrganizationService : IOrganizationService
     public async Task<Result> EditOrganization(Models.Organization organization) =>
         await _organizationRepository.EditOrganization(organization);
 
-    public async Task<Result> UpdateOrganization(string domain, OrganizationDto dto) =>
-        await _organizationRepository.UpdateOrganization(domain, dto);
+    public async Task<Result> UpdateOrganization(int id, OrganizationDto dto) =>
+        await _organizationRepository.UpdateOrganization(id, dto);
 
     // === Löschen ===
 

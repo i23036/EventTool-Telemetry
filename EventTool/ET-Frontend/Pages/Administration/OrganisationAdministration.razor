@@ -155,7 +155,7 @@
 		}
 
 		var dto = DtoMapper.ToDto(orgaModel);
-		var response = await Http.PutAsJsonAsync($"api/organization/{orgaModel.domain}", dto);
+		var response = await Http.PutAsJsonAsync($"api/organization/{orgaModel.OrganizationId}", dto);
 
 		popupText = response.IsSuccessStatusCode
 			? "Änderungen gespeichert"

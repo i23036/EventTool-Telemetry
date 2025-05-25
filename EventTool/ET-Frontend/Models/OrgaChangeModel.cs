@@ -5,6 +5,8 @@ namespace ET_Frontend.Models;
 
 public class OrgaChangeModel
 {
+    public int OrganizationId { get; set; }
+
     [Required(ErrorMessage = "Organisationsname ist erforderlich.")]
     public string orgaName { get; set; }
 
