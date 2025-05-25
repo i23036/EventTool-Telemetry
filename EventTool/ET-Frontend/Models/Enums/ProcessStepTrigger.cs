@@ -8,7 +8,7 @@ public enum ProcessStepTrigger
 
     StatusChanged,
 
-    DateArrived,
+    ParticipantRegisters,
 
     StartOfEventLogins,
 
