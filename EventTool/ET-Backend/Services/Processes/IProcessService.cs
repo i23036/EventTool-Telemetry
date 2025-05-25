@@ -31,7 +31,7 @@ public interface IProcessService
     Task<Result<Process>> CreateProzess();
 
     /// <summary>Erstellt einen neuen Prozessschritt zum passenden Prozess und den übergeben Daten (aus dem Frontend).</summary>
-    Task<Result<ProcessStep>> CreateProzessStep(Process processModel, ProcessStep processStepModel);
+    Task<Result<ProcessStep>> CreateProcessStep(Process processModel, ProcessStep processStepModel);
 
     /// <summary>Aktualisiert einen Prozess mit Model-Daten (z. B. aus dem Frontend).</summary>
     Task<Result<bool>> UpdateProcess(Process processModel);
@@ -45,5 +45,5 @@ public interface IProcessService
     Task<Result<bool>> DeleteProcess(Process processModel);
 
     /// <summary>Löscht einen Prozessschritt anhand der ID.</summary>
-    Task<Result<bool>> DeleteProcessStep(ProcessStep processStepModel);
+    Task<Result<bool>> DeleteAllProcessSteps(Process processModel);
 }
