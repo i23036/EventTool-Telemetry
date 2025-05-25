@@ -15,6 +15,14 @@
 <div class="flex-md-column w-100 h-100 p-4">
     <MudText Typo="Typo.h4">Mitgliedschaften</MudText>
 
+    <MudButton Variant="Variant.Filled"
+               Color="Color.Primary"
+               Class="mt-4 mb-2"
+               StartIcon="@Icons.Material.Filled.Add"
+               OnClick="@(() => showAddDialog = true)">
+        Mitgliedschaft hinzufügen
+    </MudButton>
+
     <MudDataGrid T="MembershipViewModel" Items="@Mitgliedschaften" Dense="true">
         <Columns>
             <PropertyColumn Property="x => x.OrganisationName" Title="Organisation" />
@@ -73,6 +81,56 @@
     </MudDataGrid>
 </div>
 
+@if (showAddDialog)
+{
+    <div style="
+        position: fixed;
+        top: 0; left: 0;
+        width: 100vw;
+        height: 100vh;
+        background-color: rgba(0, 0, 0, 0.5);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 2000;">
+
+        <MudPaper Class="p-4" Style="width: 350px; border-radius: 8px;">
+            <MudText Typo="Typo.h6">Mitgliedschaft hinzufügen</MudText>
+            <MudTextField T="string"
+                          Label="E-Mail-Adresse"
+                          @bind-Value="newMembershipEmail"
+                          Style="margin-top: 16px; width: 100%;" />
+
+            <MudText Typo="Typo.caption" Class="mt-2 text-secondary">
+                Hinweis: An die angegebene E-Mail-Adresse wird eine Verifizierungs-E-Mail gesendet.
+            </MudText>
+
+            <div class="d-flex justify-content-center mt-5 mb-1" style="gap: 1.5rem;">
+                <MudButton Variant="Variant.Text"
+                           Class="px-4 py-2"
+                           Style="font-weight: 600; letter-spacing: 0.5px; min-width: 120px;"
+                           OnClick="@(() => showAddDialog = false)">
+                    ABBRECHEN
+                </MudButton>
+
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Primary"
+                           Class="px-4 py-2"
+                           Style="
+               font-weight: 600;
+               letter-spacing: 0.5px;
+               min-width: 120px;
+               box-shadow: 0 3px 6px rgba(0,0,0,0.25);
+               border-radius: 8px;"
+                           OnClick="AddMembership">
+                    HINZUFÜGEN
+                </MudButton>
+            </div>
+        </MudPaper>
+    </div>
+}
+
+
 @if (showDeleteConfirmDialog)
 {
     <SimpleConfirm Message="Die Mitgliedschaft wird dauerhaft entfernt."
@@ -98,6 +156,9 @@
     private MembershipViewModel membershipToUpdate;
     private string updatedLocalPart = "";
     private string updatedDomain = "";
+
+    private bool showAddDialog = false;
+    private string newMembershipEmail = "";
 
     protected override async Task OnInitializedAsync()
     {
@@ -160,5 +221,13 @@
 
         await AuthProvider.MarkUserAsAuthenticated(token);
         Navigation.NavigateTo("/home", true);
+    }
+
+    private async Task AddMembership()
+    {
+        if (!string.IsNullOrWhiteSpace(newMembershipEmail))
+        {
+          //hier dann neue Mitgliedschaft machen
+        }
     }
 }
