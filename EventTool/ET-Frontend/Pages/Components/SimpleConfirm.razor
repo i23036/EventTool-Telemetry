@@ -1,15 +1,4 @@
-﻿@code {
-	[Parameter] public string Message { get; set; }
-    [Parameter] public string ConfirmText { get; set; } = "Fortfahren";
-	[Parameter] public EventCallback<bool> OnConfirm { get; set; }
-
-	private void Confirm(bool result)
-	{
-		OnConfirm.InvokeAsync(result);
-	}
-}
-
-<div style="
+﻿<div style="
     position: fixed;
     top: 0; left: 0;
     width: 100vw;
@@ -19,7 +8,6 @@
     justify-content: center;
     align-items: center;
     z-index: 2000;">
-
 
     <MudPaper Class="p-4" Style="width: 300px; border-radius: 8px;">
         <MudText Typo="Typo.body1">@Message</MudText>
@@ -34,3 +22,14 @@
         </div>
     </MudPaper>
 </div>
+
+@code {
+    [Parameter] public string Message { get; set; }
+    [Parameter] public string ConfirmText { get; set; } = "Fortfahren";
+    [Parameter] public EventCallback<bool> OnConfirm { get; set; }
+
+    private void Confirm(bool result)
+    {
+        OnConfirm.InvokeAsync(result);
+    }
+}
