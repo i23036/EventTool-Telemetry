@@ -116,9 +116,28 @@
 	private async Task EntferneMitgliedschaft(MembershipViewModel m)
 	{
 		var ok = await UserApi.DeleteMembershipAsync(m.AccountId, m.OrganisationId);
-		if (ok) Mitgliedschaften.Remove(m);
-	}
+    
+		if (!ok)
+		{
+			popupText  = "Mitgliedschaft konnte nicht entfernt werden.";
+			popupState = true;
+			return;
+		}
 
+		Mitgliedschaften.Remove(m);
+
+		// Falls keine Mitgliedschaften mehr vorhanden → logout
+		if (Mitgliedschaften.Count == 0)
+		{
+			await SessionStorage.RemoveItemAsync("authToken");
+
+			if (AuthProvider is JwtAuthenticationStateProvider jwtProvider)
+				jwtProvider.NotifyAuthenticationStateChanged();
+
+			Navigation.NavigateTo("/login", forceLoad: true);
+		}
+	}
+	
 	private async Task SwitchMembership(int accountId)
 	{
 		var token = await UserApi.SwitchAccountAsync(accountId);
