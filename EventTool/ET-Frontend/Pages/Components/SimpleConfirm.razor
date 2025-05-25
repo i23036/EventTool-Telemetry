@@ -12,11 +12,20 @@
     <MudPaper Class="p-4" Style="width: 300px; border-radius: 8px;">
         <MudText Typo="Typo.body1">@Message</MudText>
         <MudDivider Class="my-2" />
-        <div style="display: flex; justify-content: center; gap: 1rem; margin-top: 1rem;">
-            <MudButton Variant="Variant.Text" Color="Color.Default" OnClick="@(() => Confirm(false))">
-                Abbrechen
+        <div class="d-flex justify-content-center mt-4 mb-1" style="gap: 1.2rem;">
+            <MudButton Variant="Variant.Outlined"
+                       Class="px-3 py-1"
+                       Style="font-weight: 600; letter-spacing: 0.3px; min-width: 100px; border-color: #BDBDBD; color: #333;"
+                       Color="Color.Default"
+                       OnClick="@(() => Confirm(false))">
+                ABBRECHEN
             </MudButton>
-            <MudButton Variant="Variant.Filled" Color="Color.Error" OnClick="@(() => Confirm(true))">
+
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Error"
+                       Class="px-3 py-1"
+                       Style="font-weight: 600; letter-spacing: 0.3px; min-width: 100px; border-radius: 6px;"
+                       OnClick="@(() => Confirm(true))">
                 @ConfirmText
             </MudButton>
         </div>

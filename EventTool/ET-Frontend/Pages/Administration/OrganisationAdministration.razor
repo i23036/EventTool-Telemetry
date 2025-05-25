@@ -12,6 +12,7 @@
 @inject NavigationManager Navigation
 @inject AuthenticationStateProvider AuthProvider
 @inject Blazored.SessionStorage.ISessionStorageService SessionStorage
+@inject ISnackbar Snackbar
 
 <PageTitle>Organisationsdaten bearbeiten</PageTitle>
 
@@ -73,12 +74,6 @@
 				Änderungen zurücksetzen
 			</MudButton>
 
-			<div class="d-flex w-100 align-content-center justify-content-center">
-				<MudPopover OverflowBehavior="OverflowBehavior.FlipNever" Open="@popupState" AnchorOrigin="Origin.CenterCenter" TransformOrigin="Origin.CenterCenter" Class="pa-4 flex-column">
-					<MudText Typo="Typo.body2" Class="px-4 py-1">@popupText</MudText>
-					<MudButton Class="float-end" OnClick="@(() => popupState = false)">OK</MudButton>
-				</MudPopover>
-			</div>
 
 			<MudButton OnClick="@(() => ValidateForm(orgaModel.orgaPic))"
 					   Variant="Variant.Filled"
@@ -92,10 +87,9 @@
 </div>
 
 @code {
-	private bool popupState = false;
-	private string popupText = "Wir tun mal so, als wäre das ein Easter Egg. Glückwunsch!"; //Fallback falls es wer schafft, das Popup ohne Button auszulösen? XD
 
 	private MudForm _editForm;
+	private string originalDomain;
 	private OrgaChangeModel orgaModel = new();
 
 	// Lädt die Organisationsdaten des aktuell eingeloggten Benutzers anhand des Domain-Claims.
@@ -112,13 +106,14 @@
 		{
 			var dto = await response.Content.ReadFromJsonAsync<OrganizationDto>();
 			if (dto != null)
+			{
 				orgaModel = DtoMapper.FromDto(dto);
+				originalDomain = orgaModel.domain; // Merken der ursprünglichen Domain
+			}
 		}
 		else
 		{
-			// optional: Fehlerbehandlung anzeigen
-			popupText = "Fehler beim Laden der Organisationsdaten";
-			popupState = true;
+			Snackbar.Add("Fehler beim Laden der Organisationsdaten", Severity.Error);
 		}
 		StateHasChanged();
 	}
@@ -134,8 +129,7 @@
 		}
 		else
 		{
-			popupText = "Die eingegeben Daten sind nicht valide!";
-			popupState = true;
+			Snackbar.Add("Die eingegeben Daten sind nicht valide!", Severity.Error);
 		}
 	}
 
@@ -157,18 +151,27 @@
 		var dto = DtoMapper.ToDto(orgaModel);
 		var response = await Http.PutAsJsonAsync($"api/organization/{orgaModel.OrganizationId}", dto);
 
-		await SessionStorage.RemoveItemAsync("authToken");
+		if (response.IsSuccessStatusCode)
+		{
+			Snackbar.Add("Änderungen gespeichert", Severity.Success);
 
-		if (AuthProvider is JwtAuthenticationStateProvider jwtProvider)
-			jwtProvider.NotifyAuthenticationStateChanged();
+			if (orgaModel.domain != originalDomain)
+			{
+				await SessionStorage.RemoveItemAsync("authToken");
 
-		Navigation.NavigateTo("/login", forceLoad: true);
+				if (AuthProvider is JwtAuthenticationStateProvider jwtProvider)
+					jwtProvider.NotifyAuthenticationStateChanged();
 
-		popupText = response.IsSuccessStatusCode
-			? "Änderungen gespeichert"
-			: "Fehler beim Speichern";
-		popupState = true;
+				Navigation.NavigateTo("/login", forceLoad: true);
+				return;
+			}
+		}
+		else
+		{
+			Snackbar.Add("Fehler beim Speichern", Severity.Error);
+		}
 	}
+
 
 	// Lädt die gespeicherten Originaldaten erneut und setzt das Formular zurück.
 	private async Task ResetChanges()
@@ -176,8 +179,7 @@
 		var domain = await JwtClaimHelper.GetUserDomainAsync(AuthProvider);
 		var dto = await Http.GetFromJsonAsync<OrganizationDto>($"api/organization/{domain}");
 		orgaModel = dto != null ? DtoMapper.FromDto(dto) : new();
-		popupText = "Änderungen verworfen";
-		popupState = true;
+		Snackbar.Add("Änderungen verworfen", Severity.Success);
 	}
 
 	// Zeigt eine Bildvorschau an, wenn eine neue Datei hochgeladen wurde.
@@ -187,8 +189,7 @@
 
 		if (!file.ContentType.StartsWith("image/"))
 		{
-			popupText = "Bitte nur Bilddateien hochladen.";
-			popupState = true;
+			Snackbar.Add("Bitte nur Bilddateien hochladen.", Severity.Error);
 			return;
 		}
 
