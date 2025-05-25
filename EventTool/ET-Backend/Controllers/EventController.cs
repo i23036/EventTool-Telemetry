@@ -27,8 +27,7 @@ namespace ET_Backend.Controllers
         private readonly IAccountService _accountService;
         private readonly IOrganizationService _organizationService;
 
-        public EventController(IEventService eventService, IUserService userService, IAccountService accountService)
-        public EventController(IEventService eventService, IUserService userService, IOrganizationService organizationService)
+        public EventController(IEventService eventService, IUserService userService,IAccountService accountService, IOrganizationService organizationService)
         {
             _eventService = eventService;
             _userService = userService;
