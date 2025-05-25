@@ -183,13 +183,22 @@
         if (confirmed && membershipToDelete is not null)
         {
             var ok = await UserApi.DeleteMembershipAsync(membershipToDelete.AccountId, membershipToDelete.OrganisationId);
-            if (ok) Mitgliedschaften.Remove(membershipToDelete);
+            if (ok)
+            {
+                Mitgliedschaften.Remove(membershipToDelete);
+                Snackbar.Add("Mitgliedschaft erfolgreich entfernt.", Severity.Success);
+            }
+            else
+            {
+                Snackbar.Add("Fehler beim Entfernen der Mitdgliedschaft.", Severity.Error);
+            }
         }
 
         membershipToDelete = null;
         showDeleteConfirmDialog = false;
-        StateHasChanged(); // wichtig
+        StateHasChanged();
     }
+
 
     private void ConfirmEmailSave(MembershipViewModel m, string local, string domain)
     {
@@ -205,15 +214,24 @@
         {
             var mail = $"{updatedLocalPart}{updatedDomain}";
             var ok = await UserApi.UpdateEmailAsync(membershipToUpdate.AccountId, mail);
-            if (ok) membershipToUpdate.Email = mail;
+            if (ok)
+            {
+                membershipToUpdate.Email = mail;
+                Snackbar.Add("E-Mail erfolgreich aktualisiert.", Severity.Success);
+            }
+            else
+            {
+                Snackbar.Add("Fehler beim Aktualisieren der E-Mail.", Severity.Error);
+            }
         }
 
         membershipToUpdate = null;
         updatedLocalPart = "";
         updatedDomain = "";
         showSaveEmailConfirmDialog = false;
-        StateHasChanged(); // wichtig
+        StateHasChanged();
     }
+
 
     private async Task SwitchMembership(int accountId)
     {
