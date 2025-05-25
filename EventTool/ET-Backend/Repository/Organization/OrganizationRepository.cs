@@ -247,7 +247,6 @@ public class OrganizationRepository : IOrganizationRepository
         return await EditOrganization(org);
     }
 
-
     // === Löschen ===
 
     public async Task<Result> DeleteOrganization(string domain)

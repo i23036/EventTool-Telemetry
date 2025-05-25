@@ -1,9 +1,11 @@
-﻿using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
+﻿using ET.Shared.DTOs;
+using ET_Backend.Repository.Person;
 using ET_Backend.Services.Organization;
-using ET.Shared.DTOs;
 using FluentResults;
 using FluentResults.Extensions.AspNetCore;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using System.Security.Cryptography;
 
 namespace ET_Backend.Controllers;
 
@@ -15,10 +17,12 @@ namespace ET_Backend.Controllers;
 public class OrganizationController : ControllerBase
 {
     private readonly IOrganizationService _organizationService;
+    private readonly IAccountRepository _accountRepository;
 
-    public OrganizationController(IOrganizationService organizationService)
+    public OrganizationController(IOrganizationService organizationService, IAccountRepository accountRepository)
     {
         _organizationService = organizationService;
+        _accountRepository = accountRepository;
     }
 
     /// <summary>
@@ -102,20 +106,33 @@ public class OrganizationController : ControllerBase
     /// <summary>
     /// Aktualisiert die Stammdaten einer Organisation.
     /// </summary>
-    /// <param name="id">Primärschlüssel der Organisation.</param>
-    /// <param name="dto">
-    ///     Datentransferobjekt mit den neuen Werten.
-    ///     <remarks>Owner-Felder werden ignoriert.</remarks>
-    /// </param>
-    /// <response code="200">Änderung erfolgreich gespeichert.</response>
-    /// <response code="400">Validierungsfehler oder Domain bereits vergeben.</response>
     [HttpPut("{id:int}")]
     [Authorize]
     public async Task<IActionResult> UpdateOrganization(int id, [FromBody] OrganizationDto dto)
     {
+        // 🔍 Alte Domain abfragen
+        var oldOrgResult = await _organizationService.GetOrganization(id);
+        if (oldOrgResult.IsFailed)
+            return BadRequest("Alte Organisation konnte nicht geladen werden.");
+
+        var oldDomain = oldOrgResult.Value.Domain;
+
+        // 🛠 Organisation aktualisieren
         var result = await _organizationService.UpdateOrganization(id, dto);
 
-        return result.IsSuccess ? Ok() : BadRequest(result.Errors);
+        if (result.IsFailed)
+            return BadRequest(result.Errors);
+
+        // ✉️ Falls Domain geändert wurde → E-Mails anpassen
+        var newDomain = dto.Domain;
+        if (!string.Equals(oldDomain, newDomain, StringComparison.OrdinalIgnoreCase))
+        {
+            var updateEmails = await _accountRepository.UpdateEmailDomainsForOrganization(id, oldDomain, newDomain);
+            if (updateEmails.IsFailed)
+                return StatusCode(500, updateEmails.Errors);
+        }
+
+        return Ok();
     }
 
     /// <summary>

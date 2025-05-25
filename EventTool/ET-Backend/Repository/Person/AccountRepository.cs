@@ -404,4 +404,30 @@ public class AccountRepository : IAccountRepository
             return Result.Fail($"DBError: {ex.Message}");
         }
     }
+
+    public async Task<Result> UpdateEmailDomainsForOrganization(int orgId, string oldDomain, string newDomain)
+    {
+        try
+        {
+            var oldSuffix = "@" + oldDomain;
+            var newSuffix = "@" + newDomain;
+
+            var sql = $@"
+            UPDATE {_db.Tbl("Accounts")}
+            SET Email = REPLACE(Email, @OldSuffix, @NewSuffix)
+            WHERE Id IN (
+                SELECT AccountId
+                FROM {_db.Tbl("OrganizationMembers")}
+                WHERE OrganizationId = @OrgId
+            );";
+
+            await _db.ExecuteAsync(sql, new { OldSuffix = oldSuffix, NewSuffix = newSuffix, OrgId = orgId });
+
+            return Result.Ok();
+        }
+        catch (Exception ex)
+        {
+            return Result.Fail($"DBError: {ex.Message}");
+        }
+    }
 }
