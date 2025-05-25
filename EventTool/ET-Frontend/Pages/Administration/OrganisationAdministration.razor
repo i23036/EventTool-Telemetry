@@ -20,8 +20,8 @@
 	<MudText Typo="Typo.h4">Organisationsdaten bearbeiten</MudText>
 	<MudText Typo="Typo.body1">Hier sind Sie in der Lage, die Daten Ihrer Organisation zu bearbeiten.</MudText>
 	<MudText Class="fw-bold w-75 alert-danger" Typo="Typo.body1">
-		Hinweis: Das ändern der Domain führt zur Änderung aller E-Mails der
-		Mitarbeitenden auf die neue Domain. Solch eine Änderung sollte mit allen koordiniert und mit Bedacht durchgeführt werden!
+		Das Ändern der Domain führt automatisch zur Anpassung aller E-Mail-Adressen Ihrer Mitarbeitenden auf die neue Domain. Diese Änderung wirkt sich auf alle Benutzer aus und sollte daher gut überlegt und im Vorfeld mit dem gesamten Team abgestimmt werden.
+		Achtung: Nach der Änderung der Domain werden Sie automatisch abgemeldet und müssen sich mit der neuen E-Mail-Adresse erneut anmelden.
 	</MudText>
 	<MudText Typo="Typo.h5" Class="mt-4">Aktive Organisation: @orgaModel.orgaName</MudText>
 	<MudForm Model="@orgaModel" @ref="_editForm">
