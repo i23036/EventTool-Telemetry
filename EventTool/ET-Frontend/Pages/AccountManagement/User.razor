@@ -1,31 +1,33 @@
 ﻿@page "/User"
-
 @attribute [Authorize]
 
 @using Microsoft.AspNetCore.Authorization
 @using ET_Frontend.Models.AccountManagement
 @using ET_Frontend.Services.Authentication
-
+@using ET_Frontend.Pages.Components
 @inject NavigationManager Navigation
 @inject Services.ApiClients.IUserApi UserApi
 @inject Blazored.SessionStorage.ISessionStorageService SessionStorage
 @inject JwtAuthenticationStateProvider AuthProvider
+@inject ISnackbar Snackbar
 
 <PageTitle>Nutzerkonto</PageTitle>
 
-<!-- Inhalt -->
 <div class="flex-md-column w-100 h-100 p-4">
-    <!-- Überschrift -->
     <MudText Typo="Typo.h4">Mitgliedschaften</MudText>
 
-    <!-- Grid -->
+    <MudButton Variant="Variant.Filled"
+               Color="Color.Primary"
+               Class="mt-4 mb-2"
+               StartIcon="@Icons.Material.Filled.Add"
+               OnClick="@(() => showAddDialog = true)">
+        Mitgliedschaft hinzufügen
+    </MudButton>
+
     <MudDataGrid T="MembershipViewModel" Items="@Mitgliedschaften" Dense="true">
         <Columns>
-
-            <!-- Organisation Name -->
             <PropertyColumn Property="x => x.OrganisationName" Title="Organisation" />
 
-            <!-- E-Mail + Speichern (links) -->
             <TemplateColumn Title="E-Mail bearbeiten" CellClass="text-start">
                 <CellTemplate Context="ctx">
                     @{
@@ -34,7 +36,6 @@
                         var domain = atIndex >= 0 ? email[atIndex..] : "";
                         var id = ctx.Item.OrganisationId;
 
-                        // Initialisieren, wenn nötig
                         if (!EmailLocalParts.ContainsKey(id))
                         {
                             var local = atIndex >= 0 ? email[..atIndex] : email;
@@ -51,21 +52,20 @@
                         <MudButton Size="Size.Small"
                                    Color="Color.Primary"
                                    Variant="Variant.Outlined"
-                                   OnClick="@(() => SpeichereEmail(ctx.Item, EmailLocalParts[id], domain))">
+                                   OnClick="@(() => ConfirmEmailSave(ctx.Item, EmailLocalParts[id], domain))">
                             Speichern
                         </MudButton>
                     </div>
                 </CellTemplate>
             </TemplateColumn>
 
-            <!-- Aktionsspalte (rechte Seite) -->
             <TemplateColumn Title="" CellClass="text-end">
                 <CellTemplate Context="ctx">
                     <div class="d-inline-flex align-items-center" style="gap: 8px;">
                         <MudButton Color="Color.Error"
                                    Variant="Variant.Filled"
                                    Size="Size.Small"
-                                   OnClick="@(() => EntferneMitgliedschaft(ctx.Item))">
+                                   OnClick="@(() => ConfirmRemove(ctx.Item))">
                             Entfernen
                         </MudButton>
 
@@ -78,56 +78,169 @@
                     </div>
                 </CellTemplate>
             </TemplateColumn>
-
         </Columns>
     </MudDataGrid>
 </div>
 
+@if (showAddDialog)
+{
+    <div style="
+        position: fixed;
+        top: 0; left: 0;
+        width: 100vw;
+        height: 100vh;
+        background-color: rgba(0, 0, 0, 0.5);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 2000;">
+
+        <MudPaper Class="p-4" Style="width: 350px; border-radius: 8px;">
+            <MudText Typo="Typo.h6">Mitgliedschaft hinzufügen</MudText>
+            <MudTextField T="string"
+                          Label="E-Mail-Adresse"
+                          @bind-Value="newMembershipEmail"
+                          Style="margin-top: 16px; width: 100%;" />
+
+            <MudText Typo="Typo.caption" Class="mt-2 text-secondary">
+                Hinweis: An die angegebene E-Mail-Adresse wird eine Verifizierungs-E-Mail gesendet.
+            </MudText>
+
+            <div class="d-flex justify-content-center mt-5 mb-1" style="gap: 1.5rem;">
+                <MudButton Variant="Variant.Text"
+                           Class="px-4 py-2"
+                           Style="font-weight: 600; letter-spacing: 0.5px; min-width: 120px;"
+                           OnClick="@(() => showAddDialog = false)">
+                    ABBRECHEN
+                </MudButton>
+
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Primary"
+                           Class="px-4 py-2"
+                           Style="
+               font-weight: 600;
+               letter-spacing: 0.5px;
+               min-width: 120px;
+               box-shadow: 0 3px 6px rgba(0,0,0,0.25);
+               border-radius: 8px;"
+                           OnClick="AddMembership">
+	                HINZUFÜGEN
+                </MudButton>
+            </div>
+        </MudPaper>
+    </div>
+}
+
+
+@if (showDeleteConfirmDialog)
+{
+    <SimpleConfirm Message="Die Mitgliedschaft wird dauerhaft entfernt."
+                   ConfirmText="Entfernen"
+                   OnConfirm="HandleDeleteConfirm" />
+}
+
+@if (showSaveEmailConfirmDialog)
+{
+    <SimpleConfirm Message="Möchten Sie die geänderte E-Mail-Adresse speichern?"
+                   ConfirmText="Speichern"
+                   OnConfirm="HandleSaveEmailConfirm" />
+}
+
 @code {
-	private List<MembershipViewModel> Mitgliedschaften = new();
-	private Dictionary<int, string>   EmailLocalParts  = new(); 
+    private List<MembershipViewModel> Mitgliedschaften = new();
+    private Dictionary<int, string> EmailLocalParts = new();
 
-	private bool   popupState = false;
-	private string popupText  = "";
+    private bool showDeleteConfirmDialog = false;
+    private MembershipViewModel membershipToDelete;
 
-	protected override async Task OnInitializedAsync()
-	{
-		Mitgliedschaften = await UserApi.GetMembershipsAsync();
+    private bool showSaveEmailConfirmDialog = false;
+    private MembershipViewModel membershipToUpdate;
+    private string updatedLocalPart = "";
+    private string updatedDomain = "";
 
-		foreach (var m in Mitgliedschaften)
-		{
-			var at = m.Email?.IndexOf('@') ?? -1;
-			if (at > 0)
-				EmailLocalParts[m.AccountId] = m.Email[..at];
-			else
-				EmailLocalParts[m.AccountId] = "";              // fallback
-		}
-	}
+    private bool showAddDialog = false;
+    private string newMembershipEmail = "";
 
-	private async Task SpeichereEmail(MembershipViewModel m, string local, string domain)
-	{
-		var mail = $"{local}{domain}";
-		var ok   = await UserApi.UpdateEmailAsync(m.AccountId, mail);
-		popupText  = ok ? "E-Mail gespeichert" : "Fehler beim Speichern";
-		popupState = true;
-		if (ok) m.Email = mail;
-	}
+    protected override async Task OnInitializedAsync()
+    {
+        Mitgliedschaften = await UserApi.GetMembershipsAsync();
 
-	private async Task EntferneMitgliedschaft(MembershipViewModel m)
-	{
-		var ok = await UserApi.DeleteMembershipAsync(m.AccountId, m.OrganisationId);
-		if (ok) Mitgliedschaften.Remove(m);
-	}
+        foreach (var m in Mitgliedschaften)
+        {
+            var at = m.Email?.IndexOf('@') ?? -1;
+            EmailLocalParts[m.AccountId] = at > 0 ? m.Email[..at] : "";
+        }
+    }
 
-	private async Task SwitchMembership(int accountId)
-	{
-		var token = await UserApi.SwitchAccountAsync(accountId);
-		if (token is null)
-		{
-			popupText = "Organisation konnte nicht gewechselt werden."; popupState = true; return;
-		}
+    private void ConfirmRemove(MembershipViewModel m)
+    {
+        membershipToDelete = m;
+        showDeleteConfirmDialog = true;
+    }
 
-		await AuthProvider.MarkUserAsAuthenticated(token); 
-		Navigation.NavigateTo("/home", true);
-	}
+    private async Task HandleDeleteConfirm(bool confirmed)
+    {
+        if (confirmed && membershipToDelete is not null)
+        {
+            var ok = await UserApi.DeleteMembershipAsync(membershipToDelete.AccountId, membershipToDelete.OrganisationId);
+            if (ok) Mitgliedschaften.Remove(membershipToDelete);
+        }
+
+        membershipToDelete = null;
+        showDeleteConfirmDialog = false;
+        StateHasChanged(); // wichtig
+    }
+
+    private void ConfirmEmailSave(MembershipViewModel m, string local, string domain)
+    {
+        membershipToUpdate = m;
+        updatedLocalPart = local;
+        updatedDomain = domain;
+        showSaveEmailConfirmDialog = true;
+    }
+
+    private async Task HandleSaveEmailConfirm(bool confirmed)
+    {
+        if (confirmed && membershipToUpdate is not null)
+        {
+            var mail = $"{updatedLocalPart}{updatedDomain}";
+            var ok = await UserApi.UpdateEmailAsync(membershipToUpdate.AccountId, mail);
+            if (ok) membershipToUpdate.Email = mail;
+        }
+
+        membershipToUpdate = null;
+        updatedLocalPart = "";
+        updatedDomain = "";
+        showSaveEmailConfirmDialog = false;
+        StateHasChanged(); // wichtig
+    }
+
+    private async Task SwitchMembership(int accountId)
+    {
+        var token = await UserApi.SwitchAccountAsync(accountId);
+        if (token is null) return;
+
+        await AuthProvider.MarkUserAsAuthenticated(token);
+        Navigation.NavigateTo("/home", true);
+    }
+
+    private async Task AddMembership()
+    {
+	    if (!string.IsNullOrWhiteSpace(newMembershipEmail))
+	    {
+		    var success = await UserApi.AddMembershipAsync(newMembershipEmail);
+		    showAddDialog = false;
+		    newMembershipEmail = "";
+
+		    if (!success)
+		    {
+			   Snackbar.Add("Fehler beim Hinzufügen der Mitgliedschaft.", Severity.Error);
+		    }
+		    else
+		    {
+			    Snackbar.Add("Verifizierungslink wurde an die neue E-Mail gesendet.", Severity.Success);
+			    await OnInitializedAsync(); // reload Memberships
+		    }
+	    }
+    }
 }

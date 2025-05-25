@@ -24,5 +24,7 @@ public interface IAuthenticateService
     /// </summary>
     /// <param name="accountId">Ziel-Account (Mitgliedschaft).</param>
     /// <param name="currentUserId">User-Id aus dem aktuellen Token.</param>
-    Task<Result<string>> SwitchAccount(int accountId, int currentUserId); 
+    Task<Result<string>> SwitchAccount(int accountId, int currentUserId);
+
+    Task<Result> AddMembership(int userId, string newEmail);
 }
