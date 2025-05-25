@@ -53,7 +53,7 @@ public class JwtAuthenticationStateProvider : AuthenticationStateProvider
     public async Task MarkUserAsAuthenticated(string token)  
     {
         await _sessionStorage.SetItemAsStringAsync(TokenKey, token);
-        NotifyAuthenticationStateChanged();
+        NotifyAuthenticationStateChanged(GetAuthenticationStateAsync());
     }
 
     /// <summary>

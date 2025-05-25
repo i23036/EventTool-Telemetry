@@ -60,12 +60,11 @@ namespace ET_Backend.Services.Person
         public async Task<Result<UserDto>> GetUserAsync(int id)
         {
             var get = await _userRepository.GetUser(id);
-            if (get.IsFailed || get.Value is null)
-                return Result.Fail("Benutzer nicht gefunden.");
+            if (get.IsFailed) return Result.Fail(get.Errors);
 
-            return Result.Ok(UserMapper.ToDto(get.Value));   // Password wird dort schon geleert
+            return Result.Ok(UserMapper.ToDto(get.Value));
         }
-
+        
         public async Task<Result<List<MembershipDto>>> GetMembershipsAsync(int id)
         {
             var accs = await _accountRepo.GetAccountsByUser(id);

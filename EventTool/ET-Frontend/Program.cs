@@ -19,8 +19,11 @@ builder.RootComponents.Add<HeadOutlet>("head::after");
 builder.Services.AddMudServices();                          // MudBlazor
 builder.Services.AddBlazoredSessionStorage();               // SessionStorage für Tokens etc.
 builder.Services.AddAuthorizationCore();                    // Blazor Auth-System
-builder.Services.AddScoped<AuthenticationStateProvider, JwtAuthenticationStateProvider>();
 builder.Services.AddScoped<ILoginService, LoginService>();
+builder.Services.AddScoped<JwtAuthenticationStateProvider>();  
+builder.Services.AddScoped<AuthenticationStateProvider>(      // zusätzlich als Basis
+    sp => sp.GetRequiredService<JwtAuthenticationStateProvider>());
+
 
 // === Konfiguration laden (z. B. appsettings.Production.json) ===
 var env = builder.HostEnvironment.Environment;

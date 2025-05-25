@@ -71,6 +71,7 @@ public class AccountRepository : IAccountRepository
                 Id = accountId,
                 EMail = accountEMail,
                 IsVerified = false,
+                UserId = userId,
                 User = user,
                 Organization = organization,
                 Role = role
@@ -120,6 +121,7 @@ public class AccountRepository : IAccountRepository
               , a.Email      AS EMail
               , a.IsVerified
               , u.Id         AS UserId
+              , u.Id         AS Id
               , u.Firstname
               , u.Lastname
               , u.Password
@@ -141,6 +143,7 @@ public class AccountRepository : IAccountRepository
                     (acc, usr, org, role) =>
                     {
                         acc.User = usr;
+                        acc.UserId = usr.Id;
                         acc.Organization = org;
                         acc.Organization.Id = org.Id;
                         acc.Role = (Role)(int)role;
@@ -159,6 +162,7 @@ public class AccountRepository : IAccountRepository
                     (acc, usr, org, role) =>
                     {
                         acc.User = usr;
+                        acc.UserId = usr.Id;
                         acc.Organization = org;
                         acc.Organization.Id = org.Id;
                         acc.Role = (Role)role;
@@ -185,7 +189,8 @@ public class AccountRepository : IAccountRepository
                 a.Id
               , a.Email      AS EMail
               , a.IsVerified
-              , u.Id         AS UserId
+              , u.Id         AS UserId    
+              , u.Id         AS Id
               , u.Firstname
               , u.Lastname
               , u.Password
@@ -207,6 +212,7 @@ public class AccountRepository : IAccountRepository
                     (acc, usr, org, role) =>
                     {
                         acc.User = usr;
+                        acc.UserId = usr.Id;
                         acc.Organization = org;
                         acc.Organization.Id = org.Id;
                         acc.Role = (Role)(int)role;
@@ -225,6 +231,7 @@ public class AccountRepository : IAccountRepository
                     (acc, usr, org, role) =>
                     {
                         acc.User = usr;
+                        acc.UserId = usr.Id;
                         acc.Organization = org;
                         acc.Organization.Id = org.Id;
                         acc.Role = (Role)role;
@@ -243,6 +250,57 @@ public class AccountRepository : IAccountRepository
         }
     }
 
+    public async Task<Result<List<Account>>> GetAccountsByUser(int userId)
+    {
+        var sql = $@"
+    SELECT  a.Id, a.Email AS EMail, a.IsVerified,
+            u.Id AS UserId,           -- split marker
+            u.Id AS Id,               -- erste Spalte für User
+            u.Firstname, u.Lastname, u.Password,
+            o.Id AS OrgId, o.Name, o.Description, o.Domain,
+            om.Role
+    FROM    {_db.Tbl("Accounts")}            a
+    JOIN    {_db.Tbl("Users")}               u  ON a.UserId = u.Id
+    JOIN    {_db.Tbl("OrganizationMembers")} om ON om.AccountId = a.Id
+    JOIN    {_db.Tbl("Organizations")}       o  ON o.Id      = om.OrganizationId
+    WHERE   a.UserId = @Uid;";
+
+        if (_db.IsSQLite())
+        {
+            var list = await _db.QueryAsync<Account, User, Models.Organization, long, Account>(
+                sql,
+                (acc, usr, org, role) =>
+                {
+                    acc.User          = usr;
+                    acc.UserId        = usr.Id;
+                    acc.Organization  = org; acc.Organization.Id = org.Id;
+                    acc.Role          = (Role)(int)role;       // cast hier, nicht in Dapper
+                    return acc;
+                },
+                new { Uid = userId },
+                splitOn: "UserId,OrgId,Role");
+
+            return Result.Ok(list.ToList());
+        }
+        else
+        {
+            var list = await _db.QueryAsync<Account, User, Models.Organization, int, Account>(
+                sql,
+                (acc, usr, org, role) =>
+                {
+                    acc.User          = usr;
+                    acc.UserId        = usr.Id;
+                    acc.Organization  = org; acc.Organization.Id = org.Id;
+                    acc.Role          = (Role)role;
+                    return acc;
+                },
+                new { Uid = userId },
+                splitOn: "UserId,OrgId,Role");
+
+            return Result.Ok(list.ToList());
+        }
+    }
+    
     public async Task<Result> EditAccount(Account account)
     {
         using var tx = _db.BeginSafeTransaction();
@@ -327,42 +385,6 @@ public class AccountRepository : IAccountRepository
         catch (Exception ex)
         {
             tx.Rollback();
-            return Result.Fail($"DBError: {ex.Message}");
-        }
-    }
-
-    public async Task<Result<List<Account>>> GetAccountsByUser(int userId)
-    {
-        try
-        {
-            var sql = $@"
-        SELECT  a.Id, a.Email       AS EMail, a.IsVerified,
-                u.Id                AS UserId, u.Firstname, u.Lastname, u.Password,
-                o.Id                AS OrgId, o.Name, o.Description, o.Domain,
-                om.Role
-        FROM    {_db.Tbl("Accounts")}            a
-        JOIN    {_db.Tbl("Users")}               u  ON a.UserId = u.Id
-        JOIN    {_db.Tbl("OrganizationMembers")} om ON om.AccountId = a.Id
-        JOIN    {_db.Tbl("Organizations")}       o  ON o.Id      = om.OrganizationId
-        WHERE   a.UserId = @Uid;";
-
-            var list = await _db.QueryAsync<Account, User, Models.Organization, int, Account>(
-                sql,
-                (acc, usr, org, role) =>
-                {
-                    acc.User = usr;
-                    acc.Organization = org;
-                    acc.Organization.Id = org.Id;
-                    acc.Role = (Role)role;
-                    return acc;
-                },
-                new { Uid = userId },
-                splitOn: "UserId,OrgId,Role");
-
-            return Result.Ok(list.ToList());
-        }
-        catch (Exception ex)
-        {
             return Result.Fail($"DBError: {ex.Message}");
         }
     }

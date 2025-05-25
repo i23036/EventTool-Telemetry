@@ -2,15 +2,12 @@
 
 @attribute [Authorize]
 
-@using System.Net
-@using System.Net.Http.Headers
-@using System.Text.Json
 @using Microsoft.AspNetCore.Authorization
 @using ET_Frontend.Models.AccountManagement
 @using ET_Frontend.Services.Authentication
 
 @inject NavigationManager Navigation
-@inject ET_Frontend.Services.ApiClients.IUserApi UserApi
+@inject Services.ApiClients.IUserApi UserApi
 @inject Blazored.SessionStorage.ISessionStorageService SessionStorage
 @inject JwtAuthenticationStateProvider AuthProvider
 
@@ -89,22 +86,31 @@
 @code {
 	private List<MembershipViewModel> Mitgliedschaften = new();
 	private Dictionary<int, string>   EmailLocalParts  = new(); 
+
 	private bool   popupState = false;
 	private string popupText  = "";
 
 	protected override async Task OnInitializedAsync()
 	{
 		Mitgliedschaften = await UserApi.GetMembershipsAsync();
+
 		foreach (var m in Mitgliedschaften)
-			EmailLocalParts[m.AccountId] = m.Email[..m.Email.IndexOf('@')];
+		{
+			var at = m.Email?.IndexOf('@') ?? -1;
+			if (at > 0)
+				EmailLocalParts[m.AccountId] = m.Email[..at];
+			else
+				EmailLocalParts[m.AccountId] = "";              // fallback
+		}
 	}
 
-	private async Task SpeichereEmail(MembershipViewModel m, string localPart, string domain)
+	private async Task SpeichereEmail(MembershipViewModel m, string local, string domain)
 	{
-		var ok = await UserApi.UpdateEmailAsync(m.AccountId, $"{localPart}{domain}");
+		var mail = $"{local}{domain}";
+		var ok   = await UserApi.UpdateEmailAsync(m.AccountId, mail);
 		popupText  = ok ? "E-Mail gespeichert" : "Fehler beim Speichern";
 		popupState = true;
-		if (ok) m.Email = $"{localPart}{domain}";
+		if (ok) m.Email = mail;
 	}
 
 	private async Task EntferneMitgliedschaft(MembershipViewModel m)
@@ -118,13 +124,10 @@
 		var token = await UserApi.SwitchAccountAsync(accountId);
 		if (token is null)
 		{
-			popupText  = "Organisation konnte nicht gewechselt werden.";
-			popupState = true;
-			return;
+			popupText = "Organisation konnte nicht gewechselt werden."; popupState = true; return;
 		}
 
-		await SessionStorage.SetItemAsync("authToken", token);
-		await AuthProvider.MarkUserAsAuthenticated(token);
+		await AuthProvider.MarkUserAsAuthenticated(token); 
 		Navigation.NavigateTo("/home", true);
 	}
 }
