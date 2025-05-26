@@ -165,5 +165,36 @@ namespace ET_Backend.Controllers
                 return BadRequest();
             }
         }
+
+        [HttpGet("{eventId:int}")]
+        [Authorize]
+        public async Task<IActionResult> GetEvent(int eventId)
+        {
+            var result = await _eventService.GetEvent(eventId);
+            if (result.IsFailed)                  
+                return NotFound();
+
+            var e = result.Value;
+
+            var dto = new EventDto(
+                e.Name,
+                e.Description,
+                e.Location,
+                e.Organizers     .Select(o => o.EMail).ToList(),
+                e.ContactPersons .Select(c => c.EMail).ToList(),
+                e.Process?.Id ?? 0,
+                e.StartDate,
+                e.EndDate,
+                e.StartTime,
+                e.EndTime,
+                e.MinParticipants,
+                e.MaxParticipants,
+                e.RegistrationStart,
+                e.RegistrationEnd,
+                e.IsBlueprint
+            );
+
+            return Ok(dto);
+        }
     }
 }

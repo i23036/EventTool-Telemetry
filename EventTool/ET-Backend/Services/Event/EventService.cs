@@ -44,4 +44,7 @@ public class EventService : IEventService
     {
         return await _eventRepository.DeleteEvent(eventId);
     }
+
+    public async Task<Result<Models.Event>> GetEvent(int eventId)
+        => await _eventRepository.GetEvent(eventId); 
 }

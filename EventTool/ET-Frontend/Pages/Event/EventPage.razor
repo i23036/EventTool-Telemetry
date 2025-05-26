@@ -1,113 +1,166 @@
 ﻿@page "/EventDetails/{ID:int}"
 @attribute [Authorize]
+
 @using Microsoft.AspNetCore.Authorization
+@using System.Net.Http.Headers
+@using Blazored.SessionStorage
+@using ET.Shared.DTOs
 @using MudBlazor
-@using System.Linq
+
+@inject HttpClient Http
+@inject ISessionStorageService SessionStorage
 @inject NavigationManager Navigation
+@inject ISnackbar Snackbar
 
 <PageTitle>Event Details</PageTitle>
 
-<!-- Tabs -->
-<div class="flex-md-column align-content-between justify-content-center w-100 h-100 p-4">
-    <MudPaper Class="mt-4 rounded-lg shadow-md">
-        <MudText Typo="Typo.h4">Event Details</MudText>
-        <MudGrid>
-            <MudItem xs="12" sm="6">
-                <MudTextField Label="Eventname" @bind-Value="_event.Name" FullWidth="true" ReadOnly="true" />
-            </MudItem>
-            <MudItem xs="12" sm="6">
-                <MudTextField Label="Eventtyp" @bind-Value="_event.EventType" FullWidth="true" ReadOnly="true" />
-            </MudItem>
+<div class="flex-md-column w-100 h-100 p-4">
+    @if (_loading)
+    {
+        <MudProgressCircular Indeterminate="true" Size="Size.Large" Class="ma-auto" />
+    }
+    else if (_loadError)
+    {
+        <MudAlert Severity="Severity.Error">
+            Event konnte nicht geladen werden.
+            <MudButton Class="ms-4" Variant="Variant.Outlined" OnClick="NavigateHome">Zurück</MudButton>
+        </MudAlert>
+    }
+    else
+    {
+        <MudPaper Class="pa-6 rounded-lg shadow-md">
+            <MudText Typo="Typo.h4">@_event.Name</MudText>
 
-            <MudItem xs="12">
-                <MudTextField Label="Beschreibung" @bind-Value="_event.Description" Lines="3" FullWidth="true" ReadOnly="true" />
-            </MudItem>
+            <MudGrid Class="mt-4">
+                <MudItem xs="12" sm="6">
+                    <MudTextField Label="Eventtyp" Value="@_event.EventType" ReadOnly />
+                </MudItem>
 
-            <MudItem xs="12" sm="6">
-                <MudTextField Label="Ansprechpartner" @bind-Value="_event.ContactPerson" FullWidth="true" ReadOnly="true" />
-            </MudItem>
+                <MudItem xs="12">
+                    <MudTextField Label="Beschreibung" Value="@_event.Description" Lines="3" ReadOnly FullWidth />
+                </MudItem>
 
-            <MudItem xs="12" sm="6">
-                <MudDatePicker Label="Startdatum" @bind-Date="_event.StartDate" ReadOnly="true" />
-            </MudItem>
-            <MudItem xs="12" sm="6">
-                <MudDatePicker Label="Enddatum" @bind-Date="_event.EndDate" ReadOnly="true" />
-            </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField Label="Ansprechpartner" Value="@_event.ContactPerson" ReadOnly />
+                </MudItem>
 
-            <MudItem xs="12" sm="6">
-                <MudNumericField T="int" Label="Minimale Teilnehmer" @bind-Value="_event.MinUsers" ReadOnly="true" />
-            </MudItem>
-            <MudItem xs="12" sm="6">
-                <MudNumericField T="int" Label="Maximale Teilnehmer" @bind-Value="_event.MaxUsers" ReadOnly="true" />
-            </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudDatePicker Label="Startdatum" Date="@_event.StartDate" ReadOnly />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudDatePicker Label="Enddatum" Date="@_event.EndDate" ReadOnly />
+                </MudItem>
 
-            <MudItem xs="12" sm="6">
-                <MudDatePicker Label="Anmeldebeginn" @bind-Date="_event.RegistrationStart" ReadOnly="true" />
-            </MudItem>
-            <MudItem xs="12" sm="6">
-                <MudDatePicker Label="Anmeldefrist" @bind-Date="_event.RegistrationDeadline" ReadOnly="true" />
-            </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudNumericField T="int" Label="Min. Teilnehmer" Value="@_event.MinUsers" ReadOnly />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudNumericField T="int" Label="Max. Teilnehmer" Value="@_event.MaxUsers" ReadOnly />
+                </MudItem>
 
-            <MudItem xs="12" sm="6">
-                <MudTextField Label="Status" @bind-Value="_event.Status" Lines="3" FullWidth="true" ReadOnly="true" />
-            </MudItem>
-        </MudGrid>
-    </MudPaper>
+                <MudItem xs="12" sm="6">
+                    <MudDatePicker Label="Anmelde­beginn" Date="@_event.RegistrationStart" ReadOnly />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudDatePicker Label="Anmelde­frist" Date="@_event.RegistrationDeadline" ReadOnly />
+                </MudItem>
+
+                <MudItem xs="12" sm="6">
+                    <MudTextField Label="Status" Value="@_event.Status.ToString()" ReadOnly />
+                </MudItem>
+            </MudGrid>
+
+            <MudButton Class="mt-4" Variant="Variant.Outlined" OnClick="NavigateHome">
+                Zurück
+            </MudButton>
+        </MudPaper>
+    }
 </div>
 
 @code {
     [Parameter] public int ID { get; set; }
-    private int _tabIndex = 0;
-    private MyEvent _event = new MyEvent()
-        {
-            ID = 1,
-            Name = "Grillfest",
-            Description = "lecker!",
-            RegisteredUsers = 5,
-            MaxUsers = 10
-        };
 
-    public enum EventStatus
+    private bool _loading = true;
+    private bool _loadError = false;
+
+    private MyEvent _event = new();
+
+    /* ---------- Lifecycle ---------- */
+    protected override async Task OnInitializedAsync()
     {
-        Entwurf,
-        Offen,
-        Geschlossen,
-        Abgesagt,
-        Archiviert
+        try
+        {
+            var token = await SessionStorage.GetItemAsync<string>("authToken");
+            var req = new HttpRequestMessage(HttpMethod.Get, $"api/event/{ID}");
+            req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+            var resp = await Http.SendAsync(req);
+            if (!resp.IsSuccessStatusCode)
+            {
+                _loadError = true;
+                return;
+            }
+
+            var dto = await resp.Content.ReadFromJsonAsync<EventDto>();
+            if (dto is null)
+            {
+                _loadError = true;
+                return;
+            }
+
+            MapDto(dto);
+        }
+        catch
+        {
+            _loadError = true;
+        }
+        finally
+        {
+            _loading = false;
+        }
     }
+
+    /* ---------- Mapping ---------- */
+    private void MapDto(EventDto dto)
+    {
+        _event = new MyEvent
+        {
+            ID = ID,
+            Name = dto.Name,
+            EventType = dto.IsBlueprint ? "Vorlage" : "Event",
+            Description = dto.Description,
+            StartDate = dto.StartDate.ToDateTime(TimeOnly.MinValue),
+            EndDate = dto.EndDate.ToDateTime(TimeOnly.MinValue),
+            MinUsers = dto.MinParticipants,
+            MaxUsers = dto.MaxParticipants,
+            RegistrationStart = dto.RegistrationStart.ToDateTime(TimeOnly.MinValue),
+            RegistrationDeadline = dto.RegistrationEnd.ToDateTime(TimeOnly.MinValue),
+            ContactPerson = dto.ContactPersons?.FirstOrDefault() ?? "-",
+            RegisteredUsers = 0,      // Teilnehmerliste ist im DTO nicht enthalten
+            Status = dto.IsBlueprint ? EventStatus.Entwurf : EventStatus.Offen
+        };
+    }
+
+    /* ---------- Helpers ---------- */
+    private void NavigateHome() => Navigation.NavigateTo("/home");
+
+    /* ---------- Models ---------- */
+    public enum EventStatus { Entwurf, Offen, Geschlossen, Abgesagt, Archiviert }
 
     public class MyEvent
     {
         public int ID { get; set; }
-        public string Name { get; set; }
-        public string EventType { get; set; }
-        public string Description { get; set; }
+        public string Name { get; set; } = "";
+        public string? EventType { get; set; }
+        public string? Description { get; set; }
         public DateTime? StartDate { get; set; }
         public DateTime? EndDate { get; set; }
         public int MinUsers { get; set; }
         public int MaxUsers { get; set; }
         public DateTime? RegistrationStart { get; set; }
         public DateTime? RegistrationDeadline { get; set; }
-        public string ContactPerson { get; set; }
+        public string? ContactPerson { get; set; }
         public EventStatus Status { get; set; } = EventStatus.Entwurf;
         public int RegisteredUsers { get; set; }
-        public bool CanBeEdited { get; set; }
-    }
-
-    public class Teilnehmer
-    {
-        public string LastName { get; set; }
-        public string Email { get; set; }
-    }
-
-    protected override void OnInitialized()
-    {
-        //
-    }
-
-    private void NavigateHome()
-    {
-        Navigation.NavigateTo("/");
     }
 }
-
