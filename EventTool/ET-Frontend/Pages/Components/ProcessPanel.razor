@@ -87,7 +87,7 @@
     {
         var options = new DialogOptions { CloseOnEscapeKey = true };
 
-        return DialogService.ShowAsync<EMailDialog>("ProzessStep Dialog", options);
+        return DialogService.ShowAsync<EMailDialog>("ProzessStep Dialog", options); //TODO hier Simple Confirm
     }
 
     private void DiscardChanges()
