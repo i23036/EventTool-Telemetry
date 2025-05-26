@@ -64,8 +64,9 @@ namespace ET_Backend.Controllers
             return BadRequest(result.Errors);
         }
 
-        [HttpPut("subsrcibeTo{eventId}")]
-        public async Task<IActionResult> SubscribeToEvent(int eventId)
+        [HttpPut("subscribe/{eventId:int}")]
+        [Authorize]
+        public async Task<IActionResult> Subscribe(int eventId)
         {
             var user = await _userService.GetCurrentUserAsync(User);
             if (user == null || user.Organization == null)
@@ -84,8 +85,9 @@ namespace ET_Backend.Controllers
         }
 
 
-        [HttpPut("unsubsrcibeTo{eventId}")]
-        public async Task<IActionResult> UnsubscribeToEvent(int eventId)
+        [HttpPut("unsubscribe/{eventId:int}")]
+        [Authorize]
+        public async Task<IActionResult> Unsubscribe(int eventId)
         {
             var user = await _userService.GetCurrentUserAsync(User);
             if (user == null || user.Organization == null)
