@@ -82,11 +82,15 @@ VALUES (
                 newEvent.Description,
                 OrganizationId = orgId,
                 ProcessId = newEvent.Process?.Id,
-                newEvent.StartDate, newEvent.EndDate,
-                newEvent.StartTime, newEvent.EndTime,
+                newEvent.StartDate,
+                newEvent.EndDate,
+                newEvent.StartTime,
+                newEvent.EndTime,
                 newEvent.Location,
-                newEvent.MinParticipants, newEvent.MaxParticipants,
-                newEvent.RegistrationStart, newEvent.RegistrationEnd,
+                newEvent.MinParticipants,
+                newEvent.MaxParticipants,
+                newEvent.RegistrationStart,
+                newEvent.RegistrationEnd,
                 IsBlueprint = newEvent.IsBlueprint ? 1 : 0
             }, tx);
 
@@ -169,13 +173,13 @@ WHERE em.EventId = @Evt;", new { Evt = evt.Id });
             {
                 var acc = new Account
                 {
-                    Id         = Convert.ToInt32(r.AccId),
-                    EMail      = r.Email,
+                    Id = Convert.ToInt32(r.AccId),
+                    EMail = r.Email,
                     IsVerified = Convert.ToInt32(r.IsVerified) == 1   //  ← hier casten
                 };
 
                 evt.Participants.Add(acc);
-                if (Convert.ToInt32(r.IsOrganizer)     == 1) evt.Organizers.Add(acc);
+                if (Convert.ToInt32(r.IsOrganizer) == 1) evt.Organizers.Add(acc);
                 if (Convert.ToInt32(r.IsContactPerson) == 1) evt.ContactPersons.Add(acc);
             }
             return Result.Ok(evt);
@@ -216,8 +220,8 @@ WHERE em.EventId IN @Ids;", new { Ids = ids });
             {
                 var acc = new Account
                 {
-                    Id         = Convert.ToInt32(r.AccId),
-                    EMail      = r.Email,
+                    Id = Convert.ToInt32(r.AccId),
+                    EMail = r.Email,
                     IsVerified = Convert.ToInt32(r.IsVerified) == 1       //  ← hier casten
                 };
 
@@ -230,7 +234,7 @@ WHERE em.EventId IN @Ids;", new { Ids = ids });
             }
 
             // Org / Process caches
-            var orgIds     = events.Select(e => e.Organization?.Id ?? 0).Distinct();
+            var orgIds = events.Select(e => e.Organization?.Id ?? 0).Distinct();
             var processIds = events.Select(e => e.Process?.Id ?? 0).Where(i => i > 0).Distinct();
 
             var orgs = (await _db.QueryAsync<Models.Organization>(
@@ -238,13 +242,13 @@ WHERE em.EventId IN @Ids;", new { Ids = ids });
                 new { Ids = orgIds })).ToDictionary(o => o.Id);
 
             var procs = (await _db.QueryAsync<Process>(
-                $"SELECT Id, Name, OrganizationId FROM {_db.Tbl("Processes")} WHERE Id IN @Ids",
+                $"SELECT Id FROM {_db.Tbl("Processes")} WHERE Id IN @Ids",
                 new { Ids = processIds })).ToDictionary(p => p.Id);
 
             foreach (var e in events)
             {
-                e.Participants   = new();
-                e.Organizers     = new();
+                e.Participants = new();
+                e.Organizers = new();
                 e.ContactPersons = new();
 
                 if (map.TryGetValue(e.Id, out var lst))
@@ -252,11 +256,11 @@ WHERE em.EventId IN @Ids;", new { Ids = ids });
                     {
                         e.Participants.Add(acc);
                         if (org) e.Organizers.Add(acc);
-                        if (cp)  e.ContactPersons.Add(acc);
+                        if (cp) e.ContactPersons.Add(acc);
                     }
 
                 if (orgs.TryGetValue(e.Organization?.Id ?? 0, out var o)) e.Organization = o;
-                if (procs.TryGetValue(e.Process?.Id      ?? 0, out var p)) e.Process     = p;
+                if (procs.TryGetValue(e.Process?.Id ?? 0, out var p)) e.Process = p;
             }
 
             return Result.Ok(events);
@@ -282,12 +286,19 @@ UPDATE {_db.Tbl("Events")} SET
     IsBlueprint=@IsBp
 WHERE Id=@Id;", new
             {
-                ev.Name, ev.Description,
-                OrgId = ev.Organization?.Id, ProcId = ev.Process?.Id,
-                ev.StartDate, ev.EndDate,
-                ev.StartTime, ev.EndTime,
-                ev.Location, MinPart = ev.MinParticipants, MaxPart = ev.MaxParticipants,
-                RegStart = ev.RegistrationStart, RegEnd = ev.RegistrationEnd,
+                ev.Name,
+                ev.Description,
+                OrgId = ev.Organization?.Id,
+                ProcId = ev.Process?.Id,
+                ev.StartDate,
+                ev.EndDate,
+                ev.StartTime,
+                ev.EndTime,
+                ev.Location,
+                MinPart = ev.MinParticipants,
+                MaxPart = ev.MaxParticipants,
+                RegStart = ev.RegistrationStart,
+                RegEnd = ev.RegistrationEnd,
                 IsBp = ev.IsBlueprint ? 1 : 0,
                 ev.Id
             }, tx);
