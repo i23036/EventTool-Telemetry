@@ -25,6 +25,9 @@ public interface IProcessService
     /// <summary>Gibt einen Prozessschritt anhand eines Models.</summary>
     Task<Result<Models.ProcessStep>> GetProcessStep(ProcessStep processStepModel);
 
+    /// <summary>Gibt alle Prozessschritte anhand eines Models.</summary>
+    Task<Result<List<Models.ProcessStep>>> GetAllProcessSteps(Process processModel);
+
     // === Erstellen & Bearbeiten ===
 
     /// <summary>Erstellt einen neuen Prozess.</summary>

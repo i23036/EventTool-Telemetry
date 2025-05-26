@@ -239,7 +239,7 @@ public class DatabaseInitializer(IDbConnection db, ILogger<DatabaseInitializer> 
             var endTime = new TimeOnly(12, 0);
 
             var orgId = _db.ExecuteScalar<int>("SELECT Id FROM Organizations WHERE Domain = 'demo.org'");
-            var processId = _db.ExecuteScalar<int>("SELECT Id FROM Processes WHERE Name = 'Onboarding'");
+            var processId = _db.ExecuteScalar<int>("SELECT Id FROM Processes WHERE Id = '1'");
 
             var parameters = new DynamicParameters();
             parameters.Add("Name", "Kickoff Meeting");

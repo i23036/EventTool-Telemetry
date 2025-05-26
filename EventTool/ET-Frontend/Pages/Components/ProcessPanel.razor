@@ -18,7 +18,7 @@
                                <MudSelectItem Value="ProcessStepTrigger.MinParticipantsReached">Minimale Teilnehmer erreicht</MudSelectItem>
                                <MudSelectItem Value="ProcessStepTrigger.MaxParticipantsReached">Maximale Teilnehmer erreicht</MudSelectItem>
                                <MudSelectItem Value="ProcessStepTrigger.StatusChanged">Statusänderung</MudSelectItem>
-                               <MudSelectItem Value="ProcessStepTrigger.DateArrived">Spezielles Datum</MudSelectItem>
+                               <MudSelectItem Value="ProcessStepTrigger.ParticipantRegisters">Teilnehmer meldet sich an</MudSelectItem>
                                <MudSelectItem Value="ProcessStepTrigger.StartOfEventLogins">Anmeldestart</MudSelectItem>
                                <MudSelectItem Value="ProcessStepTrigger.EndOfEventLogins">Anmeldeschluss</MudSelectItem>
                     </MudSelect>
@@ -57,7 +57,7 @@
     private List<ProcessStepViewModel> _processStepsList = new()
     {
         new ProcessStepViewModel { TypeName = "P1", Type = ProcessStepType.SendEMail, Trigger = ProcessStepTrigger.EndOfEventLogins, Condition = ProcessStepCondition.ParticipantsOverMin, OffsetInHours = 2},
-        new ProcessStepViewModel { TypeName = "P2", Type = ProcessStepType.ChangeStatus, Trigger = ProcessStepTrigger.DateArrived, Condition = ProcessStepCondition.ParticipantsOverMin, OffsetInHours = 1},
+        new ProcessStepViewModel { TypeName = "P2", Type = ProcessStepType.ChangeStatus, Trigger = ProcessStepTrigger.EndOfEventLogins, Condition = ProcessStepCondition.ParticipantsOverMin, OffsetInHours = 1},
         new ProcessStepViewModel { TypeName = "P3", Type = ProcessStepType.SendEMail, Trigger = ProcessStepTrigger.EndOfEventLogins, Condition = ProcessStepCondition.ParticipantsOverMin, OffsetInHours = -3}
     };
 

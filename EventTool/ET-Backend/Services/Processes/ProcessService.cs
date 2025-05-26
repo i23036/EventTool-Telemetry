@@ -45,7 +45,21 @@ public class ProcessService : IProcessService
     /// <summary>Gibt einen Prozess anhand seiner ID zurück.</summary>
     public async Task<Result<Models.Process>> GetProcess(Models.Process processModel)
     {
-        return await _processRepository.GetProcess(processModel.Id);
+        var result1 = await _processRepository.GetProcess(processModel.Id);
+        var result2 = await _processStepRepository.GetAllProcessSteps(processModel.Id);
+
+        if (result1.IsSuccess && result2.IsSuccess)
+        {
+            return new Models.Process
+            {
+                Id = result1.Value.Id,
+                ProcessSteps = result2.Value
+            };
+        }
+        else
+        {
+            return Result.Fail("error in Service");
+        }
     }
 
     /// <summary>Gibt einen Prozess anhand des dazugehörigen Events (und dessen ID) zurück.</summary>
@@ -58,6 +72,12 @@ public class ProcessService : IProcessService
     public async Task<Result<Models.ProcessStep>> GetProcessStep(Models.ProcessStep processStepModel)
     {
         return await _processStepRepository.GetProcessStep(processStepModel.Id);
+    }
+
+    /// <summary>Gibt alle Prozessschritte anhand der Proess ID zurück.</summary>
+    public async Task<Result<List<Models.ProcessStep>>> GetAllProcessSteps(Models.Process processModel)
+    {
+        return await _processStepRepository.GetAllProcessSteps(processModel.Id);
     }
 
     // === Erstellen & Bearbeiten ===
@@ -77,24 +97,27 @@ public class ProcessService : IProcessService
     /// <summary>Aktualisiert einen Prozess mit Model-Daten (z. B. aus dem Frontend).</summary>
     public async Task<Result<bool>> UpdateProcess(Models.Process processModel)
     {
-        await _processRepository.UpdateProcess(processModel.Id); //hier passiert nicht viel, aber gut für Erweiterung wenn es zum Beispiel rozessvorlagen wieder geben soll
+        var result1 = await _processRepository.UpdateProcess(processModel.Id); //hier passiert nicht viel, aber gut für Erweiterung wenn es zum Beispiel rozessvorlagen wieder geben soll
+        if (result1.IsFailed)
+        {
+            return Result.Fail("Error in Service");
+        }
 
-
-        await DeleteAllProcessSteps(processModel);
+        var result2 = await DeleteAllProcessSteps(processModel);
+        if (result2.IsFailed)
+        {
+            return Result.Fail("Error in Service");
+        }
 
         foreach (Models.ProcessStep processStepModel in processModel.ProcessSteps)
         {
-            await CreateProcessStep(processModel, processStepModel);
+            var result3 = await CreateProcessStep(processModel, processStepModel);
+            if (result3.IsFailed)
+            {
+                return Result.Fail("Error in Service");
+            }
         }
-
-        if ()
-        {
-            return Result.Ok(true);
-        }
-        else
-        {
-            return Result.Ok(false);
-        }
+        return Result.Ok(true);
         
     }
 
@@ -114,13 +137,28 @@ public class ProcessService : IProcessService
     {
         await DeleteAllProcessSteps(processModel); //löscht zuvor alle verknüpften Prozesschritte
 
-        await _processRepository.DeleteProcess(processModel.Id);
+        var result = await _processRepository.DeleteProcess(processModel.Id);
+        if (result.IsSuccess)
+        {
+            return Result.Ok(true);
+        }
+        else
+        {
+            return Result.Fail("Error in Service");
+        }
     }
 
     /// <summary>Löscht alle Prozessschritte eines Prozesses anhand seiner ID.</summary>
     public async Task<Result<bool>> DeleteAllProcessSteps(Models.Process processModel)
     {
-
-        await _processStepRepository.DeleteAllProcessSteps(processModel.Id);
+        var result = await _processStepRepository.DeleteAllProcessSteps(processModel.Id);
+        if (result.IsSuccess)
+        {
+            return Result.Ok(true);
+        }
+        else
+        {
+            return Result.Fail("Error in Service");
+        }
     }
 }

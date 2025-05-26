@@ -1,5 +1,6 @@
 ﻿using ET_Frontend.Helpers;
 using ET_Frontend.Models;
+using ET_Frontend.Mapping;
 using Microsoft.AspNetCore.Components.Authorization;
 using System.Net.Http.Json;
 
@@ -23,17 +24,11 @@ namespace ET_Frontend.Services.ApiClients
         }
 
         /// <inheritdoc />
-        public async Task<ProcessViewModel?> GetCurrentProcessAsync()
-        {
-            var userId = JwtClaimHelper.GetUserIdAsync(_authProvider);
-            return await _httpClient.GetFromJsonAsync<ProcessViewModel>($"process/{userId}");
-        }
-
-        /// <inheritdoc />
         public async Task<bool> UpdateProcessAsync(ProcessViewModel model)
         {
             var userId = JwtClaimHelper.GetUserIdAsync(_authProvider);
-            var response = await _httpClient.PutAsJsonAsync($"process/{userId}", model);
+            var dto = ProcessViewMapper.ToDto(model);
+            var response = await _httpClient.PutAsJsonAsync($"process/{userId}", dto);
             return response.IsSuccessStatusCode;
         }
     }
