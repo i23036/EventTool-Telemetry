@@ -7,17 +7,14 @@
     </TitleContent>
     <DialogContent>
         <MudContainer>
-            <MudText Typo="Typo.body1">Wählen Sie aus, in welchen Zustand bei Aktivierung gewechselt werden soll.</MudText>
-            <MudText Typo="Typo.body1">Info: DIe Änderung auf dne Status "Entwurf ist hier leider nicht mehr möglich,
-                 da sich möglicherweise bereits Teilnehmer für das Event eingeschrieben haben"</MudText>
-            <MudText Typo="Typo.body1">Aktuell ausgewählter Status: @_state</MudText>
-            <MudContainer>
-                <MudButton @OnClick="@( () => _state = EventStates.Open)">Offen</MudButton>
-                <MudButton @OnClick="@( () => _state = EventStates.Closed)">Geschlossen</MudButton>
-            </MudContainer>
-            <MudContainer>
-                <MudButton @OnClick="@( () => _state = EventStates.Canceled)">Abgesagt</MudButton>
-                <MudButton @OnClick="@( () => _state = EventStates.Archived)">Archiviert</MudButton>
+            <MudText Typo="Typo.body1">Wählen Sie aus, in welchen Zustand bei Aktivierung gewechselt werden soll. Aktuell ausgewählter Status: <strong>@activeStateText</strong></MudText>
+            <MudContainer Class="d-flex flex-row justify-center pt-4">
+                <MudContainer Class="d-flex flex-row justify-center">
+                    <MudButton Class="m-1" Color="Color.Primary" Variant="Variant.Filled" OnClick="@( () => changeActiveState(EventStates.Open))">Offen</MudButton>
+                    <MudButton Class="m-1" Color="Color.Primary" Variant="Variant.Filled" OnClick="@( () => changeActiveState(EventStates.Closed))">Geschlossen</MudButton>
+                    <MudButton Class="m-1" Color="Color.Primary" Variant="Variant.Filled" OnClick="@( () => changeActiveState(EventStates.Canceled))">Abgesagt</MudButton>
+                    <MudButton Class="m-1" Color="Color.Primary" Variant="Variant.Filled" OnClick="@( () => changeActiveState(EventStates.Archived))">Archiviert</MudButton>
+                </MudContainer>
             </MudContainer>
         </MudContainer>
     </DialogContent>
@@ -27,10 +24,31 @@
     </DialogActions>
 </MudDialog>
 @code {
-    private String test; //TODO hier und bei EMail richtige Werte
-    private EventStates _state;
+    private String activeStateText = "Nicht gesetzt"; //TODO hier und bei EMail richtige Werte
     [CascadingParameter]
     private IMudDialogInstance MudDialog { get; set; }
+
+    private void changeActiveState(EventStates state)
+    {
+        switch (state)
+        {
+            case EventStates.Open:
+                activeStateText = "Offen.";
+                break;
+            case EventStates.Closed:
+                activeStateText = "Geschlossen.";
+                break;
+            case EventStates.Canceled:
+                activeStateText = "Abgesagt.";
+                break;
+            case EventStates.Archived:
+                activeStateText = "Archiviert.";
+                break;
+            default:
+                activeStateText = "Unbekannter Status.";
+                break;
+        }
+    }
 
     protected override async Task OnInitializedAsync()
     {
