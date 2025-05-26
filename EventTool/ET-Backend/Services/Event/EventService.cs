@@ -30,20 +30,10 @@ public class EventService : IEventService
     }
 
     public async Task<Result> SubscribeToEvent(int accountId, int eventId)
-    {
-        Result<Models.Event> currentEvent = await _eventRepository.GetEvent(eventId);
-        Result<Models.Account> account = await _accountRepository.GetAccount(accountId);
-        currentEvent.Value.Participants.Add(account.Value);
-        return await _eventRepository.EditEvent(currentEvent.Value);
-    }
+        => await _eventRepository.AddParticipant(accountId, eventId);
 
     public async Task<Result> UnsubscribeToEvent(int accountId, int eventId)
-    {
-        Result<Models.Event> currentEvent = await _eventRepository.GetEvent(eventId);
-        Result<Models.Account> account = await _accountRepository.GetAccount(accountId);
-        currentEvent.Value.Participants.Remove(account.Value);
-        return await _eventRepository.EditEvent(currentEvent.Value);
-    }
+        => await _eventRepository.RemoveParticipant(accountId, eventId);
 
     public async Task<Result<Models.Event>> CreateEvent(Models.Event newEvent, int organizationId)
     {

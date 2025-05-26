@@ -8,389 +8,328 @@ namespace ET_Backend.Repository.Event;
 public class EventRepository : IEventRepository
 {
     private readonly IDbConnection _db;
+    public EventRepository(IDbConnection db) => _db = db;
 
-    public EventRepository(IDbConnection db)
+    /*-------------------------------------------------
+     *  🔹  UTILS
+     *------------------------------------------------*/
+    private async Task UpsertEventMember(int accId, int evtId,
+                                         bool isOrg, bool isContact,
+                                         IDbTransaction? tx = null)
     {
-        _db = db;
+        if (_db.IsSQLite())
+        {
+            await _db.ExecuteAsync(@"
+INSERT INTO EventMembers (AccountId, EventId, IsOrganizer, IsContactPerson)
+VALUES (@Acc, @Evt, @IsOrg, @IsContact)
+ON CONFLICT(AccountId, EventId) DO UPDATE
+SET IsOrganizer     = CASE WHEN @IsOrg    = 1 THEN 1 ELSE IsOrganizer     END,
+    IsContactPerson = CASE WHEN @IsContact = 1 THEN 1 ELSE IsContactPerson END;",
+                new { Acc = accId, Evt = evtId, IsOrg = isOrg ? 1 : 0, IsContact = isContact ? 1 : 0 }, tx);
+        }
+        else
+        {
+            await _db.ExecuteAsync(@"
+IF NOT EXISTS (SELECT 1 FROM dbo.EventMembers WHERE AccountId=@Acc AND EventId=@Evt)
+    INSERT INTO dbo.EventMembers (AccountId, EventId, IsOrganizer, IsContactPerson)
+    VALUES (@Acc, @Evt, @IsOrg, @IsContact);
+ELSE
+    UPDATE dbo.EventMembers
+    SET IsOrganizer     = CASE WHEN @IsOrg    = 1 THEN 1 ELSE IsOrganizer     END,
+        IsContactPerson = CASE WHEN @IsContact = 1 THEN 1 ELSE IsContactPerson END
+    WHERE AccountId=@Acc AND EventId=@Evt;",
+                new { Acc = accId, Evt = evtId, IsOrg = isOrg ? 1 : 0, IsContact = isContact ? 1 : 0 }, tx);
+        }
     }
 
+    /*-------------------------------------------------
+     *  🔹  EXISTENCE
+     *------------------------------------------------*/
     public async Task<Result<bool>> EventExists(int eventId)
     {
         try
         {
-            var exists = await _db.ExecuteScalarAsync<bool>(
-                "SELECT COUNT(1) FROM Events WHERE Id = @Id",
-                new { Id = eventId });
-            return Result.Ok(exists);
+            var exists = await _db.ExecuteScalarAsync<long>(
+                $"SELECT COUNT(1) FROM {_db.Tbl("Events")} WHERE Id=@Id", new { Id = eventId });
+            return Result.Ok(exists > 0);
         }
-        catch
-        {
-            return Result.Fail("DBError");
-        }
+        catch (Exception ex) { return Result.Fail($"DBError: {ex.Message}"); }
     }
 
-    public async Task<Result<Models.Event>> CreateEvent(Models.Event newEvent, int organizationId)
+    /*-------------------------------------------------
+     *  🔹  CREATE
+     *------------------------------------------------*/
+    public async Task<Result<Models.Event>> CreateEvent(Models.Event newEvent, int orgId)
     {
-        using var transaction = _db.BeginTransaction();
-
+        using var tx = _db.BeginTransaction();
         try
         {
-            var insertSql = @"
-            INSERT INTO Events (
-                Name, Description, OrganizationId, ProcessId,
-                StartDate, EndDate, StartTime, EndTime,
-                Location, MinParticipants, MaxParticipants,
-                RegistrationStart, RegistrationEnd, IsBlueprint
-            ) VALUES (
-                @Name, @Description, @OrganizationId, @ProcessId,
-                @StartDate, @EndDate, @StartTime, @EndTime,
-                @Location, @MinParticipants, @MaxParticipants,
-                @RegistrationStart, @RegistrationEnd, @IsBlueprint
-            );";
+            var insertSql = $@"
+INSERT INTO {_db.Tbl("Events")} (
+    Name, Description, OrganizationId, ProcessId,
+    StartDate, EndDate, StartTime, EndTime,
+    Location, MinParticipants, MaxParticipants,
+    RegistrationStart, RegistrationEnd, IsBlueprint)
+VALUES (
+    @Name, @Description, @OrganizationId, @ProcessId,
+    @StartDate, @EndDate, @StartTime, @EndTime,
+    @Location, @MinParticipants, @MaxParticipants,
+    @RegistrationStart, @RegistrationEnd, @IsBlueprint);";
 
-            var eventId = await _db.InsertAndGetIdAsync(insertSql, new
+            var evtId = await _db.InsertAndGetIdAsync(insertSql, new
             {
                 newEvent.Name,
                 newEvent.Description,
-                OrganizationId = organizationId,
+                OrganizationId = orgId,
                 ProcessId = newEvent.Process?.Id,
-                newEvent.StartDate,
-                newEvent.EndDate,
-                newEvent.StartTime,
-                newEvent.EndTime,
+                newEvent.StartDate, newEvent.EndDate,
+                newEvent.StartTime, newEvent.EndTime,
                 newEvent.Location,
-                newEvent.MinParticipants,
-                newEvent.MaxParticipants,
-                newEvent.RegistrationStart,
-                newEvent.RegistrationEnd,
+                newEvent.MinParticipants, newEvent.MaxParticipants,
+                newEvent.RegistrationStart, newEvent.RegistrationEnd,
                 IsBlueprint = newEvent.IsBlueprint ? 1 : 0
-            }, transaction);
+            }, tx);
 
-            // EventMembers einfügen (Participants, Organizers, ContactPersons)
-            async Task InsertEventMembers(List<Account> accounts, bool isOrganizer, bool isContactPerson)
-            {
-                foreach (var account in accounts)
-                {
-                    await _db.ExecuteAsync(@"
-                    INSERT INTO EventMembers (AccountId, EventId, IsOrganizer, IsContactPerson)
-                    VALUES (@AccountId, @EventId, @IsOrganizer, @IsContactPerson)
-                    ON CONFLICT(AccountId, EventId) DO NOTHING;",
-                        new
-                        {
-                            AccountId = account.Id,
-                            EventId = eventId,
-                            IsOrganizer = isOrganizer ? 1 : 0,
-                            IsContactPerson = isContactPerson ? 1 : 0
-                        }, transaction);
-                }
-            }
-
+            // Members
             if (newEvent.Participants?.Any() == true)
-                await InsertEventMembers(newEvent.Participants, isOrganizer: false, isContactPerson: false);
+                foreach (var p in newEvent.Participants)
+                    await UpsertEventMember(p.Id, evtId, false, false, tx);
 
             if (newEvent.Organizers?.Any() == true)
-                await InsertEventMembers(newEvent.Organizers, isOrganizer: true, isContactPerson: false);
+                foreach (var o in newEvent.Organizers)
+                    await UpsertEventMember(o.Id, evtId, true, false, tx);
 
             if (newEvent.ContactPersons?.Any() == true)
-                await InsertEventMembers(newEvent.ContactPersons, isOrganizer: false, isContactPerson: true);
+                foreach (var c in newEvent.ContactPersons)
+                    await UpsertEventMember(c.Id, evtId, false, true, tx);
 
-            transaction.Commit();
-
-            return await GetEvent(eventId);
+            tx.Commit();
+            return await GetEvent(evtId);
         }
-        catch
+        catch (Exception ex)
         {
-            transaction.Rollback();
-            return Result.Fail("DBError");
+            tx.Rollback();
+            return Result.Fail($"DBError: {ex.Message}");
         }
     }
 
-
-
+    /*-------------------------------------------------
+     *  🔹  DELETE
+     *------------------------------------------------*/
     public async Task<Result> DeleteEvent(int eventId)
     {
-        using var transaction = _db.BeginTransaction();
-
+        using var tx = _db.BeginTransaction();
         try
         {
-            // 1. Lösche alle Verknüpfungen in EventMembers
-            await _db.ExecuteAsync(
-                "DELETE FROM EventMembers WHERE EventId = @Id",
-                new { Id = eventId }, transaction);
-
-            // 2. Lösche das Event selbst
-            var affected = await _db.ExecuteAsync(
-                "DELETE FROM Events WHERE Id = @Id",
-                new { Id = eventId }, transaction);
-
-            transaction.Commit();
-
+            await _db.ExecuteAsync($"DELETE FROM {_db.Tbl("EventMembers")} WHERE EventId=@Id", new { Id = eventId }, tx);
+            var affected = await _db.ExecuteAsync($"DELETE FROM {_db.Tbl("Events")} WHERE Id=@Id", new { Id = eventId }, tx);
+            tx.Commit();
             return affected > 0 ? Result.Ok() : Result.Fail("NotFound");
         }
-        catch
+        catch (Exception ex)
         {
-            transaction.Rollback();
-            return Result.Fail("DBError");
+            tx.Rollback();
+            return Result.Fail($"DBError: {ex.Message}");
         }
     }
 
-
+    /*-------------------------------------------------
+     *  🔹  SINGLE READ
+     *------------------------------------------------*/
     public async Task<Result<Models.Event>> GetEvent(int eventId)
     {
         try
         {
-            var evt = await _db.QueryFirstOrDefaultAsync<Models.Event>(
-                @"SELECT 
-                Id, Name, Description, OrganizationId, ProcessId,
-                StartDate, EndDate, StartTime, EndTime,
-                Location, MinParticipants, MaxParticipants,
-                RegistrationStart, RegistrationEnd, IsBlueprint
-              FROM Events
-              WHERE Id = @Id",
-                new { Id = eventId });
+            var evt = await _db.QueryFirstOrDefaultAsync<Models.Event>($@"
+SELECT Id, Name, Description, OrganizationId, ProcessId,
+       StartDate, EndDate, StartTime, EndTime,
+       Location, MinParticipants, MaxParticipants,
+       RegistrationStart, RegistrationEnd, IsBlueprint
+FROM {_db.Tbl("Events")} WHERE Id=@Id;", new { Id = eventId });
 
-            if (evt == null)
-                return Result.Fail("NotFound");
+            if (evt == null) return Result.Fail("NotFound");
 
-            // Organization laden
             evt.Organization = await _db.QueryFirstOrDefaultAsync<Models.Organization>(
-                @"SELECT Id, Name, Domain, Description, OrgaPicAsBase64 
-              FROM Organizations 
-              WHERE Id = @Id",
+                $"SELECT Id, Name, Domain, Description, OrgaPicAsBase64 FROM {_db.Tbl("Organizations")} WHERE Id=@Id",
                 new { Id = evt.Organization?.Id ?? 0 });
 
-            // Process laden (optional)
             if (evt.Process?.Id > 0)
-            {
-                evt.Process = await _db.QueryFirstOrDefaultAsync<Models.Process>(
-                    @"SELECT Id, Name, OrganizationId 
-                  FROM Processes 
-                  WHERE Id = @Id",
+                evt.Process = await _db.QueryFirstOrDefaultAsync<Process>(
+                    $"SELECT Id, Name, OrganizationId FROM {_db.Tbl("Processes")} WHERE Id=@Id",
                     new { Id = evt.Process.Id });
-            }
 
-            // Teilnehmerdaten laden (Accounts ohne User)
-            var memberRows = await _db.QueryAsync<dynamic>(
-                @"SELECT 
-                em.IsOrganizer, em.IsContactPerson,
-                a.Id as AccountId, a.Email, a.IsVerified
-              FROM EventMembers em
-              JOIN Accounts a ON em.AccountId = a.Id
-              WHERE em.EventId = @EventId",
-                new { EventId = evt.Id });
+            var rows = await _db.QueryAsync<dynamic>($@"
+SELECT a.Id AS AccId, a.Email, a.IsVerified,
+       em.IsOrganizer, em.IsContactPerson
+FROM {_db.Tbl("EventMembers")} em
+JOIN {_db.Tbl("Accounts")}     a ON em.AccountId = a.Id
+WHERE em.EventId = @Evt;", new { Evt = evt.Id });
 
-            foreach (var row in memberRows)
+            foreach (var r in rows)
             {
-                var account = new Models.Account
+                var acc = new Account
                 {
-                    Id = row.AccountId,
-                    EMail = row.Email,
-                    IsVerified = row.IsVerified
+                    Id         = Convert.ToInt32(r.AccId),
+                    EMail      = r.Email,
+                    IsVerified = Convert.ToInt32(r.IsVerified) == 1   //  ← hier casten
                 };
 
-                evt.Participants.Add(account);
-
-                if (row.IsOrganizer == 1)
-                    evt.Organizers.Add(account);
-
-                if (row.IsContactPerson == 1)
-                    evt.ContactPersons.Add(account);
+                evt.Participants.Add(acc);
+                if (Convert.ToInt32(r.IsOrganizer)     == 1) evt.Organizers.Add(acc);
+                if (Convert.ToInt32(r.IsContactPerson) == 1) evt.ContactPersons.Add(acc);
             }
-
             return Result.Ok(evt);
         }
-        catch
-        {
-            return Result.Fail("DBError");
-        }
+        catch (Exception ex) { return Result.Fail($"DBError: {ex.Message}"); }
     }
 
-
-    public async Task<Result<List<Models.Event>>> GetEventsByOrganization(int organizationId)
+    /*-------------------------------------------------
+     *  🔹  BULK READ (ORG)
+     *------------------------------------------------*/
+    public async Task<Result<List<Models.Event>>> GetEventsByOrganization(int orgId)
     {
         try
         {
-            var sqlEvents = $@"
-            SELECT 
-                Id, Name, Description, OrganizationId, ProcessId,
-                StartDate, EndDate, StartTime, EndTime,
-                Location, MinParticipants, MaxParticipants,
-                RegistrationStart, RegistrationEnd, IsBlueprint
-            FROM {_db.Tbl("Events")}
-            WHERE OrganizationId = @OrgId";
+            var events = (await _db.QueryAsync<Models.Event>($@"
+SELECT Id, Name, Description, OrganizationId, ProcessId,
+       StartDate, EndDate, StartTime, EndTime,
+       Location, MinParticipants, MaxParticipants,
+       RegistrationStart, RegistrationEnd, IsBlueprint
+FROM {_db.Tbl("Events")} WHERE OrganizationId=@Org;",
+                new { Org = orgId })).ToList();
 
-            var events = (await _db.QueryAsync<Models.Event>(sqlEvents, new { OrgId = organizationId }))
-                         .ToList();
+            if (!events.Any()) return Result.Ok(events);
 
-            if (!events.Any())
-                return Result.Ok(events);
+            var ids = events.Select(e => e.Id).ToList();
 
-            var eventIds = events.Select(e => e.Id).ToList();
+            var rows = await _db.QueryAsync<dynamic>($@"
+SELECT em.EventId,
+       a.Id AS AccId, a.Email, a.IsVerified,
+       em.IsOrganizer, em.IsContactPerson
+FROM {_db.Tbl("EventMembers")} em
+JOIN {_db.Tbl("Accounts")}      a ON em.AccountId = a.Id
+WHERE em.EventId IN @Ids;", new { Ids = ids });
 
-            // Nur Account-Daten laden (kein User mehr)
-            var sqlMembers = $@"
-            SELECT 
-                em.EventId,
-                a.Id as AccountId, a.Email, a.IsVerified,
-                em.IsOrganizer, em.IsContactPerson
-            FROM {_db.Tbl("EventMembers")} em
-            JOIN {_db.Tbl("Accounts")} a ON em.AccountId = a.Id
-            WHERE em.EventId IN @EventIds";
+            var map = new Dictionary<int, List<(Account acc, bool org, bool cp)>>();
 
-            var eventMemberRows = await _db.QueryAsync<dynamic>(sqlMembers, new { EventIds = eventIds });
-
-            var eventMemberMap = new Dictionary<int, List<(Models.Account Account, bool IsOrganizer, bool IsContact)>>();
-
-            foreach (var row in eventMemberRows)
+            foreach (var r in rows)
             {
-                var account = new Models.Account
+                var acc = new Account
                 {
-                    Id = row.AccountId,
-                    EMail = row.Email,
-                    IsVerified = row.IsVerified
+                    Id         = Convert.ToInt32(r.AccId),
+                    EMail      = r.Email,
+                    IsVerified = Convert.ToInt32(r.IsVerified) == 1       //  ← hier casten
                 };
 
-                int eventId = row.EventId;
+                int eid = Convert.ToInt32(r.EventId);
 
-                if (!eventMemberMap.ContainsKey(eventId))
-                    eventMemberMap[eventId] = new List<(Models.Account, bool, bool)>();
-
-                eventMemberMap[eventId].Add((account, row.IsOrganizer == 1, row.IsContactPerson == 1));
+                if (!map.ContainsKey(eid)) map[eid] = new();
+                map[eid].Add((acc,
+                              Convert.ToInt32(r.IsOrganizer) == 1,
+                              Convert.ToInt32(r.IsContactPerson) == 1));
             }
 
-            // Organisationen und Prozesse laden
-            var orgIds = events.Select(e => e.Organization?.Id ?? 0).Distinct().ToList();
-            var processIds = events.Select(e => e.Process?.Id ?? 0).Where(id => id > 0).Distinct().ToList();
+            // Org / Process caches
+            var orgIds     = events.Select(e => e.Organization?.Id ?? 0).Distinct();
+            var processIds = events.Select(e => e.Process?.Id ?? 0).Where(i => i > 0).Distinct();
 
             var orgs = (await _db.QueryAsync<Models.Organization>(
                 $"SELECT Id, Name, Domain, Description, OrgaPicAsBase64 FROM {_db.Tbl("Organizations")} WHERE Id IN @Ids",
                 new { Ids = orgIds })).ToDictionary(o => o.Id);
 
-            var processes = (await _db.QueryAsync<Models.Process>(
+            var procs = (await _db.QueryAsync<Process>(
                 $"SELECT Id, Name, OrganizationId FROM {_db.Tbl("Processes")} WHERE Id IN @Ids",
                 new { Ids = processIds })).ToDictionary(p => p.Id);
 
-            // Events zusammensetzen
             foreach (var e in events)
             {
-                e.Participants = new();
-                e.Organizers = new();
+                e.Participants   = new();
+                e.Organizers     = new();
                 e.ContactPersons = new();
 
-                if (eventMemberMap.TryGetValue(e.Id, out var members))
-                {
-                    foreach (var (account, isOrg, isContact) in members)
+                if (map.TryGetValue(e.Id, out var lst))
+                    foreach (var (acc, org, cp) in lst)
                     {
-                        e.Participants.Add(account);
-
-                        if (isOrg)
-                            e.Organizers.Add(account);
-
-                        if (isContact)
-                            e.ContactPersons.Add(account);
+                        e.Participants.Add(acc);
+                        if (org) e.Organizers.Add(acc);
+                        if (cp)  e.ContactPersons.Add(acc);
                     }
-                }
 
-                if (orgs.TryGetValue(e.Organization?.Id ?? 0, out var org))
-                    e.Organization = org;
-
-                if (processes.TryGetValue(e.Process?.Id ?? 0, out var proc))
-                    e.Process = proc;
+                if (orgs.TryGetValue(e.Organization?.Id ?? 0, out var o)) e.Organization = o;
+                if (procs.TryGetValue(e.Process?.Id      ?? 0, out var p)) e.Process     = p;
             }
 
             return Result.Ok(events);
         }
+        catch (Exception ex) { return Result.Fail($"DBError: {ex.Message}"); }
+    }
+
+    /*-------------------------------------------------
+     *  🔹  EDIT
+     *------------------------------------------------*/
+    public async Task<Result> EditEvent(Models.Event ev)
+    {
+        using var tx = _db.BeginTransaction();
+        try
+        {
+            await _db.ExecuteAsync($@"
+UPDATE {_db.Tbl("Events")} SET
+    Name=@Name, Description=@Description, OrganizationId=@OrgId,
+    ProcessId=@ProcId, StartDate=@StartDate, EndDate=@EndDate,
+    StartTime=@StartTime, EndTime=@EndTime, Location=@Location,
+    MinParticipants=@MinPart, MaxParticipants=@MaxPart,
+    RegistrationStart=@RegStart, RegistrationEnd=@RegEnd,
+    IsBlueprint=@IsBp
+WHERE Id=@Id;", new
+            {
+                ev.Name, ev.Description,
+                OrgId = ev.Organization?.Id, ProcId = ev.Process?.Id,
+                ev.StartDate, ev.EndDate,
+                ev.StartTime, ev.EndTime,
+                ev.Location, MinPart = ev.MinParticipants, MaxPart = ev.MaxParticipants,
+                RegStart = ev.RegistrationStart, RegEnd = ev.RegistrationEnd,
+                IsBp = ev.IsBlueprint ? 1 : 0,
+                ev.Id
+            }, tx);
+
+            await _db.ExecuteAsync($"DELETE FROM {_db.Tbl("EventMembers")} WHERE EventId=@Evt;",
+                new { Evt = ev.Id }, tx);
+
+            foreach (var p in ev.Participants.DistinctBy(a => a.Id))
+                await UpsertEventMember(p.Id, ev.Id, false, false, tx);
+            foreach (var o in ev.Organizers.DistinctBy(a => a.Id))
+                await UpsertEventMember(o.Id, ev.Id, true, false, tx);
+            foreach (var c in ev.ContactPersons.DistinctBy(a => a.Id))
+                await UpsertEventMember(c.Id, ev.Id, false, true, tx);
+
+            tx.Commit();
+            return Result.Ok();
+        }
         catch (Exception ex)
         {
+            tx.Rollback();
             return Result.Fail($"DBError: {ex.Message}");
         }
     }
 
-
-
-    public async Task<Result> EditEvent(Models.Event currentEvent)
+    /*-------------------------------------------------
+     *  🔹  SUBSCRIBE / UNSUBSCRIBE
+     *------------------------------------------------*/
+    public async Task<Result> AddParticipant(int accountId, int eventId)
     {
-        using var transaction = _db.BeginTransaction();
-
-        try
-        {
-            var affected = await _db.ExecuteAsync(@"
-            UPDATE Events SET
-                Name = @Name,
-                Description = @Description,
-                OrganizationId = @OrganizationId,
-                ProcessId = @ProcessId,
-                StartDate = @StartDate,
-                EndDate = @EndDate,
-                StartTime = @StartTime,
-                EndTime = @EndTime,
-                Location = @Location,
-                MinParticipants = @MinParticipants,
-                MaxParticipants = @MaxParticipants,
-                RegistrationStart = @RegistrationStart,
-                RegistrationEnd = @RegistrationEnd,
-                IsBlueprint = @IsBlueprint
-            WHERE Id = @Id;",
-                new
-                {
-                    currentEvent.Name,
-                    currentEvent.Description,
-                    OrganizationId = currentEvent.Organization?.Id,
-                    ProcessId = currentEvent.Process?.Id,
-                    currentEvent.StartDate,
-                    currentEvent.EndDate,
-                    currentEvent.StartTime,
-                    currentEvent.EndTime,
-                    currentEvent.Location,
-                    currentEvent.MinParticipants,
-                    currentEvent.MaxParticipants,
-                    currentEvent.RegistrationStart,
-                    currentEvent.RegistrationEnd,
-                    IsBlueprint = currentEvent.IsBlueprint ? 1 : 0,
-                    currentEvent.Id
-                }, transaction);
-
-            // EventMembers löschen
-            await _db.ExecuteAsync("DELETE FROM EventMembers WHERE EventId = @EventId;",
-                new { EventId = currentEvent.Id }, transaction);
-
-            // Teilnehmer ohne besondere Rollen
-            foreach (var participant in currentEvent.Participants.DistinctBy(a => a.Id))
-            {
-                await _db.ExecuteAsync(@"
-                INSERT INTO EventMembers (AccountId, EventId, IsOrganizer, IsContactPerson)
-                VALUES (@AccountId, @EventId, 0, 0);",
-                    new { AccountId = participant.Id, EventId = currentEvent.Id }, transaction);
-            }
-
-            // Organisatoren
-            foreach (var organizer in currentEvent.Organizers.DistinctBy(a => a.Id))
-            {
-                await _db.ExecuteAsync(@"
-                INSERT INTO EventMembers (AccountId, EventId, IsOrganizer, IsContactPerson)
-                VALUES (@AccountId, @EventId, 1, 0)
-                ON CONFLICT(AccountId, EventId) DO UPDATE SET IsOrganizer = 1;",
-                    new { AccountId = organizer.Id, EventId = currentEvent.Id }, transaction);
-            }
-
-            // Kontaktpersonen
-            foreach (var contact in currentEvent.ContactPersons.DistinctBy(a => a.Id))
-            {
-                await _db.ExecuteAsync(@"
-                INSERT INTO EventMembers (AccountId, EventId, IsOrganizer, IsContactPerson)
-                VALUES (@AccountId, @EventId, 0, 1)
-                ON CONFLICT(AccountId, EventId) DO UPDATE SET IsContactPerson = 1;",
-                    new { AccountId = contact.Id, EventId = currentEvent.Id }, transaction);
-            }
-
-            transaction.Commit();
-            return affected > 0 ? Result.Ok() : Result.Fail("NotFound");
-        }
-        catch
-        {
-            transaction.Rollback();
-            return Result.Fail("DBError");
-        }
+        try { await UpsertEventMember(accountId, eventId, false, false); return Result.Ok(); }
+        catch (Exception ex) { return Result.Fail($"DBError: {ex.Message}"); }
     }
 
+    public async Task<Result> RemoveParticipant(int accountId, int eventId)
+    {
+        try
+        {
+            await _db.ExecuteAsync(
+                $"DELETE FROM {_db.Tbl("EventMembers")} WHERE AccountId=@Acc AND EventId=@Evt",
+                new { Acc = accountId, Evt = eventId });
+            return Result.Ok();
+        }
+        catch (Exception ex) { return Result.Fail($"DBError: {ex.Message}"); }
+    }
 }

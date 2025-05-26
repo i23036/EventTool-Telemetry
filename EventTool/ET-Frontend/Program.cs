@@ -60,8 +60,9 @@ builder.Services.AddHttpClient("ApiClient", client =>
 // Intern wird hier „ApiClient“ per Factory aufgelöst
 builder.Services.AddScoped(sp => sp.GetRequiredService<IHttpClientFactory>().CreateClient("ApiClient"));
 
-// === API-Client-Wrapper (für User, Events etc.) ===
+// === API-Client-Wrapper ===
 builder.Services.AddScoped<IUserApi, UserApi>();
-// builder.Services.AddScoped<IEventApi, EventApi>(); // weitere API-Clients hier registrieren
+builder.Services.AddScoped<IEventApi, EventApi>();
+builder.Services.AddScoped<IProcessAPI, ProcessAPI>();
 
 await builder.Build().RunAsync();
