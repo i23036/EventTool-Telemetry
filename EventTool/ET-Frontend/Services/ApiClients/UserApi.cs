@@ -71,5 +71,11 @@ namespace ET_Frontend.Services.ApiClients
             var response = await _http.PostAsJsonAsync("api/user/memberships/add", email);
             return response.IsSuccessStatusCode;
         }
+
+        public async Task DeleteCurrentUserAsync()
+        {
+            var response = await _http.DeleteAsync("api/user");
+            response.EnsureSuccessStatusCode();
+        }
     }
 }

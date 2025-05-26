@@ -76,4 +76,15 @@ public class UserController : ControllerBase
         return result.IsSuccess ? Ok() : BadRequest(result.Errors);
     }
 
+    [HttpDelete]                 
+    [Authorize]  
+    public async Task<IActionResult> DeleteCurrent()
+    {
+        var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (!int.TryParse(userIdClaim, out var userId))
+            return Unauthorized();
+
+        var result = await _userService.DeleteUserAsync(userId);
+        return result.IsSuccess ? NoContent() : BadRequest(result.Errors);
+    }
 }
