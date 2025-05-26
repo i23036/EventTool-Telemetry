@@ -1,9 +1,11 @@
 ﻿using System.Data;
+using System.Security.Claims;
 using Dapper;
 using ET_Backend.Repository.Authentication;
 using ET.Shared.DTOs;
 using ET_Backend.Services.Helper.Authentication;
 using FluentResults;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 
@@ -87,6 +89,24 @@ namespace ET_Backend.Controllers
             return BadRequest(new { error });
         }
 
+        /// <summary>Wechselt die aktive Mitgliedschaft des angemeldeten Users.</summary>
+        /// <remarks>Liefert ein frisches JWT mit Domain & Account des Ziel-Accounts.</remarks>
+        [HttpPost("switch/{accountId:int}")]
+        [Authorize]
+        public async Task<IActionResult> SwitchAccount(int accountId)
+        {
+            var currentUserId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
+
+            var result = await _authenticateService.SwitchAccount(accountId, currentUserId);
+            if (result.IsSuccess)
+                return Ok(new { token = result.Value });
+
+            var err = result.Errors.First().Message;
+            return err.StartsWith("Kein Zugriff")
+                ? Forbid(err)
+                : BadRequest(err);
+        }
+
         [HttpGet("verify")]
         public async Task<IActionResult> Verify(
             [FromQuery] string token,
@@ -123,7 +143,6 @@ namespace ET_Backend.Controllers
             log.LogInformation("Account {Id} wurde erfolgreich verifiziert", accId);
 
             return Redirect($"{jwt.Value.FrontendBaseUrl}login?verified=true");
-            
         }
     }
 }

@@ -24,12 +24,14 @@ namespace ET_Backend.Controllers
     {
         private readonly IEventService _eventService;
         private readonly IUserService _userService;
+        private readonly IAccountService _accountService;
         private readonly IOrganizationService _organizationService;
 
-        public EventController(IEventService eventService, IUserService userService, IOrganizationService organizationService)
+        public EventController(IEventService eventService, IUserService userService,IAccountService accountService, IOrganizationService organizationService)
         {
             _eventService = eventService;
             _userService = userService;
+            _accountService = accountService;
             _organizationService = organizationService;
         }
 
@@ -109,14 +111,46 @@ namespace ET_Backend.Controllers
             if (user == null || user.Organization == null)
                 return Unauthorized("Ungültiger Benutzer oder keine Organisation gefunden.");
 
-            Event newEvent = new Event();
-            newEvent.Name = value.Name;
-            newEvent.Description = value.Description;
-            newEvent.Organization = user.Organization;
-            newEvent.Organizers.Add(user);
-            // TODO: Alle Werte einfügen
+            var newEvent = new Event
+            {
+                Name = value.Name,
+                Description = value.Description,
+                Location = value.Location,
+                StartDate = value.StartDate,
+                EndDate = value.EndDate,
+                StartTime = value.StartTime,
+                EndTime = value.EndTime,
+                MinParticipants = value.MinParticipants,
+                MaxParticipants = value.MaxParticipants,
+                RegistrationStart = value.RegistrationStart,
+                RegistrationEnd = value.RegistrationEnd,
+                IsBlueprint = value.IsBlueprint,
+                // TODO Process = await processRepo.GetByIdAsync(value.ProcessId),
+            };
 
-            Result<Event> result = await _eventService.CreateEvent(newEvent);
+            var accounts1 = new List<Account>();
+            foreach (string organizer in value.Organizers.Distinct())
+            {
+                var account = await _accountService.GetAccountByMail(organizer);
+                if (account.IsSuccess)
+                {
+                    accounts1.Add(account.Value);
+                }
+            }
+            newEvent.Organizers = accounts1;
+
+            var accounts2 = new List<Account>();
+            foreach (string contact in value.ContactPersons.Distinct())
+            {
+                var account = await _accountService.GetAccountByMail(contact);
+                if (account.IsSuccess)
+                {
+                    accounts2.Add(account.Value);
+                }
+            }
+            newEvent.Organizers = accounts2;
+
+            Result<Event> result = await _eventService.CreateEvent(newEvent, user.Organization.Id);
 
             if (result.IsSuccess)
             {

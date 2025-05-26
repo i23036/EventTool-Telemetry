@@ -12,6 +12,8 @@ public class Event
 
     public List<Account> Organizers { set; get; } = new List<Account>();
 
+    public List<Account> ContactPersons { set; get; } = new List<Account>();
+
     public Organization Organization { get; set; }
 
     public Process Process { get; set; }

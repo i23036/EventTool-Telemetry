@@ -218,17 +218,32 @@ public class OrganizationRepository : IOrganizationRepository
         }
     }
 
-    public async Task<Result> UpdateOrganization(string domain, OrganizationDto dto)
+    public async Task<Result> UpdateOrganization(int id, OrganizationDto dto)
     {
-        var orgResult = await GetOrganization(domain);
-        if (orgResult.IsFailed) return Result.Fail("Organization not found");
-
+        // 1. Objekt holen
+        var orgResult = await GetOrganization(id);
+        if (orgResult.IsFailed) return Result.Fail("Organisation nicht gefunden");
         var org = orgResult.Value;
-        org.Name = dto.Name;
-        org.Description = dto.Description;
-        org.Domain = dto.Domain;
+
+        // 2. Domain-Eindeutigkeit prüfen
+        if (!string.Equals(org.Domain, dto.Domain, StringComparison.OrdinalIgnoreCase))
+        {
+            var duplicate = await _db.ExecuteScalarAsync<int>(
+                @"SELECT COUNT(1) FROM Organizations 
+              WHERE Domain = @Domain AND Id <> @Id",
+                new { dto.Domain, Id = id });
+
+            if (duplicate > 0)
+                return Result.Fail("Domain existiert bereits");
+        }
+
+        // 3. Felder mappen
+        org.Name            = dto.Name;
+        org.Description     = dto.Description;
+        org.Domain          = dto.Domain;
         org.OrgaPicAsBase64 = dto.OrgaPicAsBase64;
 
+        // 4. Persistieren
         return await EditOrganization(org);
     }
 

@@ -5,6 +5,7 @@ using ET_Frontend.Services.Authentication;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
+using MudBlazor;
 using MudBlazor.Services;
 using Services.Authentication;
 using System.Net.Http.Json;
@@ -16,11 +17,24 @@ builder.RootComponents.Add<App>("#app");
 builder.RootComponents.Add<HeadOutlet>("head::after");
 
 // === Grundlegende UI- und Authentifizierungsdienste ===
-builder.Services.AddMudServices();                          // MudBlazor
+builder.Services.AddMudServices(config =>                   // MudBlazor
+{
+    config.SnackbarConfiguration.PositionClass = Defaults.Classes.Position.BottomLeft;
+    config.SnackbarConfiguration.PreventDuplicates = false;
+    config.SnackbarConfiguration.NewestOnTop = false;
+    config.SnackbarConfiguration.ShowCloseIcon = true;
+    config.SnackbarConfiguration.VisibleStateDuration = 10000;
+    config.SnackbarConfiguration.HideTransitionDuration = 500;
+    config.SnackbarConfiguration.ShowTransitionDuration = 500;
+    config.SnackbarConfiguration.SnackbarVariant = Variant.Filled;
+});            
 builder.Services.AddBlazoredSessionStorage();               // SessionStorage für Tokens etc.
 builder.Services.AddAuthorizationCore();                    // Blazor Auth-System
-builder.Services.AddScoped<AuthenticationStateProvider, JwtAuthenticationStateProvider>();
 builder.Services.AddScoped<ILoginService, LoginService>();
+builder.Services.AddScoped<JwtAuthenticationStateProvider>();  
+builder.Services.AddScoped<AuthenticationStateProvider>(      // zusätzlich als Basis
+    sp => sp.GetRequiredService<JwtAuthenticationStateProvider>());
+
 
 // === Konfiguration laden (z. B. appsettings.Production.json) ===
 var env = builder.HostEnvironment.Environment;

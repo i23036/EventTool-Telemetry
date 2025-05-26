@@ -37,8 +37,8 @@ public interface IOrganizationRepository
     );
 
     Task<Result> EditOrganization(Models.Organization organization);
-    Task<Result> UpdateOrganization(string domain, OrganizationDto dto);
-
+    Task<Result> UpdateOrganization(int id, OrganizationDto dto);
+    
     // === Löschen ===
 
     Task<Result> DeleteOrganization(string domain);

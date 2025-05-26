@@ -50,52 +50,57 @@
                         </TemplateColumn>
                     </Columns>
                 </MudDataGrid>
-                <MudButton Class="float-end mt-4" Variant="Variant.Filled" Color="Color.Primary" OnClick="NavigateToEventCreation">
-                    Event erstellen
-                </MudButton>
+                @if (CanCreateEvents){
+                    <MudButton Class="float-end mt-4" Variant="Variant.Filled" Color="Color.Primary" OnClick="NavigateToEventCreation">
+                        Event erstellen
+                    </MudButton>
+                }
             </MudTabPanel>
 
             <!-- Organisation Tab -->
-            <MudTabPanel Text="Organisation">
-                <MudText Typo="Typo.h4" Class="mb-3">Mitglieder</MudText>
-                <MudDataGrid T="OrganizationMemberViewModel" Items="@OrgMembers" Dense="true">
-                    <Columns>
-                        <PropertyColumn Property="x => x.LastName" Title="Nachname" />
-                        <PropertyColumn Property="x => x.Email" Title="E-Mail" />
-                        <TemplateColumn Title="Rolle">
-                            <CellTemplate Context="ctx">
-                                <MudSelect T="int" Dense="true" Value="ctx.Item.Role" ValueChanged="@((int r) => PrepareRoleChange(ctx.Item, r))">
-                                    <MudSelectItem Value="0">Owner</MudSelectItem>
-                                    <MudSelectItem Value="1">Organisator</MudSelectItem>
-                                    <MudSelectItem Value="2">Mitglied</MudSelectItem>
-                                </MudSelect>
-                            </CellTemplate>
-                        </TemplateColumn>
-                        <TemplateColumn Title="" CellClass="text-end">
-                            <CellTemplate Context="ctx">
-                                <MudButton Variant="Variant.Filled" Color="Color.Error" Size="Size.Small" OnClick="@(() => RemoveMember(ctx.Item))">
-                                    Entfernen
-                                </MudButton>
-                            </CellTemplate>
-                        </TemplateColumn>
-                    </Columns>
-                </MudDataGrid>
-                <MudButton Class="float-end mt-4" OnClick="ChangeOrgaData" Variant="Variant.Filled" Color="Color.Primary">Organisationsdaten ändern</MudButton>
+            @if (IsOwner)
+            {
+                <MudTabPanel Text="Organisation">
+                    <MudText Typo="Typo.h4" Class="mb-3">Mitglieder</MudText>
+                    <MudDataGrid T="OrganizationMemberViewModel" Items="@OrgMembers" Dense="true">
+                        <Columns>
+                            <PropertyColumn Property="x => x.LastName" Title="Nachname" />
+                            <PropertyColumn Property="x => x.Email" Title="E-Mail" />
+                            <TemplateColumn Title="Rolle">
+                                <CellTemplate Context="ctx">
+                                    <MudSelect T="int" Dense="true" Value="ctx.Item.Role" ValueChanged="@((int r) => PrepareRoleChange(ctx.Item, r))">
+                                        <MudSelectItem Value="0">Owner</MudSelectItem>
+                                        <MudSelectItem Value="1">Organisator</MudSelectItem>
+                                        <MudSelectItem Value="2">Mitglied</MudSelectItem>
+                                    </MudSelect>
+                                </CellTemplate>
+                            </TemplateColumn>
+                            <TemplateColumn Title="" CellClass="text-end">
+                                <CellTemplate Context="ctx">
+                                    <MudButton Variant="Variant.Filled" Color="Color.Error" Size="Size.Small" OnClick="@(() => RemoveMember(ctx.Item))">
+                                        Entfernen
+                                    </MudButton>
+                                </CellTemplate>
+                            </TemplateColumn>
+                        </Columns>
+                    </MudDataGrid>
+                    <MudButton Class="float-end mt-4" OnClick="ChangeOrgaData" Variant="Variant.Filled" Color="Color.Primary">Organisationsdaten ändern</MudButton>
 
-                @if (ShowConfirmDialog)
-                {
-                    <SimpleConfirm Message="Das Mitglied wird dauerhaft aus der Organisation entfernt. Möchten Sie fortfahren?"
-                                   ConfirmText="Löschen"
-                                   OnConfirm="HandleDeleteConfirm" />
-                }
+                    @if (ShowConfirmDialog)
+                    {
+                        <SimpleConfirm Message="Das Mitglied wird dauerhaft aus der Organisation entfernt. Möchten Sie fortfahren?"
+                        ConfirmText="Löschen"
+                        OnConfirm="HandleDeleteConfirm" />
+                    }
 
-                @if (ShowRoleConfirmDialog)
-                {
-                    <SimpleConfirm Message="Möchten Sie die Rolle dieses Mitglieds wirklich ändern?"
-                                   ConfirmText="Ändern"
-                                   OnConfirm="HandleRoleConfirm" />
-                }
-            </MudTabPanel>
+                    @if (ShowRoleConfirmDialog)
+                    {
+                        <SimpleConfirm Message="Möchten Sie die Rolle dieses Mitglieds wirklich ändern?"
+                        ConfirmText="Ändern"
+                        OnConfirm="HandleRoleConfirm" />
+                    }
+                </MudTabPanel>
+            }
         </MudTabs>
     </MudPaper>
 </div>
@@ -105,6 +110,9 @@
     private List<EventViewModel> Events = new();
 
     private bool ShowConfirmDialog = false;
+    private bool IsOwner = false;
+    private bool CanCreateEvents = false;
+
     private OrganizationMemberViewModel MemberToDelete;
 
     private bool ShowRoleConfirmDialog = false;
@@ -115,7 +123,18 @@
     {
         await LoadEvents();
         await LoadMembers();
+        await CheckUserPermissions();
     }
+
+    private async Task CheckUserPermissions()
+    {
+        var role = await JwtClaimHelper.GetUserRoleAsync(AuthProvider);
+        Console.WriteLine($"[Home] Benutzerrolle: {role}");
+
+        IsOwner = string.Equals(role, "owner", StringComparison.OrdinalIgnoreCase);
+        CanCreateEvents = IsOwner || string.Equals(role, "organisator", StringComparison.OrdinalIgnoreCase);
+    }
+
 
     private async Task LoadEvents()
     {

@@ -1,133 +1,198 @@
 ﻿@page "/User/Edit"
 @attribute [Authorize]
 @using Microsoft.AspNetCore.Authorization
-
+@using ET_Frontend.Pages.Components
 @using System.ComponentModel.DataAnnotations
 @using ET_Frontend.Helpers
 @using ET_Frontend.Models.AccountManagement
+@using ET_Frontend.Services.Authentication
 @using ET.Shared.DTOs;
 @using MudBlazor
 
 @inject ET_Frontend.Services.ApiClients.IUserApi UserApi
-@inject Microsoft.AspNetCore.Components.Authorization.AuthenticationStateProvider AuthProvider
+@inject JwtAuthenticationStateProvider AuthProvider
+@inject NavigationManager Navigation
+@inject Blazored.SessionStorage.ISessionStorageService SessionStorage
+@inject ISnackbar Snackbar
 
 <PageTitle>Nutzerdaten bearbeiten</PageTitle>
 
 <div class="flex-md-column w-100 h-100 p-4">
-    <MudText Typo="Typo.h4">Benutzerdaten </MudText>
+    <MudText Typo="Typo.h4">Benutzerdaten</MudText>
+
     <MudForm Model="@userModel" @ref="_editForm" OnValidSubmit="toRegister">
 
         <MudTextField @bind-Value="userModel.FirstName"
                       Label="Vorname"
-                      For="@(() => userModel.FirstName)"
-                      Required="true"
-                      RequiredError="Vorname ist erforderlich."
                       Variant="Variant.Filled"
                       Margin="Margin.Dense"
                       Class="mb-3" />
 
         <MudTextField @bind-Value="userModel.LastName"
                       Label="Nachname"
-                      For="@(() => userModel.LastName)"
-                      Required="true"
-                      RequiredError="Nachname ist erforderlich."
                       Variant="Variant.Filled"
                       Margin="Margin.Dense"
                       Class="mb-3" />
 
         <MudTextField @bind-Value="userModel.Password"
                       Label="Passwort"
-                      InputType="InputType.Password"
-                      For="@(() => userModel.Password)"
-                      Required="true"
-                      RequiredError="Passwort ist erforderlich."
                       Variant="Variant.Filled"
                       Margin="Margin.Dense"
                       Class="mb-3" />
 
         <MudTextField @bind-Value="userModel.Reppassword"
                       Label="Passwort wiederholen"
-                      InputType="InputType.Password"
-                      For="@(() => userModel.Reppassword)"
-                      Required="true"
-                      RequiredError="Wiederholtes Passwort ist erforderlich."
                       Variant="Variant.Filled"
                       Margin="Margin.Dense"
                       Class="mb-3" />
-        <div class="d-flex w-100 align-content-center justify-content-between">
-            <MudButton Type="ButtonType.Submit"
-                       OnClick="ResetChanges"
-                       Variant="Variant.Filled"
-                       Color="Color.Primary"
-                       Class="mt-2">
-                Änderungen zurücksetzten
-            </MudButton>
 
-            <div class="d-flex w-100 align-content-center justify-content-center">
-                <MudPopover OverflowBehavior="OverflowBehavior.FlipNever" Open="@popupState" AnchorOrigin="Origin.CenterCenter" TransformOrigin="Origin.CenterCenter" Class="pa-4 flex-column">
-                    <MudText Typo="Typo.body2" Class="px-4 py-1">@popupText</MudText>
-                    <MudButton Class="float-end" OnClick="@(() => popupState = false)">OK</MudButton>
-                </MudPopover>
+        <!-- Buttonbereich -->
+        <div class="d-flex justify-content-between align-items-start mt-4" style="gap: 1.5rem;">
+            <div class="d-flex" style="gap: 1.5rem;">
+                <MudButton Type="ButtonType.Button"
+                           OnClick="ResetChanges"
+                           Variant="Variant.Filled"
+                           Color="Color.Primary"
+                           Class="px-4 py-2">
+                    Änderungen zurücksetzen
+                </MudButton>
+
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Error"
+                           OnClick="@(() => showDeleteConfirmDialog = true)"
+                           Class="px-4 py-2">
+                    Benutzer löschen
+                </MudButton>
             </div>
 
             <MudButton Type="ButtonType.Submit"
                        OnClick="ChangeUserInfo"
                        Variant="Variant.Filled"
                        Color="Color.Primary"
-                       Class="mt-2">
-                Änderungen Speichern
+                       Class="px-4 py-2">
+                Änderungen speichern
             </MudButton>
         </div>
 
+       
     </MudForm>
 </div>
 
+<!-- Confirm Dialog -->
+@if (showDeleteConfirmDialog)
+{
+    <SimpleConfirm Message="Sind Sie sicher, dass Sie Ihr Benutzerkonto und damit auch alle Mitgliedschaften löschen möchten? Diese Aktion kann nicht rückgängig gemacht werden."
+                   ConfirmText="Löschen"
+                   OnConfirm="HandleDeleteConfirm" />
+}
+
 @code {
-	private MudForm _editForm;
-	private UserEditViewModel userModel = new();
+    private MudForm _editForm;
+    private UserEditViewModel userModel = new();
 
-	private bool popupState = false;
-    private string popupText = "Wir tun mal so, als wäre das ein Easter Egg. Glückwunsch!";
 
-	protected override async Task OnInitializedAsync()
-	{
-		var id = await JwtClaimHelper.GetUserIdAsync(AuthProvider);
-		if (id < 1)
-		{
-			popupText = "Nicht eingeloggt oder ID ungültig.";
-			popupState = true;
-			return;
-		}
+    private bool showDeleteConfirmDialog = false;
 
-		var data = await UserApi.GetCurrentUserAsync();
-		if (data != null)
-		{
-			userModel = new UserEditViewModel
-			{
-				FirstName = data.FirstName,
-				LastName = data.LastName,
-				Password = string.Empty,
-				Reppassword = string.Empty
-			};
-		}
-		else
-		{
-			popupText = "Fehler beim Laden der Benutzerdaten.";
-			popupState = true;
-		}
-	}
+    protected override async Task OnInitializedAsync()
+    {
+        var id = await JwtClaimHelper.GetUserIdAsync(AuthProvider);
+        if (id < 1)
+        {
+            Snackbar.Add("Nicht eingeloggt oder ID ungültig.", Severity.Error);
+            return;
+        }
 
-	private async Task ChangeUserInfo()
-	{
-		var success = await UserApi.UpdateUserAsync(userModel);
-		popupText = success ? "Änderungen gespeichert" : "Fehler beim Speichern der Daten";
-		popupState = true;
-	}
+        var data = await UserApi.GetCurrentUserAsync();
+        if (data != null)
+        {
+            userModel = new UserEditViewModel
+            {
+                FirstName = data.FirstName,
+                LastName = data.LastName,
+                Password = string.Empty,
+                Reppassword = string.Empty
+            };
+        }
+        else
+        {
+            Snackbar.Add("Fehler beim Laden der Benutzerdaten.", Severity.Error);
+        }
+    }
 
-	private async Task ResetChanges()
-	{
-		await OnInitializedAsync();
-		popupText = "Änderungen verworfen";
-		popupState = true;
-	}
+    private async Task ChangeUserInfo()
+    {
+        // Wenn Passwort angegeben wurde, dann validieren
+        if (!string.IsNullOrWhiteSpace(userModel.Password))
+        {
+            if (userModel.Password.Length < 6)
+            {
+                Snackbar.Add("Das Passwort muss mindestens 6 Zeichen lang sein.", Severity.Warning);
+                return;
+            }
+
+            if (userModel.Password != userModel.Reppassword)
+            {
+                Snackbar.Add("Die Passwörter stimmen nicht überein.", Severity.Warning);
+                return;
+            }
+        }
+
+        // Leere Passwörter explizit auf null setzen, damit sie nicht überschrieben werden
+        if (string.IsNullOrWhiteSpace(userModel.Password))
+        {
+            userModel.Password = string.Empty;
+            userModel.Reppassword = string.Empty;
+        }
+
+        var success = await UserApi.UpdateUserAsync(userModel);
+        if (success)
+        {
+            Snackbar.Add("Änderungen gespeichert.", Severity.Success);
+        }
+        else
+        {
+            Snackbar.Add("Fehler beim Speichern der Daten.", Severity.Error);
+        }
+    }
+
+
+    private async Task ResetChanges()
+    {
+        await OnInitializedAsync();
+        Snackbar.Add("Änderungen verworfen.", Severity.Success);
+    }
+
+    private async Task HandleDeleteConfirm(bool confirmed)
+    {
+	    showDeleteConfirmDialog = false;
+	    if (!confirmed)
+		    return;
+
+	    var ok = true;
+	    try
+	    {
+		    await UserApi.DeleteCurrentUserAsync();
+	    }
+	    catch
+	    {
+		    ok = false;
+	    }
+
+	    if (ok)
+	    {
+		    // >>> Token aus dem Session-Storage entfernen
+		    await SessionStorage.RemoveItemAsync("authToken");
+
+		    // >>> StateProvider informieren
+		    if (AuthProvider is JwtAuthenticationStateProvider jwtProvider)
+			    jwtProvider.NotifyAuthenticationStateChanged();
+
+		    // >>> Redirect zum Login
+		    Navigation.NavigateTo("/login", forceLoad: true);
+	    }
+	    else
+	    {
+            Snackbar.Add("Fehler beim Löschen des Benutzers.", Severity.Error);
+	    }
+    }
 }

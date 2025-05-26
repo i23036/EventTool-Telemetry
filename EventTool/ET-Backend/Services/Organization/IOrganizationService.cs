@@ -46,7 +46,7 @@ public interface IOrganizationService
     Task<Result> EditOrganization(Models.Organization organization);
 
     /// <summary>Aktualisiert eine Organisation mit DTO-Daten (z. B. aus dem Frontend).</summary>
-    Task<Result> UpdateOrganization(string domain, OrganizationDto dto);
+    Task<Result> UpdateOrganization(int id, OrganizationDto dto);
 
     // === Löschen ===
 

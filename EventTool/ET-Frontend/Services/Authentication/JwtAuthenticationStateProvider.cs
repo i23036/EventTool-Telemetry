@@ -12,7 +12,6 @@ namespace ET_Frontend.Services.Authentication;
 public class JwtAuthenticationStateProvider : AuthenticationStateProvider
 {
     private readonly ISessionStorageService _sessionStorage;
-
     private const string TokenKey = "authToken";
 
     public JwtAuthenticationStateProvider(ISessionStorageService sessionStorage)
@@ -46,6 +45,15 @@ public class JwtAuthenticationStateProvider : AuthenticationStateProvider
             // Token konnte nicht gelesen werden → als nicht authentifiziert behandeln
             return new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity()));
         }
+    }
+
+    /// <summary>
+    /// Speichert das neue JWT und informiert die App über den geänderten Auth-State.
+    /// </summary>
+    public async Task MarkUserAsAuthenticated(string token)  
+    {
+        await _sessionStorage.SetItemAsStringAsync(TokenKey, token);
+        NotifyAuthenticationStateChanged(GetAuthenticationStateAsync());
     }
 
     /// <summary>

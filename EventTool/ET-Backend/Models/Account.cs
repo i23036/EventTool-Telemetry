@@ -11,6 +11,8 @@ public class Account
 
     public string EMail { set; get; }
 
+    public int UserId { get; set; }
+
     public User User { set; get; }
 
     public Organization Organization { set; get; }
@@ -20,5 +22,4 @@ public class Account
     public Role Role { set; get; }
 
     public List<Event> Events { set; get; } = new List<Event>();
-
 }

@@ -18,4 +18,7 @@ public interface IAccountRepository
     public Task<Result<Account>> GetAccount(int accountId);
     public Task<Result> EditAccount(Account account);
     public Task<Result> RemoveFromOrganization(int accountId, int orgId);
+    public Task<Result<List<Account>>> GetAccountsByUser(int userId);          
+    public Task<Result> UpdateEmail(int accountId, string email);
+    public Task<Result> UpdateEmailDomainsForOrganization(int orgId, string oldDomain, string newDomain);
 }
