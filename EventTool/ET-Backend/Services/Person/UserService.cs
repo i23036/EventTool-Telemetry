@@ -90,5 +90,10 @@ namespace ET_Backend.Services.Person
 
         public async Task<Result> DeleteMembershipAsync(int accountId, int orgId)
             => await _accountRepo.RemoveFromOrganization(accountId, orgId);
+
+        public async Task<Result> DeleteUserAsync(int userId)
+        {
+            return await _userRepository.DeleteUser(userId);
+        }
     }
 }

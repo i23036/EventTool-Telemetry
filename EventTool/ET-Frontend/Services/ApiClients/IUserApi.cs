@@ -26,5 +26,6 @@ namespace ET_Frontend.Services.ApiClients
         Task<bool> DeleteMembershipAsync(int accountId, int orgId);
         Task<string?> SwitchAccountAsync(int accountId);
         Task<bool> AddMembershipAsync(string email);
+        Task DeleteCurrentUserAsync();  
     }
 }

@@ -26,5 +26,6 @@ namespace ET_Backend.Services.Person
         /// </summary>
         /// <param name="dto">Neue Benutzerdaten als DTO.</param>
         Task<Result> UpdateUserAsync(UserDto dto);
+        Task<Result> DeleteUserAsync(int userId);
     }
 }

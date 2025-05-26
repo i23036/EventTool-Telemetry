@@ -63,24 +63,54 @@ public class UserRepository : IUserRepository
             return Result.Fail($"DBError: {ex.Message}");
         }
     }
-
-
+    
     public async Task<Result> DeleteUser(int userId)
     {
+        using var tx = _db.BeginSafeTransaction();    
+
         try
         {
-            var affected = await _db.ExecuteAsync(
-                "DELETE FROM Users WHERE Id = @Id",
-                new { Id = userId });
+            // Alle Accounts des Users ermitteln
+            var accountIds = (await _db.QueryAsync<int>(
+                $"SELECT Id FROM {_db.Tbl("Accounts")} WHERE UserId = @UserId",
+                new { UserId = userId }, tx)).ToList();
 
-            return affected > 0 ? Result.Ok() : Result.Fail("NotFound");
+            if (!accountIds.Any())
+            {
+                tx.Rollback();
+                return Result.Fail("NotFound");
+            }
+
+            // Mitgliedschaften entfernen
+            await _db.ExecuteAsync(
+                $"DELETE FROM {_db.Tbl("OrganizationMembers")} WHERE AccountId IN @AccIds",
+                new { AccIds = accountIds }, tx);
+
+            // Event-Teilnahmen entfernen
+            await _db.ExecuteAsync(
+                $"DELETE FROM {_db.Tbl("EventMembers")} WHERE AccountId IN @AccIds",
+                new { AccIds = accountIds }, tx);
+
+            // Accounts löschen
+            await _db.ExecuteAsync(
+                $"DELETE FROM {_db.Tbl("Accounts")} WHERE UserId = @UserId",
+                new { UserId = userId }, tx);
+
+            // User löschen
+            await _db.ExecuteAsync(
+                $"DELETE FROM {_db.Tbl("Users")} WHERE Id = @UserId",
+                new { UserId = userId }, tx);
+
+            tx.Commit();
+            return Result.Ok();
         }
-        catch(Exception ex)
+        catch (Exception ex)
         {
+            tx.Rollback();
             return Result.Fail($"DBError: {ex.Message}");
         }
     }
-
+    
     public async Task<Result<User>> GetUser(int userId)
     {
         try

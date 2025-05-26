@@ -12,6 +12,7 @@
 @inject ET_Frontend.Services.ApiClients.IUserApi UserApi
 @inject JwtAuthenticationStateProvider AuthProvider
 @inject NavigationManager Navigation
+@inject Blazored.SessionStorage.ISessionStorageService SessionStorage
 
 <PageTitle>Nutzerdaten bearbeiten</PageTitle>
 
@@ -162,12 +163,36 @@
 
     private async Task HandleDeleteConfirm(bool confirmed)
     {
-        showDeleteConfirmDialog = false;
+	    showDeleteConfirmDialog = false;
+	    if (!confirmed)
+		    return;
 
-        if (!confirmed)
-            return;
+	    var ok = true;
+	    try
+	    {
+		    await UserApi.DeleteCurrentUserAsync();
+	    }
+	    catch
+	    {
+		    ok = false;
+	    }
 
-        // Hier später API-Aufruf + Logout
-        Console.WriteLine("Benutzer wurde zur Löschung bestätigt.");
+	    if (ok)
+	    {
+		    // >>> Token aus dem Session-Storage entfernen
+		    await SessionStorage.RemoveItemAsync("authToken");
+
+		    // >>> StateProvider informieren
+		    if (AuthProvider is JwtAuthenticationStateProvider jwtProvider)
+			    jwtProvider.NotifyAuthenticationStateChanged();
+
+		    // >>> Redirect zum Login
+		    Navigation.NavigateTo("/login", forceLoad: true);
+	    }
+	    else
+	    {
+		    popupText  = "Löschen fehlgeschlagen.";
+		    popupState = true;
+	    }
     }
 }
