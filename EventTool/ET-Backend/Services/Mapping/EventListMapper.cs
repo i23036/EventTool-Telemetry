@@ -25,6 +25,25 @@ public static class EventListMapper
     }
 
     /// <summary>
+    /// Wandelt ein Event-Model in ein EventListDto um – nur anhand der Account-Id.
+    /// </summary>
+    public static EventListDto ToDto(Models.Event evt, int currentAccountId)
+    {
+        bool isOrganizer  = evt.Organizers.Any(o  => o.Id == currentAccountId);
+        bool isSubscribed = evt.Participants.Any(p => p.Id == currentAccountId);
+
+        return new EventListDto(
+            evt.Id,
+            evt.Name,
+            evt.Description,
+            evt.Participants.Count,
+            evt.MaxParticipants,
+            isOrganizer,
+            isSubscribed
+        );
+    }
+
+    /// <summary>
     /// Wandelt ein Event-Model in ein EventListDto ohne Benutzerbezug um.
     /// </summary>
     public static EventListDto ToDto(Models.Event evt)

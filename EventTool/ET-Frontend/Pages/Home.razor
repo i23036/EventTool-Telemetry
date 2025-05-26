@@ -14,6 +14,8 @@
 @inject ISessionStorageService SessionStorage
 @inject NavigationManager Navigation
 @inject AuthenticationStateProvider AuthProvider
+@inject Services.ApiClients.IEventApi EventApi 
+@inject ISnackbar Snackbar
 
 <PageTitle>Home</PageTitle>
 
@@ -42,10 +44,13 @@
                                             Bearbeiten
                                         </MudButton>
                                     }
-                                    <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary">
-                                        @(eventItem.Item.IsSubscribed ? "Abmelden" : "Anmelden")
+                                    <MudButton Size="Size.Small"
+                                               Variant="Variant.Filled"
+                                               Color="Color.Primary"
+                                               OnClick="@(() => ToggleSubscription(eventItem.Item))">
+	                                    @(eventItem.Item.IsSubscribed ? "Abmelden" : "Anmelden")
                                     </MudButton>
-                                </MudStack>
+								</MudStack>
                             </CellTemplate>
                         </TemplateColumn>
                     </Columns>
@@ -261,5 +266,23 @@
     private void ChangeOrgaData()
     {
         Navigation.NavigateTo("/Organisationsdaten");
+    }
+
+    private async Task ToggleSubscription(EventViewModel ev)
+    {
+	    bool ok = ev.IsSubscribed
+		    ? await EventApi.UnsubscribeAsync(ev.EventId)
+		    : await EventApi.SubscribeAsync(ev.EventId);
+
+	    if (ok)
+	    {
+            await LoadEvents();
+		    ev.IsSubscribed = !ev.IsSubscribed;
+		    StateHasChanged();
+	    }
+	    else
+	    {
+            Snackbar.Add("Fehler beim Anmelden zum Event.", Severity.Error);
+	    }
     }
 }

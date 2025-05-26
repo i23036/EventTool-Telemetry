@@ -12,4 +12,5 @@ public interface IEventService
 
     public Task<Result<Models.Event>> CreateEvent(Models.Event newEvent, int organizationId);
     public Task<Result> DeleteEvent(int eventId);
+    public Task<Result<Models.Event>> GetEvent(int eventId);
 }
