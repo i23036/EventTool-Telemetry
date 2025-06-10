@@ -20,16 +20,18 @@ namespace ET_Backend.Controllers
     [ApiController]
     public class AuthenticateController : ControllerBase
     {
-        private IAuthenticateService _authenticateService;
+        private readonly IAuthenticateService _authenticateService;
+        private readonly ILogger<AuthenticateController> _logger;
 
         /// <summary>
         /// Initialisiert eine neue Instanz des <see cref="AuthenticateController"/>.
         /// </summary>
         /// <param name="authenticateService">Service zur Benutzer-Authentifizierung.</param>
         
-        public AuthenticateController(IAuthenticateService authenticateService)
+        public AuthenticateController(IAuthenticateService authenticateService, ILogger<AuthenticateController> logger)
         {
             _authenticateService = authenticateService;
+            _logger = logger;
         }
 
         /// <summary>
@@ -96,15 +98,19 @@ namespace ET_Backend.Controllers
         public async Task<IActionResult> SwitchAccount(int accountId)
         {
             var currentUserId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
-
             var result = await _authenticateService.SwitchAccount(accountId, currentUserId);
+
             if (result.IsSuccess)
+            {
+                _logger.LogInformation("Accountwechsel erfolgreich. Neuer AccountId: {AccountId}", accountId);
                 return Ok(new { token = result.Value });
+            }
 
             var err = result.Errors.First().Message;
-            return err.StartsWith("Kein Zugriff")
-                ? Forbid(err)
-                : BadRequest(err);
+            _logger.LogWarning("Fehler beim Accountwechsel: {Error}", err);
+
+            // Keine Forbid mehr, sondern immer 400 für bessere API-Feedbacks
+            return BadRequest(new { error = err });
         }
 
         [HttpGet("verify")]
