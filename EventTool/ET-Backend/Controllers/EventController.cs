@@ -27,13 +27,15 @@ namespace ET_Backend.Controllers
         private readonly IUserService _userService;
         private readonly IAccountService _accountService;
         private readonly IOrganizationService _organizationService;
+        private readonly ILogger<EventController> _logger;
 
-        public EventController(IEventService eventService, IUserService userService,IAccountService accountService, IOrganizationService organizationService)
+        public EventController(IEventService eventService, IUserService userService,IAccountService accountService, IOrganizationService organizationService, ILogger<EventController> logger)
         {
             _eventService = eventService;
             _userService = userService;
             _accountService = accountService;
             _organizationService = organizationService;
+            _logger = logger;
         }
 
         [HttpGet("eventList/{domain}")]
@@ -89,12 +91,14 @@ namespace ET_Backend.Controllers
         }
 
         [HttpPost("createEvent")]
+        [Authorize]
         public async Task<IActionResult> CreateEvent([FromBody] EventDto value)
         {
             var user = await _userService.GetCurrentUserAsync(User);
             if (user == null || user.Organization == null)
                 return Unauthorized("Ungültiger Benutzer oder keine Organisation gefunden.");
 
+            // Grunddaten
             var newEvent = new Event
             {
                 Name = value.Name,
@@ -108,44 +112,40 @@ namespace ET_Backend.Controllers
                 MaxParticipants = value.MaxParticipants,
                 RegistrationStart = value.RegistrationStart,
                 RegistrationEnd = value.RegistrationEnd,
-                IsBlueprint = value.IsBlueprint,
-                // TODO Process = await processRepo.GetByIdAsync(value.ProcessId),
+                IsBlueprint = value.IsBlueprint
             };
 
-            var accounts1 = new List<Account>();
+            // Organizers
+            var organizerAccounts = new List<Account>();
             foreach (string organizer in value.Organizers.Distinct())
             {
-                var account = await _accountService.GetAccountByMail(organizer);
-                if (account.IsSuccess)
-                {
-                    accounts1.Add(account.Value);
-                }
+                var accResult = await _accountService.GetAccountByMail(organizer);
+                if (accResult.IsSuccess)
+                    organizerAccounts.Add(accResult.Value);
             }
-            newEvent.Organizers = accounts1;
+            newEvent.Organizers = organizerAccounts;
 
-            var accounts2 = new List<Account>();
+            // ContactPersons
+            var contactAccounts = new List<Account>();
             foreach (string contact in value.ContactPersons.Distinct())
             {
-                var account = await _accountService.GetAccountByMail(contact);
-                if (account.IsSuccess)
-                {
-                    accounts2.Add(account.Value);
-                }
+                var accResult = await _accountService.GetAccountByMail(contact);
+                if (accResult.IsSuccess)
+                    contactAccounts.Add(accResult.Value);
             }
-            newEvent.Organizers = accounts2;
+            newEvent.ContactPersons = contactAccounts;
 
-            Result<Event> result = await _eventService.CreateEvent(newEvent, user.Organization.Id);
-
+            // Event anlegen
+            var result = await _eventService.CreateEvent(newEvent, user.Organization.Id);
             if (result.IsSuccess)
             {
-                return Ok();
+                _logger.LogInformation("Event erstellt: {Name} durch {User}", value.Name, user.EMail);
+                return Ok(); // oder: Ok(EventDtoMapper.ToDto(result.Value));
             }
-            else
-            {
-                return BadRequest();
-            }
-        }
 
+            // Fehler mit ausgeben
+            return BadRequest(new { errors = result.Errors.Select(e => e.Message) });
+        }
 
         [HttpDelete("{eventId}")]
         public async Task<IActionResult> DeleteEvent(int eventId)
