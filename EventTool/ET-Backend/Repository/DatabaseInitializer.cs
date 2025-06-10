@@ -155,6 +155,7 @@ public class DatabaseInitializer(IDbConnection db, ILogger<DatabaseInitializer> 
 
     public void SeedDemoData()
     {
+        // Anlegen der ersten Demo-Organisation und des Admin-Users!
         var orgExists = _db.ExecuteScalar<int>("SELECT COUNT(1) FROM Organizations WHERE Domain = 'demo.org';") > 0;
         if (!orgExists)
         {
@@ -196,6 +197,53 @@ public class DatabaseInitializer(IDbConnection db, ILogger<DatabaseInitializer> 
             );");
         }
 
+        // Zusätzliche Test-Organisationen für die Dev-Umgebung
+        var additionalOrgs = new[]
+        {
+            new { Name = "DemoOrg1", Domain = "demo1.org", Description = "Zweite Demo-Organisation", LogoFile = "1.png" },
+            new { Name = "DemoOrg2", Domain = "demo2.org", Description = "Dritte Demo-Organisation", LogoFile = "2.png" },
+            new { Name = "DemoOrg3", Domain = "demo3.org", Description = "Vierte Demo-Organisation", LogoFile = "3.png" }
+        };
+
+        foreach (var org in additionalOrgs)
+        {
+            var exists = _db.ExecuteScalar<int>(
+                "SELECT COUNT(1) FROM Organizations WHERE Domain = @Domain;",
+                new { org.Domain }) > 0;
+
+            if (!exists)
+            {
+                // Logo in Base64 laden
+                var logoBase64 = DbUtils.GetBase64FromImage($"Resources/Seed/{org.LogoFile}");
+
+                // Organisation einfügen
+                _db.Execute(@"
+            INSERT INTO Organizations (Name, Domain, Description, OrgaPicAsBase64)
+            VALUES (@Name, @Domain, @Description, @Logo);",
+                    new { org.Name, org.Domain, org.Description, Logo = logoBase64 });
+
+                // Account für "Max Mustermann" anlegen – UserId aus Mustermann holen
+                var userId = _db.ExecuteScalar<int>("SELECT Id FROM Users WHERE Lastname = 'Mustermann' LIMIT 1;");
+                _db.Execute(@"
+            INSERT INTO Accounts (Email, IsVerified, UserId)
+            VALUES (
+                @Email,
+                1,
+                @UserId
+            );",
+                    new { Email = $"admin@{org.Domain}", UserId = userId });
+
+                // OrgaMember mit Rolle Owner
+                _db.Execute(@"
+            INSERT INTO OrganizationMembers (AccountId, OrganizationId, Role)
+            VALUES (
+                (SELECT Id FROM Accounts WHERE Email = @Email),
+                (SELECT Id FROM Organizations WHERE Domain = @Domain),
+                0 -- Role.Owner
+            );",
+                    new { Email = $"admin@{org.Domain}", org.Domain });
+            }
+        }
 
         // Trigger
         var triggerCount = _db.ExecuteScalar<int>("SELECT COUNT(1) FROM Triggers;");
