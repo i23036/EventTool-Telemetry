@@ -2,17 +2,12 @@
 using ET.Shared.DTOs;
 using ET_Backend.Models;
 using ET_Backend.Services.Event;
-using ET_Backend.Services.Helper.Authentication;
 using ET_Backend.Services.Mapping;
 using ET_Backend.Services.Organization;
 using ET_Backend.Services.Person;
 using FluentResults;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
-using Microsoft.IdentityModel.Tokens;
-
-// For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
 namespace ET_Backend.Controllers
 {
@@ -27,15 +22,13 @@ namespace ET_Backend.Controllers
         private readonly IUserService _userService;
         private readonly IAccountService _accountService;
         private readonly IOrganizationService _organizationService;
-        private readonly ILogger<EventController> _logger;
-
-        public EventController(IEventService eventService, IUserService userService,IAccountService accountService, IOrganizationService organizationService, ILogger<EventController> logger)
+        
+        public EventController(IEventService eventService, IUserService userService,IAccountService accountService, IOrganizationService organizationService)
         {
             _eventService = eventService;
             _userService = userService;
             _accountService = accountService;
             _organizationService = organizationService;
-            _logger = logger;
         }
 
         [HttpGet("eventList/{domain}")]
@@ -139,8 +132,7 @@ namespace ET_Backend.Controllers
             var result = await _eventService.CreateEvent(newEvent, user.Organization.Id);
             if (result.IsSuccess)
             {
-                _logger.LogInformation("Event erstellt: {Name} durch {User}", value.Name, user.EMail);
-                return Ok(); // oder: Ok(EventDtoMapper.ToDto(result.Value));
+                return Ok();
             }
 
             // Fehler mit ausgeben

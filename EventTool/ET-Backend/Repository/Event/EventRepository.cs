@@ -3,6 +3,7 @@ using Dapper;
 using ET_Backend.Models;
 using FluentResults;
 
+
 namespace ET_Backend.Repository.Event;
 
 public class EventRepository : IEventRepository

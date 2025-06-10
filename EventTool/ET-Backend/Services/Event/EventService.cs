@@ -10,41 +10,96 @@ public class EventService : IEventService
     private readonly IEventRepository _eventRepository;
     private readonly IOrganizationRepository _organizationRepository;
     private readonly IAccountRepository _accountRepository;
+    private readonly ILogger<EventService> _logger;
 
-    public EventService(IEventRepository eventRepository, IOrganizationRepository organizationRepository, IAccountRepository accountRepository)
+    public EventService(
+        IEventRepository eventRepository,
+        IOrganizationRepository organizationRepository,
+        IAccountRepository accountRepository,
+        ILogger<EventService> logger)
     {
         _eventRepository = eventRepository;
         _organizationRepository = organizationRepository;
         _accountRepository = accountRepository;
+        _logger = logger;
     }
 
     public async Task<Result<List<Models.Event>>> GetEventsFromOrganization(int organizationId)
     {
-        return await _eventRepository.GetEventsByOrganization(organizationId);
+        var result = await _eventRepository.GetEventsByOrganization(organizationId);
+        if (result.IsSuccess)
+            _logger.LogInformation("Events geladen für OrganizationId: {OrgId}", organizationId);
+        else
+            _logger.LogWarning("Fehler beim Laden der Events für OrganizationId: {OrgId}. Fehler: {Error}", organizationId, result.Errors.FirstOrDefault()?.Message);
+
+        return result;
     }
 
-    public async Task<Result<List<Models.Event>>> GetEventsFromOrganization(String domain)
+    public async Task<Result<List<Models.Event>>> GetEventsFromOrganization(string domain)
     {
-        Result<Models.Organization> organization = await _organizationRepository.GetOrganization(domain);
-        return await GetEventsFromOrganization(organization.Value.Id);
+        var orgResult = await _organizationRepository.GetOrganization(domain);
+        if (orgResult.IsFailed)
+        {
+            _logger.LogWarning("Organisation für Domain '{Domain}' nicht gefunden.", domain);
+            return Result.Fail("Organisation nicht gefunden.");
+        }
+
+        _logger.LogInformation("Organisation gefunden für Domain '{Domain}': Id={OrgId}", domain, orgResult.Value.Id);
+        return await GetEventsFromOrganization(orgResult.Value.Id);
     }
 
     public async Task<Result> SubscribeToEvent(int accountId, int eventId)
-        => await _eventRepository.AddParticipant(accountId, eventId);
+    {
+        var result = await _eventRepository.AddParticipant(accountId, eventId);
+        if (result.IsSuccess)
+            _logger.LogInformation("Account {AccountId} hat sich zu Event {EventId} angemeldet.", accountId, eventId);
+        else
+            _logger.LogWarning("Account {AccountId} konnte sich nicht zu Event {EventId} anmelden. Fehler: {Error}", accountId, eventId, result.Errors.FirstOrDefault()?.Message);
+
+        return result;
+    }
 
     public async Task<Result> UnsubscribeToEvent(int accountId, int eventId)
-        => await _eventRepository.RemoveParticipant(accountId, eventId);
+    {
+        var result = await _eventRepository.RemoveParticipant(accountId, eventId);
+        if (result.IsSuccess)
+            _logger.LogInformation("Account {AccountId} hat sich von Event {EventId} abgemeldet.", accountId, eventId);
+        else
+            _logger.LogWarning("Account {AccountId} konnte sich nicht von Event {EventId} abmelden. Fehler: {Error}", accountId, eventId, result.Errors.FirstOrDefault()?.Message);
+
+        return result;
+    }
 
     public async Task<Result<Models.Event>> CreateEvent(Models.Event newEvent, int organizationId)
     {
-        return await _eventRepository.CreateEvent(newEvent, organizationId);
+        var result = await _eventRepository.CreateEvent(newEvent, organizationId);
+        if (result.IsSuccess)
+            _logger.LogInformation("Event '{EventName}' erfolgreich erstellt (Id={EventId}).", newEvent.Name, result.Value.Id);
+        else
+            _logger.LogError("Fehler beim Erstellen des Events '{EventName}': {Error}", newEvent.Name, result.Errors.FirstOrDefault()?.Message);
+
+        return result;
     }
 
     public async Task<Result> DeleteEvent(int eventId)
     {
-        return await _eventRepository.DeleteEvent(eventId);
+        var result = await _eventRepository.DeleteEvent(eventId);
+        if (result.IsSuccess)
+            _logger.LogInformation("Event {EventId} erfolgreich gelöscht.", eventId);
+        else
+            _logger.LogWarning("Fehler beim Löschen von Event {EventId}: {Error}", eventId, result.Errors.FirstOrDefault()?.Message);
+
+        return result;
     }
 
     public async Task<Result<Models.Event>> GetEvent(int eventId)
-        => await _eventRepository.GetEvent(eventId); 
+    {
+        var result = await _eventRepository.GetEvent(eventId);
+        if (result.IsSuccess)
+            _logger.LogInformation("Event {EventId} erfolgreich geladen.", eventId);
+        else
+            _logger.LogWarning("Fehler beim Laden von Event {EventId}: {Error}", eventId, result.Errors.FirstOrDefault()?.Message);
+
+        return result;
+    }
 }
