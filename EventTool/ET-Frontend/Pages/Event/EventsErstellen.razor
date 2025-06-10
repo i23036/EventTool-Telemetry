@@ -7,10 +7,15 @@
 @using System.Net.Http.Headers
 @using System.Net.Http.Json
 @using Blazored.SessionStorage
+@using ET_Frontend.Mapping
+@using ET_Frontend.Models.Event
+@using ET_Frontend.Services.ApiClients
 @inject NavigationManager Navigation
 @inject HttpClient Http
 @inject ISessionStorageService SessionStorage
 @inject Microsoft.AspNetCore.Components.Authorization.AuthenticationStateProvider AuthProvider
+@inject IEventApi EventApi
+@inject ISnackbar Snackbar
 
 <PageTitle>Event erstellen</PageTitle>
 
@@ -125,6 +130,7 @@
 
 @code {
     private int _tabIndex = 0;
+    private EventCreateViewModel _newEvent = new();
     private MyEvent newEvent = new();
     private List<Participant> _participantList = new();
     private List<OrganizationMemberViewModel> OrgMembers = new();
@@ -158,12 +164,20 @@
         _participantList.Remove(t);
     }
 
-    private void SaveEvent()
+    private async Task SaveEvent()
     {
-        Console.WriteLine($"[SPEICHERN] {newEvent.Name}");
-        Console.WriteLine($"Ansprechpartner: {newEvent.ContactPerson}");
-        Console.WriteLine($"Verwalter: {string.Join(", ", newEvent.Managers)}");
-        Navigation.NavigateTo("/");
+	    var dto = EventCreateMapper.ToDto(_newEvent);
+	    var success = await EventApi.CreateEventAsync(dto);
+
+	    if (success)
+	    {
+		    Snackbar.Add("Event erfolgreich erstellt!", Severity.Success);
+		    Navigation.NavigateTo("/events");
+	    }
+	    else
+	    {
+		    Snackbar.Add("Fehler beim Erstellen des Events.", Severity.Error);
+	    }
     }
 
     private void SaveAsTemplate()

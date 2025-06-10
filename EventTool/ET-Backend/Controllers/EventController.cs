@@ -87,58 +87,37 @@ namespace ET_Backend.Controllers
         [Authorize]
         public async Task<IActionResult> CreateEvent([FromBody] EventDto value)
         {
-            var user = await _userService.GetCurrentUserAsync(User);
-            if (user == null || user.Organization == null)
+            var account = await _userService.GetCurrentAccountAsync(User);
+            if (account == null || account.Organization == null)
                 return Unauthorized("Ungültiger Benutzer oder keine Organisation gefunden.");
 
-            // Grunddaten
-            var newEvent = new Event
-            {
-                Name = value.Name,
-                Description = value.Description,
-                Location = value.Location,
-                StartDate = value.StartDate,
-                EndDate = value.EndDate,
-                StartTime = value.StartTime,
-                EndTime = value.EndTime,
-                MinParticipants = value.MinParticipants,
-                MaxParticipants = value.MaxParticipants,
-                RegistrationStart = value.RegistrationStart,
-                RegistrationEnd = value.RegistrationEnd,
-                IsBlueprint = value.IsBlueprint
-            };
+            var newEvent = EventMapper.ToModel(value, account.Organization);
 
-            // Organizers
-            var organizerAccounts = new List<Account>();
+            // Organizers laden
+            newEvent.Organizers = new();
             foreach (string organizer in value.Organizers.Distinct())
             {
                 var accResult = await _accountService.GetAccountByMail(organizer);
                 if (accResult.IsSuccess)
-                    organizerAccounts.Add(accResult.Value);
+                    newEvent.Organizers.Add(accResult.Value);
             }
-            newEvent.Organizers = organizerAccounts;
 
-            // ContactPersons
-            var contactAccounts = new List<Account>();
+            // ContactPersons laden
+            newEvent.ContactPersons = new();
             foreach (string contact in value.ContactPersons.Distinct())
             {
                 var accResult = await _accountService.GetAccountByMail(contact);
                 if (accResult.IsSuccess)
-                    contactAccounts.Add(accResult.Value);
+                    newEvent.ContactPersons.Add(accResult.Value);
             }
-            newEvent.ContactPersons = contactAccounts;
 
             // Event anlegen
-            var result = await _eventService.CreateEvent(newEvent, user.Organization.Id);
-            if (result.IsSuccess)
-            {
-                return Ok();
-            }
-
-            // Fehler mit ausgeben
-            return BadRequest(new { errors = result.Errors.Select(e => e.Message) });
+            var result = await _eventService.CreateEvent(newEvent, account.Organization.Id);
+            return result.IsSuccess
+                ? Ok()
+                : BadRequest(new { errors = result.Errors.Select(e => e.Message) });
         }
-
+        
         [HttpDelete("{eventId}")]
         public async Task<IActionResult> DeleteEvent(int eventId)
         {
@@ -163,29 +142,10 @@ namespace ET_Backend.Controllers
         public async Task<IActionResult> GetEvent(int eventId)
         {
             var result = await _eventService.GetEvent(eventId);
-            if (result.IsFailed)                  
+            if (result.IsFailed)
                 return NotFound();
 
-            var e = result.Value;
-
-            var dto = new EventDto(
-                e.Name,
-                e.Description,
-                e.Location,
-                e.Organizers     .Select(o => o.EMail).ToList(),
-                e.ContactPersons .Select(c => c.EMail).ToList(),
-                e.Process?.Id ?? 0,
-                e.StartDate,
-                e.EndDate,
-                e.StartTime,
-                e.EndTime,
-                e.MinParticipants,
-                e.MaxParticipants,
-                e.RegistrationStart,
-                e.RegistrationEnd,
-                e.IsBlueprint
-            );
-
+            var dto = EventMapper.ToDto(result.Value);
             return Ok(dto);
         }
     }

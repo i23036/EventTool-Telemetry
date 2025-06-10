@@ -95,5 +95,15 @@ namespace ET_Backend.Services.Person
         {
             return await _userRepository.DeleteUser(userId);
         }
+
+        public async Task<Account?> GetCurrentAccountAsync(ClaimsPrincipal user)
+        {
+            var accIdStr = user.FindFirst("accountId")?.Value;
+            if (!int.TryParse(accIdStr, out var accId))
+                return null;
+
+            var result = await _accountRepo.GetAccount(accId);
+            return result.IsSuccess ? result.Value : null;
+        }
     }
 }

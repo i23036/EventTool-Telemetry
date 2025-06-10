@@ -288,13 +288,13 @@ public class DatabaseInitializer(IDbConnection db, ILogger<DatabaseInitializer> 
             var endTime = new TimeOnly(12, 0);
 
             var orgId = _db.ExecuteScalar<int>("SELECT Id FROM Organizations WHERE Domain = 'demo.org'");
-            var processId = _db.ExecuteScalar<int>("SELECT Id FROM Processes WHERE Name = 'Onboarding'");
+            var processId = _db.ExecuteScalar<int?>("SELECT Id FROM Processes WHERE Name = 'Onboarding'");
 
             var parameters = new DynamicParameters();
             parameters.Add("Name", "Kickoff Meeting");
             parameters.Add("Description", "Erstes Demo-Event");
             parameters.Add("OrgId", orgId);
-            parameters.Add("ProcessId", processId);
+            parameters.Add("ProcessId", processId.HasValue ? processId.Value : (object?)null);
             parameters.Add("StartDate", today, DbType.Date);
             parameters.Add("EndDate", today, DbType.Date);
             parameters.Add("StartTime", today.Add(startTime.ToTimeSpan()), DbType.DateTime);

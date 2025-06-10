@@ -1,6 +1,8 @@
 ﻿using System.Net.Http.Headers;
+using System.Net.Http.Json;
 using Blazored.SessionStorage;
 using ET_Frontend.Helpers;
+using ET.Shared.DTOs;
 
 namespace ET_Frontend.Services.ApiClients;
 
@@ -16,6 +18,15 @@ public class EventApi : IEventApi
     {
         _http    = http;
         _session = session;
+    }
+
+    public async Task<bool> CreateEventAsync(EventDto dto)
+    {
+        var req = await BuildRequest(HttpMethod.Post, "api/event/createEvent");
+        req.Content = JsonContent.Create(dto);
+
+        var resp = await _http.SendAsync(req);
+        return resp.IsSuccessStatusCode;
     }
 
     private async Task<HttpRequestMessage> BuildRequest(HttpMethod method, string url)
