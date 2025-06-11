@@ -17,5 +17,5 @@ public class EventCreateViewModel
     public DateTime? RegistrationDeadline { get; set; }
 
     public string ContactPerson { get; set; } = string.Empty;
-    public List<string> Managers { get; set; } = new();
+    public List<string> Managers { get; set; } = [];
 }

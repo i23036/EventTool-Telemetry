@@ -7,6 +7,7 @@ public class Event
     public string Name { set; get; }
 
     public string Description { set; get; }
+    public string Location { get; set; }
 
     public List<Account> Participants { set; get; } = new List<Account>();
 
@@ -25,8 +26,6 @@ public class Event
     public TimeOnly StartTime { get; set; }
 
     public TimeOnly EndTime { get; set; }
-
-    public string Location { get; set; }
 
     public int MinParticipants { get; set; }
 
