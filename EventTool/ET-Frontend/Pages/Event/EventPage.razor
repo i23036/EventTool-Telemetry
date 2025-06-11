@@ -2,15 +2,13 @@
 @attribute [Authorize]
 
 @using Microsoft.AspNetCore.Authorization
-@using System.Net.Http.Headers
-@using Blazored.SessionStorage
 @using ET.Shared.DTOs
-@using MudBlazor
+@using ET_Frontend.Mapping
+@using ET_Frontend.Models.Event
+@using ET_Frontend.Services.ApiClients
 
-@inject HttpClient Http
-@inject ISessionStorageService SessionStorage
+@inject IEventApi EventApi
 @inject NavigationManager Navigation
-@inject ISnackbar Snackbar
 
 <PageTitle>Event Details</PageTitle>
 
@@ -41,7 +39,8 @@
                 </MudItem>
 
                 <MudItem xs="12" sm="6">
-                    <MudTextField Label="Ansprechpartner" Value="@_event.ContactPerson" ReadOnly />
+                    <MudTextField Label="Ansprechpartner"
+                                  Value="@(string.Join(", ", _event.ContactPersons))" ReadOnly />
                 </MudItem>
 
                 <MudItem xs="12" sm="6">
@@ -83,32 +82,20 @@
     private bool _loading = true;
     private bool _loadError = false;
 
-    private MyEvent _event = new();
+    private EventCreateViewModel _event = new();
 
-    /* ---------- Lifecycle ---------- */
     protected override async Task OnInitializedAsync()
     {
         try
         {
-            var token = await SessionStorage.GetItemAsync<string>("authToken");
-            var req = new HttpRequestMessage(HttpMethod.Get, $"api/event/{ID}");
-            req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
-
-            var resp = await Http.SendAsync(req);
-            if (!resp.IsSuccessStatusCode)
-            {
-                _loadError = true;
-                return;
-            }
-
-            var dto = await resp.Content.ReadFromJsonAsync<EventDto>();
+            var dto = await EventApi.GetEventAsync(ID);
             if (dto is null)
             {
                 _loadError = true;
                 return;
             }
 
-            MapDto(dto);
+            _event = EventCreateMapper.ToViewModel(dto);
         }
         catch
         {
@@ -120,47 +107,5 @@
         }
     }
 
-    /* ---------- Mapping ---------- */
-    private void MapDto(EventDto dto)
-    {
-        _event = new MyEvent
-        {
-            ID = ID,
-            Name = dto.Name,
-            EventType = dto.IsBlueprint ? "Vorlage" : "Event",
-            Description = dto.Description,
-            StartDate = dto.StartDate.ToDateTime(TimeOnly.MinValue),
-            EndDate = dto.EndDate.ToDateTime(TimeOnly.MinValue),
-            MinUsers = dto.MinParticipants,
-            MaxUsers = dto.MaxParticipants,
-            RegistrationStart = dto.RegistrationStart.ToDateTime(TimeOnly.MinValue),
-            RegistrationDeadline = dto.RegistrationEnd.ToDateTime(TimeOnly.MinValue),
-            ContactPerson = dto.ContactPersons?.FirstOrDefault() ?? "-",
-            RegisteredUsers = 0,      // Teilnehmerliste ist im DTO nicht enthalten
-            Status = dto.IsBlueprint ? EventStatus.Entwurf : EventStatus.Offen
-        };
-    }
-
-    /* ---------- Helpers ---------- */
     private void NavigateHome() => Navigation.NavigateTo("/home");
-
-    /* ---------- Models ---------- */
-    public enum EventStatus { Entwurf, Offen, Geschlossen, Abgesagt, Archiviert }
-
-    public class MyEvent
-    {
-        public int ID { get; set; }
-        public string Name { get; set; } = "";
-        public string? EventType { get; set; }
-        public string? Description { get; set; }
-        public DateTime? StartDate { get; set; }
-        public DateTime? EndDate { get; set; }
-        public int MinUsers { get; set; }
-        public int MaxUsers { get; set; }
-        public DateTime? RegistrationStart { get; set; }
-        public DateTime? RegistrationDeadline { get; set; }
-        public string? ContactPerson { get; set; }
-        public EventStatus Status { get; set; } = EventStatus.Entwurf;
-        public int RegisteredUsers { get; set; }
-    }
 }

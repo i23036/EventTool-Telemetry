@@ -66,6 +66,7 @@ public class DatabaseInitializer(IDbConnection db, ILogger<DatabaseInitializer> 
             CREATE TABLE IF NOT EXISTS Events (
                 Id                  INTEGER PRIMARY KEY AUTOINCREMENT,
                 Name                TEXT NOT NULL,
+                EventType           TEXT NOT NULL,
                 Description         TEXT,
                 OrganizationId      INTEGER NOT NULL,
                 ProcessId           INTEGER,
@@ -78,6 +79,7 @@ public class DatabaseInitializer(IDbConnection db, ILogger<DatabaseInitializer> 
                 MaxParticipants     INTEGER,
                 RegistrationStart   DATE,
                 RegistrationEnd     DATE,
+                Status              INTEGER NOT NULL DEFAULT 0, -- Enum: EventStatus
                 IsBlueprint         INTEGER DEFAULT 0,
                 FOREIGN KEY (OrganizationId) REFERENCES Organizations(Id),
                 FOREIGN KEY (ProcessId) REFERENCES Processes(Id)
@@ -292,6 +294,7 @@ public class DatabaseInitializer(IDbConnection db, ILogger<DatabaseInitializer> 
 
             var parameters = new DynamicParameters();
             parameters.Add("Name", "Kickoff Meeting");
+            parameters.Add("EventType", "Workshop");
             parameters.Add("Description", "Erstes Demo-Event");
             parameters.Add("OrgId", orgId);
             parameters.Add("ProcessId", processId.HasValue ? processId.Value : (object?)null);
@@ -304,21 +307,22 @@ public class DatabaseInitializer(IDbConnection db, ILogger<DatabaseInitializer> 
             parameters.Add("MaxParticipants", 20);
             parameters.Add("RegStart", today, DbType.Date);
             parameters.Add("RegEnd", today.AddDays(6), DbType.Date);
+            parameters.Add("Status", 1); // Status = Offen
             parameters.Add("IsBlueprint", false);
 
             _db.Execute(@"
-        INSERT INTO Events (
-            Name, Description, OrganizationId, ProcessId,
-            StartDate, EndDate, StartTime, EndTime, Location,
-            MinParticipants, MaxParticipants,
-            RegistrationStart, RegistrationEnd, IsBlueprint
-        )
-        VALUES (
-            @Name, @Description, @OrgId, @ProcessId,
-            @StartDate, @EndDate, @StartTime, @EndTime, @Location,
-            @MinParticipants, @MaxParticipants,
-            @RegStart, @RegEnd, @IsBlueprint
-        );", parameters);
+            INSERT INTO Events (
+                Name, EventType, Description, OrganizationId, ProcessId,
+                StartDate, EndDate, StartTime, EndTime, Location,
+                MinParticipants, MaxParticipants,
+                RegistrationStart, RegistrationEnd, Status, IsBlueprint
+            )
+            VALUES (
+                @Name, @EventType, @Description, @OrgId, @ProcessId,
+                @StartDate, @EndDate, @StartTime, @EndTime, @Location,
+                @MinParticipants, @MaxParticipants,
+                @RegStart, @RegEnd, @Status, @IsBlueprint
+            );", parameters);
         }
     }
 }

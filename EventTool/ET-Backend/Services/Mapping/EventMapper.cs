@@ -10,10 +10,12 @@ public static class EventMapper
         return new Models.Event
         {
             Name = dto.Name,
+            EventType = dto.EventType,
             Description = dto.Description,
             Location = dto.Location,
-            Organizers = new List<Account>(), // Werden separat via API-Aufruf gemappt!
-            ContactPersons = new List<Account>(), // Ebenso
+            Organizers = new List<Account>(), // Werden im Service gefüllt
+            ContactPersons = new List<Account>(), // Werden im Service gefüllt
+            Participants = new List<Account>(), // Bei Erstellung leer
             Organization = org,
             Process = process,
             StartDate = dto.StartDate,
@@ -24,6 +26,7 @@ public static class EventMapper
             MaxParticipants = dto.MaxParticipants,
             RegistrationStart = dto.RegistrationStart,
             RegistrationEnd = dto.RegistrationEnd,
+            Status = dto.Status,
             IsBlueprint = dto.IsBlueprint
         };
     }
@@ -31,7 +34,9 @@ public static class EventMapper
     public static EventDto ToDto(Models.Event e)
     {
         return new EventDto(
+            e.Id,
             e.Name,
+            e.EventType,
             e.Description,
             e.Location,
             e.Organizers.Select(o => o.EMail).ToList(),
@@ -45,6 +50,7 @@ public static class EventMapper
             e.MaxParticipants,
             e.RegistrationStart,
             e.RegistrationEnd,
+            e.Status,
             e.IsBlueprint
         );
     }

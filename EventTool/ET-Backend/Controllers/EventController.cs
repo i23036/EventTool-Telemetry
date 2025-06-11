@@ -83,36 +83,21 @@ namespace ET_Backend.Controllers
             return result.IsSuccess ? Ok() : BadRequest(result.Errors);
         }
 
-        [HttpPost("createEvent")]
+        [HttpPost]
         [Authorize]
         public async Task<IActionResult> CreateEvent([FromBody] EventDto value)
         {
+            // Aktuellen Account & Orga
             var account = await _userService.GetCurrentAccountAsync(User);
             if (account == null || account.Organization == null)
                 return Unauthorized("Ungültiger Benutzer oder keine Organisation gefunden.");
 
+            // DTO → Model (Mapper)
             var newEvent = EventMapper.ToModel(value, account.Organization);
 
-            // Organizers laden
-            newEvent.Organizers = new();
-            foreach (string organizer in value.Organizers.Distinct())
-            {
-                var accResult = await _accountService.GetAccountByMail(organizer);
-                if (accResult.IsSuccess)
-                    newEvent.Organizers.Add(accResult.Value);
-            }
-
-            // ContactPersons laden
-            newEvent.ContactPersons = new();
-            foreach (string contact in value.ContactPersons.Distinct())
-            {
-                var accResult = await _accountService.GetAccountByMail(contact);
-                if (accResult.IsSuccess)
-                    newEvent.ContactPersons.Add(accResult.Value);
-            }
-
-            // Event anlegen
+            // Model + OrgaId an Service
             var result = await _eventService.CreateEvent(newEvent, account.Organization.Id);
+
             return result.IsSuccess
                 ? Ok()
                 : BadRequest(new { errors = result.Errors.Select(e => e.Message) });

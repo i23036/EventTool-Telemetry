@@ -1,7 +1,6 @@
 ﻿using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using Blazored.SessionStorage;
-using ET_Frontend.Helpers;
 using ET.Shared.DTOs;
 
 namespace ET_Frontend.Services.ApiClients;
@@ -22,22 +21,22 @@ public class EventApi : IEventApi
 
     public async Task<bool> CreateEventAsync(EventDto dto)
     {
-        var req = await BuildRequest(HttpMethod.Post, "api/event/createEvent");
+        var req = await BuildRequest(HttpMethod.Post, "api/event");
         req.Content = JsonContent.Create(dto);
 
         var resp = await _http.SendAsync(req);
         return resp.IsSuccessStatusCode;
     }
 
-    private async Task<HttpRequestMessage> BuildRequest(HttpMethod method, string url)
+    public async Task<EventDto?> GetEventAsync(int eventId)
     {
-        var token = await _session.GetItemAsync<string>("authToken");
-        var req   = new HttpRequestMessage(method, url);
+        var req = await BuildRequest(HttpMethod.Get, $"api/event/{eventId}");
+        var resp = await _http.SendAsync(req);
 
-        if (!string.IsNullOrWhiteSpace(token))
-            req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        if (!resp.IsSuccessStatusCode)
+            return null;
 
-        return req;
+        return await resp.Content.ReadFromJsonAsync<EventDto>();
     }
 
     public async Task<bool> SubscribeAsync(int eventId)
@@ -52,5 +51,16 @@ public class EventApi : IEventApi
         var req  = await BuildRequest(HttpMethod.Put, $"api/event/unsubscribe/{eventId}");
         var resp = await _http.SendAsync(req);
         return resp.IsSuccessStatusCode;
+    }
+
+    private async Task<HttpRequestMessage> BuildRequest(HttpMethod method, string url)
+    {
+        var token = await _session.GetItemAsync<string>("authToken");
+        var req   = new HttpRequestMessage(method, url);
+
+        if (!string.IsNullOrWhiteSpace(token))
+            req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        return req;
     }
 }

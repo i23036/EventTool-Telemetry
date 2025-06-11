@@ -1,4 +1,6 @@
-﻿namespace ET_Frontend.Models.Event;
+﻿using ET.Shared.DTOs.Enums;
+
+namespace ET_Frontend.Models.Event;
 
 public class EventCreateViewModel
 {
@@ -16,6 +18,12 @@ public class EventCreateViewModel
     public DateTime? RegistrationStart { get; set; }
     public DateTime? RegistrationDeadline { get; set; }
 
-    public string ContactPerson { get; set; } = string.Empty;
-    public List<string> Managers { get; set; } = [];
+    // kann jeder aus der Orga sein
+    public List<string> ContactPersons { get; set; } = new();
+    
+    // Managers (Verwalter), nur Owner & Organisatoren
+    public List<string> Managers { get; set; } = new();
+
+    // Event-Status (Dropdown, Enum)
+    public EventStatus Status { get; set; } = EventStatus.Entwurf;
 }

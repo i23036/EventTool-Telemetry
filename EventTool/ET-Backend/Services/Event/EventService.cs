@@ -1,6 +1,8 @@
-﻿using ET_Backend.Repository.Event;
+﻿using ET_Backend.Models;
+using ET_Backend.Repository.Event;
 using ET_Backend.Repository.Organization;
 using ET_Backend.Repository.Person;
+using ET_Backend.Repository.Processes;
 using FluentResults;
 
 namespace ET_Backend.Services.Event;
@@ -10,18 +12,72 @@ public class EventService : IEventService
     private readonly IEventRepository _eventRepository;
     private readonly IOrganizationRepository _organizationRepository;
     private readonly IAccountRepository _accountRepository;
+    private readonly IProcessRepository _processRepository;
     private readonly ILogger<EventService> _logger;
 
     public EventService(
         IEventRepository eventRepository,
         IOrganizationRepository organizationRepository,
         IAccountRepository accountRepository,
+        IProcessRepository processRepository,
         ILogger<EventService> logger)
     {
         _eventRepository = eventRepository;
         _organizationRepository = organizationRepository;
         _accountRepository = accountRepository;
+        _processRepository = processRepository;
         _logger = logger;
+    }
+
+    public async Task<Result<Models.Event>> CreateEvent(Models.Event newEvent, int organizationId)
+    {
+        // Organisatoren laden
+        var organizerAccounts = new List<Account>();
+        foreach (var email in newEvent.Organizers.Select(o => o.EMail).Distinct())
+        {
+            var accRes = await _accountRepository.GetAccount(email);
+            if (accRes.IsFailed)
+            {
+                _logger.LogWarning("Kein Account für Organizer-E-Mail '{Email}' gefunden.", email);
+                return Result.Fail($"Kein Account für Organizer-E-Mail '{email}' gefunden.");
+            }
+            organizerAccounts.Add(accRes.Value);
+        }
+
+        // Kontaktpersonen laden
+        var contactPersonAccounts = new List<Account>();
+        foreach (var email in newEvent.ContactPersons.Select(c => c.EMail).Distinct())
+        {
+            var accRes = await _accountRepository.GetAccount(email);
+            if (accRes.IsFailed)
+            {
+                _logger.LogWarning("Kein Account für ContactPerson-E-Mail '{Email}' gefunden.", email);
+                return Result.Fail($"Kein Account für ContactPerson-E-Mail '{email}' gefunden.");
+            }
+            contactPersonAccounts.Add(accRes.Value);
+        }
+
+        // Organisation laden
+        var orgRes = await _organizationRepository.GetOrganization(organizationId);
+        if (orgRes.IsFailed)
+        {
+            _logger.LogWarning("Organisation mit Id {OrgId} nicht gefunden.", organizationId);
+            return Result.Fail("Organisation nicht gefunden.");
+        }
+
+        newEvent.Organization = orgRes.Value;
+        newEvent.Organizers = organizerAccounts;
+        newEvent.ContactPersons = contactPersonAccounts;
+
+        // Event speichern
+        var result = await _eventRepository.CreateEvent(newEvent, organizationId);
+
+        if (result.IsSuccess)
+            _logger.LogInformation("Event '{EventName}' erfolgreich erstellt (Id={EventId}).", newEvent.Name, result.Value.Id);
+        else
+            _logger.LogError("Fehler beim Erstellen des Events '{EventName}': {Error}", newEvent.Name, result.Errors.FirstOrDefault()?.Message);
+
+        return result;
     }
 
     public async Task<Result<List<Models.Event>>> GetEventsFromOrganization(int organizationId)
@@ -66,17 +122,6 @@ public class EventService : IEventService
             _logger.LogInformation("Account {AccountId} hat sich von Event {EventId} abgemeldet.", accountId, eventId);
         else
             _logger.LogWarning("Account {AccountId} konnte sich nicht von Event {EventId} abmelden. Fehler: {Error}", accountId, eventId, result.Errors.FirstOrDefault()?.Message);
-
-        return result;
-    }
-
-    public async Task<Result<Models.Event>> CreateEvent(Models.Event newEvent, int organizationId)
-    {
-        var result = await _eventRepository.CreateEvent(newEvent, organizationId);
-        if (result.IsSuccess)
-            _logger.LogInformation("Event '{EventName}' erfolgreich erstellt (Id={EventId}).", newEvent.Name, result.Value.Id);
-        else
-            _logger.LogError("Fehler beim Erstellen des Events '{EventName}': {Error}", newEvent.Name, result.Errors.FirstOrDefault()?.Message);
 
         return result;
     }

@@ -78,19 +78,20 @@ public class EventRepository : IEventRepository
         {
             var insertSql = $@"
             INSERT INTO {_db.Tbl("Events")} (
-                Name, Description, OrganizationId, ProcessId,
+                Name, EventType, Description, OrganizationId, ProcessId,
                 StartDate, EndDate, StartTime, EndTime,
                 Location, MinParticipants, MaxParticipants,
-                RegistrationStart, RegistrationEnd, IsBlueprint)
+                RegistrationStart, RegistrationEnd, Status, IsBlueprint)
             VALUES (
-                @Name, @Description, @OrganizationId, @ProcessId,
+                @Name, @EventType, @Description, @OrganizationId, @ProcessId,
                 @StartDate, @EndDate, @StartTime, @EndTime,
                 @Location, @MinParticipants, @MaxParticipants,
-                @RegistrationStart, @RegistrationEnd, @IsBlueprint);";
+                @RegistrationStart, @RegistrationEnd, @Status, @IsBlueprint);";
 
             var evtId = await _db.InsertAndGetIdAsync(insertSql, new
             {
                 newEvent.Name,
+                newEvent.EventType,
                 newEvent.Description,
                 OrganizationId = orgId,
                 ProcessId = newEvent.Process?.Id,
@@ -103,6 +104,7 @@ public class EventRepository : IEventRepository
                 newEvent.MaxParticipants,
                 newEvent.RegistrationStart,
                 newEvent.RegistrationEnd,
+                Status = (int)newEvent.Status,
                 IsBlueprint = newEvent.IsBlueprint ? 1 : 0
             }, tx);
 
