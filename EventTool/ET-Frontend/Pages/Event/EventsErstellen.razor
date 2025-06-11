@@ -31,7 +31,10 @@
                         <MudTextField Label="Eventname" @bind-Value="_newEvent.Name" FullWidth="true" />
                     </MudItem>
                     <MudItem xs="12" sm="6">
-                        <MudTextField Label="Eventtyp" @bind-Value="_newEvent.EventType" FullWidth="true" />
+	                    <MudTextField Label="Eventtyp" @bind-Value="_newEvent.EventType" FullWidth="true" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+	                    <MudTextField Label="Veranstaltungsort" @bind-Value="_newEvent.Location" FullWidth="true" />
                     </MudItem>
 
                     <MudItem xs="12">
@@ -185,7 +188,7 @@
         if (success)
         {
             Snackbar.Add("Event erfolgreich erstellt!", Severity.Success);
-            Navigation.NavigateTo("/events");
+            Navigation.NavigateTo("/home");
         }
         else
         {
