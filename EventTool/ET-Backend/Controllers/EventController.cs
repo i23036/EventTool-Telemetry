@@ -87,16 +87,21 @@ namespace ET_Backend.Controllers
         [Authorize]
         public async Task<IActionResult> CreateEvent([FromBody] EventDto value)
         {
-            // Aktuellen Account & Orga
-            var account = await _userService.GetCurrentAccountAsync(User);
-            if (account == null || account.Organization == null)
-                return Unauthorized("Ungültiger Benutzer oder keine Organisation gefunden.");
+            // Orga-Domain direkt aus dem JWT-Claim holen
+            var orgDomain = User.FindFirst("org")?.Value;
+            if (string.IsNullOrWhiteSpace(orgDomain))
+                return Unauthorized("Kein gültiger Orga-Domain-Claim.");
 
-            // DTO → Model (Mapper)
-            var newEvent = EventMapper.ToModel(value, account.Organization);
+            // Organisation aus DB holen
+            var orgResult = await _organizationService.GetOrganization(orgDomain);
+            if (orgResult.IsFailed)
+                return BadRequest("Organisation nicht gefunden.");
 
-            // Model + OrgaId an Service
-            var result = await _eventService.CreateEvent(newEvent, account.Organization.Id);
+            // Mapper: DTO → Model
+            var newEvent = EventMapper.ToModel(value, orgResult.Value);
+
+            // An Service übergeben (Model + OrgaId)
+            var result = await _eventService.CreateEvent(newEvent, orgResult.Value.Id);
 
             return result.IsSuccess
                 ? Ok()
