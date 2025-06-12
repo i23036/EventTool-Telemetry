@@ -28,6 +28,16 @@ public class EventApi : IEventApi
         return resp.IsSuccessStatusCode;
     }
 
+    public async Task<bool> UpdateEventAsync(EventDto dto)
+    {
+        // dto.Id MUSS > 0 sein
+        var req = await BuildRequest(HttpMethod.Put, $"api/event/{dto.Id}");
+        req.Content = JsonContent.Create(dto);
+
+        var resp = await _http.SendAsync(req);
+        return resp.IsSuccessStatusCode;
+    }
+
     public async Task<EventDto?> GetEventAsync(int eventId)
     {
         var req = await BuildRequest(HttpMethod.Get, $"api/event/{eventId}");

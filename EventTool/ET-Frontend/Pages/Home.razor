@@ -38,15 +38,18 @@
                                     <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary" OnClick="@(() => NavigateToEventDetails(eventItem.Item.EventId))">
                                         Details
                                     </MudButton>
-                                    @if (eventItem.Item.IsOrganizer)
+                                    @if (eventItem.Item.IsOrganizer || IsOwner)
                                     {
-                                        <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Secondary" OnClick="@(() => Navigation.NavigateTo($"/EventBearbeiten/{eventItem.Item.EventId}"))">
-                                            Bearbeiten
-                                        </MudButton>
+	                                    <MudButton Size="Size.Small"
+	                                               Variant="Variant.Outlined"
+	                                               Color="Color.Secondary"
+	                                               OnClick="@(() => Navigation.NavigateTo($"/EventErstellen/{eventItem.Item.EventId}"))">
+		                                    Bearbeiten
+	                                    </MudButton>
                                     }
                                     <MudButton Size="Size.Small"
                                                Variant="Variant.Filled"
-                                               Color="Color.Primary"
+                                               Color="@(eventItem.Item.IsSubscribed ? Color.Error : Color.Success)"
                                                OnClick="@(() => ToggleSubscription(eventItem.Item))">
 	                                    @(eventItem.Item.IsSubscribed ? "Abmelden" : "Anmelden")
                                     </MudButton>
@@ -270,19 +273,29 @@
 
     private async Task ToggleSubscription(EventViewModel ev)
     {
-	    bool ok = ev.IsSubscribed
-		    ? await EventApi.UnsubscribeAsync(ev.EventId)
-		    : await EventApi.SubscribeAsync(ev.EventId);
+	    bool result;
+	    string message;
 
-	    if (ok)
+	    if (ev.IsSubscribed)
 	    {
-            await LoadEvents();
-		    ev.IsSubscribed = !ev.IsSubscribed;
-		    StateHasChanged();
+		    result = await EventApi.UnsubscribeAsync(ev.EventId);
+		    message = result ? "Erfolgreich abgemeldet." : "Abmeldung fehlgeschlagen.";
 	    }
 	    else
 	    {
-            Snackbar.Add("Fehler beim Anmelden zum Event.", Severity.Error);
+		    result = await EventApi.SubscribeAsync(ev.EventId);
+		    message = result ? "Erfolgreich angemeldet." : "Anmeldung fehlgeschlagen.";
+	    }
+
+	    if (result)
+	    {
+		    ev.IsSubscribed = !ev.IsSubscribed;
+		    StateHasChanged();
+		    Snackbar.Add(message, Severity.Success);
+	    }
+	    else
+	    {
+		    Snackbar.Add(message, Severity.Error);
 	    }
     }
 }

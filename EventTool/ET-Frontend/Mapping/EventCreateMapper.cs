@@ -9,11 +9,12 @@ public static class EventCreateMapper
     public static EventDto ToDto(EventCreateViewModel vm)
     {
         return new EventDto(
-            0, // ID bei Erstellung irrelevant
+            vm.Id, // bei Erstellung 0
             vm.Name,
             vm.EventType,
             vm.Description,
             vm.Location,
+            vm.Participants,
             vm.Managers, // Organizers
             vm.ContactPersons,
             0, // ProcessId bei Bedarf setzen
@@ -34,6 +35,7 @@ public static class EventCreateMapper
     {
         return new EventCreateViewModel
         {
+            Id = dto.Id,
             Name = dto.Name,
             EventType = dto.EventType,
             Description = dto.Description,
@@ -46,7 +48,8 @@ public static class EventCreateMapper
             MaxUsers = dto.MaxParticipants,
             RegistrationStart = dto.RegistrationStart.ToDateTime(TimeOnly.MinValue),
             RegistrationDeadline = dto.RegistrationEnd.ToDateTime(TimeOnly.MinValue),
-            Status = dto.Status
+            Status = dto.Status,
+            Participants = dto.Participants
         };
     }
 }

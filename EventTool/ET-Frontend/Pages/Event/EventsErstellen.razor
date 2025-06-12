@@ -1,4 +1,4 @@
-﻿@page "/EventErstellen"
+﻿@page "/EventErstellen/{Id:int?}"
 @attribute [Authorize]
 
 @using Microsoft.AspNetCore.Authorization
@@ -31,10 +31,10 @@
                         <MudTextField Label="Eventname" @bind-Value="_newEvent.Name" FullWidth="true" />
                     </MudItem>
                     <MudItem xs="12" sm="6">
-	                    <MudTextField Label="Eventtyp" @bind-Value="_newEvent.EventType" FullWidth="true" />
+                        <MudTextField Label="Eventtyp" @bind-Value="_newEvent.EventType" FullWidth="true" />
                     </MudItem>
                     <MudItem xs="12" sm="6">
-	                    <MudTextField Label="Veranstaltungsort" @bind-Value="_newEvent.Location" FullWidth="true" />
+                        <MudTextField Label="Veranstaltungsort" @bind-Value="_newEvent.Location" FullWidth="true" />
                     </MudItem>
 
                     <MudItem xs="12">
@@ -49,9 +49,9 @@
                                    SelectedValuesChanged="@(val => _newEvent.Managers = val.ToList())"
                                    MultiSelection="true"
                                    Searchable="true">
-                            @foreach (var member in GetOrganizers())
+                            @foreach (var option in OrganizerOptions)
                             {
-                                <MudSelectItem Value="@member.Email">@member.Lastname (@member.Email)</MudSelectItem>
+                                <MudSelectItem Value="@option.Email">@option.DisplayName</MudSelectItem>
                             }
                         </MudSelect>
                     </MudItem>
@@ -64,9 +64,9 @@
                                    SelectedValuesChanged="@(val => _newEvent.ContactPersons = val.ToList())"
                                    MultiSelection="true"
                                    Searchable="true">
-                            @foreach (var member in OrgMembers)
+                            @foreach (var option in ContactOptions)
                             {
-                                <MudSelectItem Value="@member.Email">@member.Lastname (@member.Email)</MudSelectItem>
+                                <MudSelectItem Value="@option.Email">@option.DisplayName</MudSelectItem>
                             }
                         </MudSelect>
                     </MudItem>
@@ -109,24 +109,28 @@
                 </div>
             </MudTabPanel>
 
-            <!-- Teilnehmer -->
-            <MudTabPanel Text="Teilnehmer">
-                <MudText Typo="Typo.h5" Class="mb-3">Teilnehmer</MudText>
-                <MudDataGrid T="OrganizationMemberDto" Items="@OrgMembers" Dense="true">
-                    <Columns>
-                        <PropertyColumn Property="x => x.Lastname" Title="Nachname" />
-                        <PropertyColumn Property="x => x.Email" Title="E-Mail" />
-                        <PropertyColumn Property="x => x.Role" Title="Rolle" />
-                        <TemplateColumn Title="" CellClass="text-end">
-                            <CellTemplate Context="ctx">
-                                <MudButton Variant="Variant.Filled" Color="Color.Error" Size="Size.Small" OnClick="@(() => RemoveParticipant(ctx.Item))">
-                                    Entfernen
-                                </MudButton>
-                            </CellTemplate>
-                        </TemplateColumn>
-                    </Columns>
-                </MudDataGrid>
-            </MudTabPanel>
+            <!-- Teilnehmer (nur Edit) -->
+            @if (_newEvent.Id > 0)
+            {
+                <MudTabPanel Text="Teilnehmer">
+                    <MudText Typo="Typo.h5" Class="mb-3">Teilnehmer</MudText>
+                    <MudDataGrid T="EventParticipantViewModel" Items="@Participants" Dense="true">
+                        <Columns>
+                            <PropertyColumn Property="x => x.FullName"    Title="Name" />
+                            <PropertyColumn Property="x => x.Email"       Title="E-Mail" />
+                            <PropertyColumn Property="x => x.RoleDisplay" Title="Rolle" />
+                            <TemplateColumn Title="" CellClass="text-end">
+                                <CellTemplate Context="ctx">
+                                    <MudButton Variant="Variant.Filled" Color="Color.Error" Size="Size.Small"
+                                               OnClick="@(() => RemoveParticipant(ctx.Item))">
+                                        Entfernen
+                                    </MudButton>
+                                </CellTemplate>
+                            </TemplateColumn>
+                        </Columns>
+                    </MudDataGrid>
+                </MudTabPanel>
+            }
 
             <!-- Prozess -->
             <MudTabPanel Text="Prozess">
@@ -141,58 +145,141 @@
 </div>
 
 @code {
-    private int _tabIndex = 0;
-    private EventCreateViewModel _newEvent = new();
-    private List<OrganizationMemberDto> OrgMembers = new();
+    [Parameter] public int? Id { get; set; }      // kommt aus Route
 
+    private int _tabIndex = 0;
+
+    private EventCreateViewModel _newEvent = new();
+    private List<SelectItemDto> OrganizerOptions = new();   // DropDown-Daten
+    private List<SelectItemDto> ContactOptions   = new();   // DropDown-Daten
+    private List<EventParticipantViewModel> Participants = new();
+
+    // ---------- Lifecycle ----------
     protected override async Task OnInitializedAsync()
     {
-        await LoadMembers();
+        if (Id is > 0)
+        {
+            _newEvent.Id = Id.Value;
+            await LoadEventForEdit(Id.Value);
+            await LoadParticipants();
+        }
+
+        await LoadMembers(); // danach sind DropDowns gefüllt
     }
 
+    // ---------- Daten laden ----------
     private async Task LoadMembers()
     {
-        var token = await SessionStorage.GetItemAsync<string>("authToken");
+        var token  = await SessionStorage.GetItemAsync<string>("authToken");
         var domain = await JwtClaimHelper.GetUserDomainAsync(AuthProvider);
 
-        var request = new HttpRequestMessage(HttpMethod.Get, $"api/organization/{domain}/members");
-        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        var req = new HttpRequestMessage(HttpMethod.Get, $"api/organization/{domain}/members");
+        req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
-        var response = await Http.SendAsync(request);
-        if (response.IsSuccessStatusCode)
-        {
-            OrgMembers = await response.Content.ReadFromJsonAsync<List<OrganizationMemberDto>>() ?? new();
-        }
-        else
+        var resp = await Http.SendAsync(req);
+        if (!resp.IsSuccessStatusCode)
         {
             Snackbar.Add("Fehler beim Laden der Mitglieder.", Severity.Error);
+            return;
         }
+
+        var members = await resp.Content.ReadFromJsonAsync<List<OrganizationMemberDto>>() ?? new();
+        OrganizerOptions = members
+            .Where(m => m.Role == 0 || m.Role == 1)              // Owner / Organisator
+            .Select(m => new SelectItemDto(m.Email, $"{m.Lastname} ({m.Email})"))
+            .ToList();
+
+        ContactOptions = members
+            .Select(m => new SelectItemDto(m.Email, $"{m.Lastname} ({m.Email})"))
+            .ToList();
     }
 
-    private IEnumerable<OrganizationMemberDto> GetOrganizers()
+    private async Task LoadEventForEdit(int eventId)
     {
-        // Nur Owner & Organisatoren als Verwalter
-        return OrgMembers.Where(m => m.Role == 0 || m.Role == 1);
+        var token = await SessionStorage.GetItemAsync<string>("authToken");
+
+        var req = new HttpRequestMessage(HttpMethod.Get, $"api/event/{eventId}");
+        req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var resp = await Http.SendAsync(req);
+        if (!resp.IsSuccessStatusCode)
+        {
+            Snackbar.Add("Event konnte nicht geladen werden.", Severity.Error);
+            Navigation.NavigateTo("/home");
+            return;
+        }
+
+        var dto = await resp.Content.ReadFromJsonAsync<EventDto>();
+        if (dto != null)
+            _newEvent = EventCreateMapper.ToViewModel(dto);
     }
 
-    private void RemoveParticipant(OrganizationMemberDto member)
+    private async Task LoadParticipants()
     {
-        OrgMembers.Remove(member);
+        if (_newEvent.Id == 0) return; // nur im Edit-Modus
+
+        var token = await SessionStorage.GetItemAsync<string>("authToken");
+        var req   = new HttpRequestMessage(HttpMethod.Get, $"api/event/{_newEvent.Id}");
+        req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var resp = await Http.SendAsync(req);
+        if (!resp.IsSuccessStatusCode) return;
+
+        var dto = await resp.Content.ReadFromJsonAsync<EventDto>();
+        if (dto == null) return;
+
+        Participants = dto.Participants
+            .Select(p => new EventParticipantViewModel
+            {
+                Email           = p.Email,
+                FullName        = $"{p.Lastname}, {p.Firstname}",
+                IsOrganizer     = dto.Organizers.Contains(p.Email),
+                IsContactPerson = dto.ContactPersons.Contains(p.Email)
+            })
+            .ToList();
+    }
+
+    // ---------- UI-Interaktionen ----------
+    private void RemoveParticipant(EventParticipantViewModel member)
+    {
+        Participants.Remove(member);
     }
 
     private async Task SaveEvent()
     {
-        var dto = EventCreateMapper.ToDto(_newEvent);
-        var success = await EventApi.CreateEventAsync(dto);
+        // Teilnehmerliste vor Mapping aktualisieren
+        _newEvent.Participants = Participants
+            .Select(p => new EventParticipantDto(0, "", "", p.Email))
+            .ToList();
 
-        if (success)
-        {
-            Snackbar.Add("Event erfolgreich erstellt!", Severity.Success);
-            Navigation.NavigateTo("/home");
-        }
+        var dto     = EventCreateMapper.ToDto(_newEvent);
+        bool success;
+
+        if (_newEvent.Id > 0)
+            success = await EventApi.UpdateEventAsync(dto); // PUT
         else
-        {
-            Snackbar.Add("Fehler beim Erstellen des Events.", Severity.Error);
-        }
+            success = await EventApi.CreateEventAsync(dto); // POST
+
+        Snackbar.Add(success ? "Event gespeichert!" : "Speichern fehlgeschlagen.",
+                     success ? Severity.Success : Severity.Error);
+
+        if (success) Navigation.NavigateTo("/home");
+    }
+
+    // ---------- Hilfs-Typen ----------
+    public record SelectItemDto(string Email, string DisplayName);
+
+    public class EventParticipantViewModel
+    {
+        public string Email { get; set; } = string.Empty;
+        public string FullName { get; set; } = string.Empty;
+        public bool IsOrganizer { get; set; }
+        public bool IsContactPerson { get; set; }
+        public string RoleDisplay =>
+            IsOrganizer
+                ? "(Organisator)"
+                : IsContactPerson
+                    ? "(Ansprechpartner)"
+                    : "";
     }
 }

@@ -8,6 +8,7 @@ public record EventDto(
     string EventType,
     string Description,
     string Location,
+    List<EventParticipantDto> Participants,
     List<string> Organizers,
     List<string> ContactPersons,
     int ProcessId,

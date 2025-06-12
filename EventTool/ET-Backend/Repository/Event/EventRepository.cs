@@ -17,32 +17,34 @@ public class EventRepository : IEventRepository
         _logger = logger;
     }
 
-    private async Task UpsertEventMember(int accId, int evtId, bool isOrg, bool isContact, IDbTransaction? tx = null)
+    private async Task UpsertEventMember(int accId, int evtId, bool isOrg, bool isContact, bool isParticipant, IDbTransaction? tx = null)
     {
         try
         {
             if (_db.IsSQLite())
             {
                 await _db.ExecuteAsync(@"
-                INSERT INTO EventMembers (AccountId, EventId, IsOrganizer, IsContactPerson)
-                VALUES (@Acc, @Evt, @IsOrg, @IsContact)
+                INSERT INTO EventMembers (AccountId, EventId, IsOrganizer, IsContactPerson, IsParticipant)
+                VALUES (@Acc, @Evt, @IsOrg, @IsContact, @IsPart)
                 ON CONFLICT(AccountId, EventId) DO UPDATE
-                SET IsOrganizer     = CASE WHEN @IsOrg    = 1 THEN 1 ELSE IsOrganizer     END,
-                    IsContactPerson = CASE WHEN @IsContact = 1 THEN 1 ELSE IsContactPerson END;",
-                    new { Acc = accId, Evt = evtId, IsOrg = isOrg ? 1 : 0, IsContact = isContact ? 1 : 0 }, tx);
+                SET IsOrganizer     = CASE WHEN @IsOrg  = 1 THEN 1 ELSE IsOrganizer     END,
+                    IsContactPerson = CASE WHEN @IsContact = 1 THEN 1 ELSE IsContactPerson END,
+                    IsParticipant   = CASE WHEN @IsPart = 1 THEN 1 ELSE IsParticipant   END;",
+                    new { Acc = accId, Evt = evtId, IsOrg = isOrg ? 1 : 0, IsContact = isContact ? 1 : 0, IsPart = isParticipant ? 1 : 0 }, tx);
             }
             else
             {
                 await _db.ExecuteAsync(@"
                 IF NOT EXISTS (SELECT 1 FROM dbo.EventMembers WHERE AccountId=@Acc AND EventId=@Evt)
-                    INSERT INTO dbo.EventMembers (AccountId, EventId, IsOrganizer, IsContactPerson)
-                    VALUES (@Acc, @Evt, @IsOrg, @IsContact);
+                    INSERT INTO dbo.EventMembers (AccountId, EventId, IsOrganizer, IsContactPerson, IsParticipant)
+                    VALUES (@Acc, @Evt, @IsOrg, @IsContact, @IsPart);
                 ELSE
                     UPDATE dbo.EventMembers
                     SET IsOrganizer     = CASE WHEN @IsOrg    = 1 THEN 1 ELSE IsOrganizer     END,
-                        IsContactPerson = CASE WHEN @IsContact = 1 THEN 1 ELSE IsContactPerson END
+                        IsContactPerson = CASE WHEN @IsContact = 1 THEN 1 ELSE IsContactPerson END,
+                        IsParticipant   = CASE WHEN @IsPart    = 1 THEN 1 ELSE IsParticipant   END
                     WHERE AccountId=@Acc AND EventId=@Evt;",
-                    new { Acc = accId, Evt = evtId, IsOrg = isOrg ? 1 : 0, IsContact = isContact ? 1 : 0 }, tx);
+                    new { Acc = accId, Evt = evtId, IsOrg = isOrg ? 1 : 0, IsContact = isContact ? 1 : 0, IsPart = isParticipant ? 1 : 0 }, tx);
             }
         }
         catch (Exception ex)
@@ -110,15 +112,15 @@ public class EventRepository : IEventRepository
 
             if (newEvent.Participants?.Any() == true)
                 foreach (var p in newEvent.Participants)
-                    await UpsertEventMember(p.Id, evtId, false, false, tx);
+                    await UpsertEventMember(p.Id, evtId, false, false, true, tx);
 
             if (newEvent.Organizers?.Any() == true)
                 foreach (var o in newEvent.Organizers)
-                    await UpsertEventMember(o.Id, evtId, true, false, tx);
+                    await UpsertEventMember(o.Id, evtId, true, false, false, tx);
 
             if (newEvent.ContactPersons?.Any() == true)
                 foreach (var c in newEvent.ContactPersons)
-                    await UpsertEventMember(c.Id, evtId, false, true, tx);
+                    await UpsertEventMember(c.Id, evtId, false, true, false, tx);
 
             tx.Commit();
             _logger.LogInformation("Event erstellt: {EventId}", evtId);
@@ -160,75 +162,92 @@ public class EventRepository : IEventRepository
     }
 
     public async Task<Result<Models.Event>> GetEvent(int eventId)
+{
+    try
     {
-        try
-        {
-            var evt = await _db.QueryFirstOrDefaultAsync<Models.Event>($@"
+        // 🔹 1. Event laden
+        var evt = await _db.QueryFirstOrDefaultAsync<Models.Event>($@"
             SELECT Id, Name, Description, OrganizationId, ProcessId,
                    StartDate, EndDate, StartTime, EndTime,
                    Location, MinParticipants, MaxParticipants,
-                   RegistrationStart, RegistrationEnd, IsBlueprint
+                   RegistrationStart, RegistrationEnd, IsBlueprint,
+                   Status
             FROM {_db.Tbl("Events")}
-            WHERE Id=@Id;",
-                new { Id = eventId });
+            WHERE Id = @Id;", new { Id = eventId });
 
-            if (evt == null) return Result.Fail("NotFound");
+        if (evt == null)
+            return Result.Fail("Event nicht gefunden.");
 
-            // Init-Listen, falls null
-            evt.Participants ??= new();
-            evt.Organizers ??= new();
-            evt.ContactPersons ??= new();
+        // 🔹 Dummy für Subobjekt-Initialisierung
+        evt.Organization = new();
 
-            // Orga laden
-            evt.Organization = await _db.QueryFirstOrDefaultAsync<Models.Organization>($@"
+        // 🔹 2. Organisation laden
+        evt.Organization = await _db.QueryFirstOrDefaultAsync<Models.Organization>($@"
             SELECT Id, Name, Domain, Description, OrgaPicAsBase64
             FROM {_db.Tbl("Organizations")}
-            WHERE Id=@Id;",
-                new { Id = evt.Organization?.Id ?? 0 });
+            WHERE Id = @Id;", new { Id = evt.Organization.Id });
 
-            // Process laden (optional)
-            if (evt.Process?.Id > 0)
-            {
-                evt.Process = await _db.QueryFirstOrDefaultAsync<Process>($@"
-                SELECT Id, Name, OrganizationId
-                FROM {_db.Tbl("Processes")}
-                WHERE Id=@Id;",
-                    new { Id = evt.Process.Id });
-            }
-
-            // Teilnehmer
-            var rows = await _db.QueryAsync<dynamic>($@"
-            SELECT a.Id AS AccId, a.Email, a.IsVerified,
-                   em.IsOrganizer, em.IsContactPerson
+        // 🔹 3. Teilnehmer & Rollen
+        var members = await _db.QueryAsync<EventMemberJoin>($@"
+            SELECT
+                a.Id              AS AccountId,
+                a.Email           AS EMail,
+                u.Firstname,
+                u.Lastname,
+                em.IsOrganizer,
+                em.IsContactPerson,
+                em.IsParticipant
             FROM {_db.Tbl("EventMembers")} em
-            JOIN {_db.Tbl("Accounts")}     a ON em.AccountId = a.Id
-            WHERE em.EventId = @Evt;",
-                new { Evt = evt.Id });
+            JOIN {_db.Tbl("Accounts")} a ON em.AccountId = a.Id
+            JOIN {_db.Tbl("Users")} u    ON a.UserId = u.Id
+            WHERE em.EventId = @EventId;", new { EventId = eventId });
 
-            foreach (var r in rows)
-            {
-                var acc = new Account
-                {
-                    Id = Convert.ToInt32(r.AccId),
-                    EMail = r.Email,
-                    IsVerified = Convert.ToInt32(r.IsVerified) == 1
-                };
+        evt.Participants = new();
+        evt.Organizers = new();
+        evt.ContactPersons = new();
 
-                evt.Participants.Add(acc);
-                if (Convert.ToInt32(r.IsOrganizer) == 1) evt.Organizers.Add(acc);
-                if (Convert.ToInt32(r.IsContactPerson) == 1) evt.ContactPersons.Add(acc);
-            }
-
-            _logger.LogInformation("Event geladen: {EventId}", eventId);
-            return Result.Ok(evt);
-        }
-        catch (Exception ex)
+        foreach (var m in members)
         {
-            _logger.LogError(ex, "Fehler beim Abrufen von Event {EventId}", eventId);
-            return Result.Fail($"DBError: {ex.Message}");
-        }
-    }
+            var account = new Account
+            {
+                Id = m.AccountId,
+                EMail = m.EMail,
+                User = new User
+                {
+                    Firstname = m.Firstname,
+                    Lastname = m.Lastname
+                }
+            };
 
+            if (m.IsOrganizer)
+                evt.Organizers.Add(account);
+            if (m.IsContactPerson)
+                evt.ContactPersons.Add(account);
+            if (m.IsParticipant)
+                evt.Participants.Add(account);
+        }
+
+        return Result.Ok(evt);
+    }
+    catch (Exception ex)
+    {
+        _logger.LogError(ex, "Fehler beim Laden eines Events (ID = {EventId})", eventId);
+        return Result.Fail("Fehler beim Laden des Events.");
+    }
+}
+
+    // Interne Hilfsklasse für JOIN-Result
+    private class EventMemberJoin
+    {
+        public int AccountId { get; set; }
+        public string EMail { get; set; } = string.Empty;
+        public string Firstname { get; set; } = string.Empty;
+        public string Lastname { get; set; } = string.Empty;
+        public bool IsOrganizer { get; set; }
+        public bool IsContactPerson { get; set; }
+        public bool IsParticipant { get; set; }
+    }
+    
     public async Task<Result<List<Models.Event>>> GetEventsByOrganization(int orgId)
     {
         try
@@ -249,13 +268,13 @@ public class EventRepository : IEventRepository
             var rows = await _db.QueryAsync<dynamic>($@"
             SELECT em.EventId,
                    a.Id AS AccId, a.Email, a.IsVerified,
-                   em.IsOrganizer, em.IsContactPerson
+                   em.IsOrganizer, em.IsContactPerson, em.IsParticipant
             FROM {_db.Tbl("EventMembers")} em
             JOIN {_db.Tbl("Accounts")}     a ON em.AccountId = a.Id
             WHERE em.EventId IN @Ids;",
                 new { Ids = ids });
 
-            var map = new Dictionary<int, List<(Account acc, bool org, bool cp)>>();
+            var map = new Dictionary<int, List<(Account acc, bool org, bool cp, bool part)>>();
 
             foreach (var r in rows)
             {
@@ -270,8 +289,9 @@ public class EventRepository : IEventRepository
 
                 if (!map.ContainsKey(eid)) map[eid] = new();
                 map[eid].Add((acc,
-                              Convert.ToInt32(r.IsOrganizer) == 1,
-                              Convert.ToInt32(r.IsContactPerson) == 1));
+                    Convert.ToInt32(r.IsOrganizer) == 1,
+                    Convert.ToInt32(r.IsContactPerson) == 1,
+                    Convert.ToInt32(r.IsParticipant) == 1));
             }
 
             var orgIds = events.Select(e => e.Organization?.Id ?? 0).Distinct();
@@ -296,9 +316,9 @@ public class EventRepository : IEventRepository
                 e.ContactPersons = new();
 
                 if (map.TryGetValue(e.Id, out var lst))
-                    foreach (var (acc, org, cp) in lst)
+                    foreach (var (acc,part, org, cp) in lst)
                     {
-                        e.Participants.Add(acc);
+                        if (part) e.Participants.Add(acc);
                         if (org) e.Organizers.Add(acc);
                         if (cp) e.ContactPersons.Add(acc);
                     }
@@ -356,13 +376,13 @@ public class EventRepository : IEventRepository
                 new { Evt = ev.Id }, tx);
 
             foreach (var p in ev.Participants.DistinctBy(a => a.Id))
-                await UpsertEventMember(p.Id, ev.Id, false, false, tx);
+                await UpsertEventMember(p.Id, ev.Id, false, false, true, tx);
 
             foreach (var o in ev.Organizers.DistinctBy(a => a.Id))
-                await UpsertEventMember(o.Id, ev.Id, true, false, tx);
+                await UpsertEventMember(o.Id, ev.Id, true, false, false, tx);
 
             foreach (var c in ev.ContactPersons.DistinctBy(a => a.Id))
-                await UpsertEventMember(c.Id, ev.Id, false, true, tx);
+                await UpsertEventMember(c.Id, ev.Id, false, true, false, tx);
 
             tx.Commit();
             _logger.LogInformation("Event bearbeitet: {EventId}", ev.Id);
@@ -381,7 +401,7 @@ public class EventRepository : IEventRepository
     {
         try
         {
-            await UpsertEventMember(accountId, eventId, false, false);
+            await UpsertEventMember(accountId, eventId, false, false, true);
             _logger.LogInformation("Teilnehmer hinzugefügt: AccountId={AccountId}, EventId={EventId}", accountId, eventId);
             return Result.Ok();
         }
@@ -397,8 +417,10 @@ public class EventRepository : IEventRepository
         try
         {
             await _db.ExecuteAsync($@"
-            DELETE FROM {_db.Tbl("EventMembers")}
-            WHERE AccountId=@Acc AND EventId=@Evt;",
+            UPDATE EventMembers
+            SET IsParticipant = 0
+            WHERE AccountId=@Acc AND EventId=@Evt;
+            ",
                 new { Acc = accountId, Evt = eventId });
 
             _logger.LogInformation("Teilnehmer entfernt: AccountId={AccountId}, EventId={EventId}", accountId, eventId);

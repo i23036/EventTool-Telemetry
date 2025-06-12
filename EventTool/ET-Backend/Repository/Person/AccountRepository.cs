@@ -300,7 +300,59 @@ public class AccountRepository : IAccountRepository
             return Result.Ok(list.ToList());
         }
     }
-    
+    public async Task<Result<List<Account>>> GetAccountsByMail(IEnumerable<string> mails)
+    {
+        var mailList = mails.Distinct().ToList();
+        if (mailList.Count == 0)
+            return Result.Ok(new List<Account>());
+
+        // ► wir nutzen dieselbe join-Query wie in GetAccount, aber mit IN ()
+        var sql = $@"
+    SELECT  a.Id, a.Email AS EMail, a.IsVerified,
+            u.Id AS UserId,
+            u.Id AS Id, u.Firstname, u.Lastname, u.Password,
+            o.Id AS OrgId, o.Name, o.Description, o.Domain,
+            om.Role
+    FROM    {_db.Tbl("Accounts")}            a
+    JOIN    {_db.Tbl("Users")}               u  ON a.UserId = u.Id
+    JOIN    {_db.Tbl("OrganizationMembers")} om ON om.AccountId = a.Id
+    JOIN    {_db.Tbl("Organizations")}       o  ON o.Id      = om.OrganizationId
+    WHERE   a.Email IN @Mails;";
+
+        if (_db.IsSQLite())
+        {
+            var list = await _db.QueryAsync<Account, User, Models.Organization, long, Account>(
+                sql,
+                (acc, usr, org, role) =>
+                {
+                    acc.User = usr; acc.UserId = usr.Id;
+                    acc.Organization = org; acc.Organization.Id = org.Id;
+                    acc.Role = (Role)(int)role;
+                    return acc;
+                },
+                new { Mails = mailList },
+                splitOn: "UserId,OrgId,Role");
+
+            return Result.Ok(list.ToList());
+        }
+        else
+        {
+            var list = await _db.QueryAsync<Account, User, Models.Organization, int, Account>(
+                sql,
+                (acc, usr, org, role) =>
+                {
+                    acc.User = usr; acc.UserId = usr.Id;
+                    acc.Organization = org; acc.Organization.Id = org.Id;
+                    acc.Role = (Role)role;
+                    return acc;
+                },
+                new { Mails = mailList },
+                splitOn: "UserId,OrgId,Role");
+
+            return Result.Ok(list.ToList());
+        }
+    }
+
     public async Task<Result> EditAccount(Account account)
     {
         using var tx = _db.BeginSafeTransaction();

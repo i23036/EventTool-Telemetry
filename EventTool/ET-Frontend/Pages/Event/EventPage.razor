@@ -1,4 +1,4 @@
-﻿@page "/EventDetails/{ID:int}"
+﻿@page "/EventDetails/{Id:int}"
 @attribute [Authorize]
 
 @using Microsoft.AspNetCore.Authorization
@@ -6,9 +6,16 @@
 @using ET_Frontend.Mapping
 @using ET_Frontend.Models.Event
 @using ET_Frontend.Services.ApiClients
+@using System.IdentityModel.Tokens.Jwt
+@using System.Security.Claims
+@using Microsoft.AspNetCore.Components.Authorization
+@using Blazored.SessionStorage
 
+@inject AuthenticationStateProvider AuthProvider
+@inject ISessionStorageService SessionStorage
 @inject IEventApi EventApi
 @inject NavigationManager Navigation
+@inject ISnackbar Snackbar
 
 <PageTitle>Event Details</PageTitle>
 
@@ -26,69 +33,86 @@
     }
     else
     {
-        <MudPaper Class="pa-6 rounded-lg shadow-md">
-            <MudText Typo="Typo.h4">@_event.Name</MudText>
+	    <MudPaper Class="pa-6 rounded-lg shadow-md">
+		    <MudText Typo="Typo.h4">@_event.Name</MudText>
 
-            <MudGrid Class="mt-4">
-                <MudItem xs="12" sm="6">
-                    <MudTextField Label="Eventtyp" Value="@_event.EventType" ReadOnly />
-                </MudItem>
+		    <MudGrid Class="mt-4">
+			    <MudItem xs="12" sm="6">
+				    <MudTextField Label="Eventtyp" Value="@_event.EventType" ReadOnly />
+			    </MudItem>
 
-                <MudItem xs="12">
-                    <MudTextField Label="Beschreibung" Value="@_event.Description" Lines="3" ReadOnly FullWidth />
-                </MudItem>
+			    <MudItem xs="12">
+				    <MudTextField Label="Beschreibung" Value="@_event.Description" Lines="3" ReadOnly FullWidth />
+			    </MudItem>
 
-                <MudItem xs="12" sm="6">
-                    <MudTextField Label="Ansprechpartner"
-                                  Value="@(string.Join(", ", _event.ContactPersons))" ReadOnly />
-                </MudItem>
+			    <MudItem xs="12" sm="6">
+				    <MudTextField Label="Ansprechpartner"
+				                  Value="@(string.Join(", ", _event.ContactPersons))" ReadOnly />
+			    </MudItem>
 
-                <MudItem xs="12" sm="6">
-                    <MudDatePicker Label="Startdatum" Date="@_event.StartDate" ReadOnly />
-                </MudItem>
-                <MudItem xs="12" sm="6">
-                    <MudDatePicker Label="Enddatum" Date="@_event.EndDate" ReadOnly />
-                </MudItem>
+			    <MudItem xs="12" sm="6">
+				    <MudDatePicker Label="Startdatum" Date="@_event.StartDate" ReadOnly />
+			    </MudItem>
+			    <MudItem xs="12" sm="6">
+				    <MudDatePicker Label="Enddatum" Date="@_event.EndDate" ReadOnly />
+			    </MudItem>
 
-                <MudItem xs="12" sm="6">
-                    <MudNumericField T="int" Label="Min. Teilnehmer" Value="@_event.MinUsers" ReadOnly />
-                </MudItem>
-                <MudItem xs="12" sm="6">
-                    <MudNumericField T="int" Label="Max. Teilnehmer" Value="@_event.MaxUsers" ReadOnly />
-                </MudItem>
+			    <MudItem xs="12" sm="6">
+				    <MudNumericField T="int" Label="Min. Teilnehmer" Value="@_event.MinUsers" ReadOnly />
+			    </MudItem>
+			    <MudItem xs="12" sm="6">
+				    <MudNumericField T="int" Label="Max. Teilnehmer" Value="@_event.MaxUsers" ReadOnly />
+			    </MudItem>
 
-                <MudItem xs="12" sm="6">
-                    <MudDatePicker Label="Anmelde­beginn" Date="@_event.RegistrationStart" ReadOnly />
-                </MudItem>
-                <MudItem xs="12" sm="6">
-                    <MudDatePicker Label="Anmelde­frist" Date="@_event.RegistrationDeadline" ReadOnly />
-                </MudItem>
+			    <MudItem xs="12" sm="6">
+				    <MudDatePicker Label="Anmelde­beginn" Date="@_event.RegistrationStart" ReadOnly />
+			    </MudItem>
+			    <MudItem xs="12" sm="6">
+				    <MudDatePicker Label="Anmelde­frist" Date="@_event.RegistrationDeadline" ReadOnly />
+			    </MudItem>
 
-                <MudItem xs="12" sm="6">
-                    <MudTextField Label="Status" Value="@_event.Status.ToString()" ReadOnly />
-                </MudItem>
-            </MudGrid>
+			    <MudItem xs="12" sm="6">
+				    <MudTextField Label="Status" Value="@_event.Status.ToString()" ReadOnly />
+			    </MudItem>
+		    </MudGrid>
 
-            <MudButton Class="mt-4" Variant="Variant.Outlined" OnClick="NavigateHome">
-                Zurück
-            </MudButton>
-        </MudPaper>
+		    <MudButton Class="mt-4" Variant="Variant.Outlined" OnClick="NavigateHome">
+			    Zurück
+		    </MudButton>
+			
+		    @if (CanEdit)
+		    {
+			    <MudButton Class="mt-2 ms-2" Variant="Variant.Outlined" Color="Color.Secondary" OnClick="GotoEdit">
+				    Bearbeiten
+			    </MudButton>
+		    }
+		    <MudButton Class="mt-2 ms-2"
+		               Variant="Variant.Filled"
+		               Color="@(_event.IsSubscribed ? Color.Error : Color.Primary)"
+		               OnClick="ToggleSubscription">
+			    @(_event.IsSubscribed ? "Abmelden" : "Anmelden")
+		    </MudButton>
+	    </MudPaper>
     }
 </div>
 
 @code {
-    [Parameter] public int ID { get; set; }
+    [Parameter] public int Id { get; set; }
 
     private bool _loading = true;
     private bool _loadError = false;
-
+    
+    private bool _isOwner;
+    private bool _isManager;
+	private bool CanEdit => _isOwner || _isManager;
+	
     private EventCreateViewModel _event = new();
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
-            var dto = await EventApi.GetEventAsync(ID);
+            var dto = await EventApi.GetEventAsync(Id);
             if (dto is null)
             {
                 _loadError = true;
@@ -96,16 +120,52 @@
             }
 
             _event = EventCreateMapper.ToViewModel(dto);
+
+            var state = await AuthProvider.GetAuthenticationStateAsync();
+            var user = state.User;
+
+            var role = user.FindFirst(ClaimTypes.Role)?.Value ?? "";
+            var email = user.FindFirst(JwtRegisteredClaimNames.Email)?.Value ?? "";
+
+            _isOwner = role == "Owner";
+            _isManager = dto.Organizers.Contains(email);
+            _event.IsSubscribed = dto.Participants.Any(p => p.Email == email);
         }
         catch
         {
             _loadError = true;
         }
+
         finally
         {
             _loading = false;
         }
     }
 
+    private async Task ToggleSubscription()
+    {
+	    bool success = _event.IsSubscribed
+		    ? await EventApi.UnsubscribeAsync(Id)
+		    : await EventApi.SubscribeAsync(Id);
+
+	    if (success)
+	    {
+		    _event.IsSubscribed = !_event.IsSubscribed;
+
+		    Snackbar.Add(
+			    _event.IsSubscribed ? "Erfolgreich zum Event angemeldet." : "Von Event abgemeldet.",
+			    Severity.Success
+		    );
+
+		    StateHasChanged();
+	    }
+	    else
+	    {
+		    Snackbar.Add("Fehler beim (Ab-)Anmelden zum Event.", Severity.Error);
+	    }
+    }
+	
     private void NavigateHome() => Navigation.NavigateTo("/home");
+
+    private void GotoEdit() => Navigation.NavigateTo($"/EventErstellen/{Id}");
 }

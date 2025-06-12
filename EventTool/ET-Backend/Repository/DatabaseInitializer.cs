@@ -92,6 +92,7 @@ public class DatabaseInitializer(IDbConnection db, ILogger<DatabaseInitializer> 
                 EventId          INTEGER NOT NULL,
                 IsOrganizer      INTEGER DEFAULT 0,
                 IsContactPerson  INTEGER DEFAULT 0,
+                IsParticipant    INTEGER DEFAULT 0,
                 PRIMARY KEY (AccountId, EventId),
                 FOREIGN KEY (AccountId) REFERENCES Accounts(Id),
                 FOREIGN KEY (EventId) REFERENCES Events(Id)
@@ -323,6 +324,17 @@ public class DatabaseInitializer(IDbConnection db, ILogger<DatabaseInitializer> 
                 @MinParticipants, @MaxParticipants,
                 @RegStart, @RegEnd, @Status, @IsBlueprint
             );", parameters);
+
+            // Organisator eintragen
+            var eventId = _db.ExecuteScalar<int>("SELECT Id FROM Events WHERE Name = 'Kickoff Meeting'");
+            _db.Execute(@"
+            INSERT INTO EventMembers (
+                AccountId, EventId, IsOrganizer, IsContactPerson, IsParticipant
+            )
+            VALUES (
+                @AccId, @EvtId, 1, 0, 0
+            );", 
+                new { AccId = _db.ExecuteScalar<int>("SELECT Id FROM Accounts WHERE Email = 'admin@demo.org'"), EvtId = eventId });
         }
     }
 }

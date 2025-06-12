@@ -39,6 +39,12 @@ public static class EventMapper
             e.EventType,
             e.Description,
             e.Location,
+            e.Participants.Select(p => new EventParticipantDto(
+                p.Id,
+                p.User?.Firstname ?? "",
+                p.User?.Lastname ?? "",
+                p.EMail
+            )).ToList(),
             e.Organizers.Select(o => o.EMail).ToList(),
             e.ContactPersons.Select(c => c.EMail).ToList(),
             e.Process?.Id ?? 0,

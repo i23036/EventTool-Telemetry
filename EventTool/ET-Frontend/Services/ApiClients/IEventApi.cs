@@ -13,6 +13,8 @@ public interface IEventApi
     /// <summary> Erstellt ein neues Event. </summary>
     Task<bool> CreateEventAsync(EventDto dto);
 
+    Task<bool> UpdateEventAsync(EventDto dto);
+
     /// <summary> Lädt eine Event-Detail-Seite. </summary>
     Task<EventDto?> GetEventAsync(int eventId);
 }

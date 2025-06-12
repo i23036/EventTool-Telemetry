@@ -108,6 +108,17 @@ namespace ET_Backend.Controllers
                 : BadRequest(new { errors = result.Errors.Select(e => e.Message) });
         }
         
+        [HttpPut("{eventId:int}")]
+        [Authorize]
+        public async Task<IActionResult> UpdateEvent(int eventId, [FromBody] EventDto dto)
+        {
+            if (eventId != dto.Id)
+                return BadRequest("IDs passen nicht zusammen.");
+
+            var result = await _eventService.UpdateEventAsync(dto, User);
+            return result.IsSuccess ? Ok() : BadRequest(result.Errors);
+        }
+
         [HttpDelete("{eventId}")]
         public async Task<IActionResult> DeleteEvent(int eventId)
         {
