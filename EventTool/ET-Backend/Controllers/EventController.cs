@@ -2,9 +2,11 @@
 using ET.Shared.DTOs;
 using ET_Backend.Models;
 using ET_Backend.Services.Event;
+using ET_Backend.Services.Helper;
 using ET_Backend.Services.Mapping;
 using ET_Backend.Services.Organization;
 using ET_Backend.Services.Person;
+using ET.Shared.DTOs.Enums;
 using FluentResults;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -35,31 +37,31 @@ namespace ET_Backend.Controllers
         [Authorize]
         public async Task<IActionResult> EventList(string domain)
         {
-            // 1️⃣ Account-Id aus NameIdentifier-Claim ziehen
-            if (!int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var accountId))
-                return Unauthorized();
+            var user  = User;
+            var email = TokenHelper.GetEmail(user);
+            var role  = TokenHelper.GetRole(user);               // Owner | Organisator | Member
 
-            // Organisation holen
-            var orgResult = await _organizationService.GetOrganization(domain);
-            if (orgResult.IsFailed)
-                return Unauthorized("Organisation nicht gefunden.");
+            // Events holen (alle)
+            var orgRes = await _organizationService.GetOrganization(domain);
+            if (orgRes.IsFailed) return Unauthorized();
 
-            // Events holen
-            var result = await _eventService.GetEventsFromOrganization(orgResult.Value.Id);
+            var evRes = await _eventService.GetEventsFromOrganization(orgRes.Value.Id);
+            if (evRes.IsFailed) return BadRequest(evRes.Errors);
 
-            if (result.IsSuccess)
-            {
-                // 2️⃣ Mapper bekommt jetzt die Account-Id
-                var dtoList = result.Value
-                    .Select(e => EventListMapper.ToDto(e, accountId))
-                    .ToList();
+            var filtered = evRes.Value.Where(e =>
+                    role == "Owner" ? true :                                 // Owner sieht alles
+                        role == "Organisator"
+                            ? (e.Status != EventStatus.Entwurf ||
+                               e.Organizers.Any(o => o.EMail == email))          // sieht Entwürfe nur als Verwalter
+                            : e.Status is EventStatus.Offen
+                                or EventStatus.Geschlossen
+                                or EventStatus.Abgesagt
+                                or EventStatus.Archiviert             // Member-Sicht
+            );
 
-
-                return Ok(dtoList);
-            }
-
-            return BadRequest(result.Errors);
+            return Ok(filtered.Select(e => EventListMapper.ToDto(e, email)));
         }
+
 
         [HttpPut("subscribe/{eventId:int}")]
         [Authorize]

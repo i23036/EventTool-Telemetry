@@ -10,6 +10,7 @@
 @using System.Security.Claims
 @using Microsoft.AspNetCore.Components.Authorization
 @using Blazored.SessionStorage
+@using ET.Shared.DTOs.Enums
 
 @inject AuthenticationStateProvider AuthProvider
 @inject ISessionStorageService SessionStorage
@@ -89,7 +90,8 @@
 		    <MudButton Class="mt-2 ms-2"
 		               Variant="Variant.Filled"
 		               Color="@(_event.IsSubscribed ? Color.Error : Color.Primary)"
-		               OnClick="ToggleSubscription">
+		               OnClick="ToggleSubscription"
+		               Disabled="@( _event.Status != EventStatus.Offen )">>
 			    @(_event.IsSubscribed ? "Abmelden" : "Anmelden")
 		    </MudButton>
 	    </MudPaper>

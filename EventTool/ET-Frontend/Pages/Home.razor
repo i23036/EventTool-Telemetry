@@ -32,6 +32,7 @@
                         <PropertyColumn Property="x => x.Description" Title="Beschreibung" />
                         <PropertyColumn Property="x => x.Participants" Title="Teilnehmer" />
                         <PropertyColumn Property="x => x.MaxParticipants" Title="Maximale Teilnehmer" />
+                        <PropertyColumn Property="e => e.StatusDisplay" Title="Status" SortBy="e => e.Status" />
                         <TemplateColumn CellClass="d-flex justify-end">
                             <CellTemplate Context="eventItem">
                                 <MudStack Row Spacing="1">
