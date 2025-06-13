@@ -273,29 +273,18 @@
 
     private async Task ToggleSubscription(EventViewModel ev)
     {
-	    bool result;
-	    string message;
+	    bool ok = ev.IsSubscribed
+		    ? await EventApi.UnsubscribeAsync(ev.EventId)
+		    : await EventApi.SubscribeAsync(ev.EventId);
 
-	    if (ev.IsSubscribed)
-	    {
-		    result = await EventApi.UnsubscribeAsync(ev.EventId);
-		    message = result ? "Erfolgreich abgemeldet." : "Abmeldung fehlgeschlagen.";
-	    }
-	    else
-	    {
-		    result = await EventApi.SubscribeAsync(ev.EventId);
-		    message = result ? "Erfolgreich angemeldet." : "Anmeldung fehlgeschlagen.";
-	    }
-
-	    if (result)
+	    if (ok)
 	    {
 		    ev.IsSubscribed = !ev.IsSubscribed;
+		    ev.Participants += ev.IsSubscribed ? +1 : -1;
+		    Snackbar.Add(ev.IsSubscribed ? "Angemeldet!" : "Abgemeldet!", Severity.Success);
 		    StateHasChanged();
-		    Snackbar.Add(message, Severity.Success);
 	    }
 	    else
-	    {
-		    Snackbar.Add(message, Severity.Error);
-	    }
+		    Snackbar.Add("Aktion fehlgeschlagen.", Severity.Error);
     }
 }

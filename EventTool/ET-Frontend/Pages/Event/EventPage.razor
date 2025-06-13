@@ -102,6 +102,7 @@
     private bool _loading = true;
     private bool _loadError = false;
     
+	private bool _isSubscribed;
     private bool _isOwner;
     private bool _isManager;
 	private bool CanEdit => _isOwner || _isManager;
@@ -129,7 +130,7 @@
 
             _isOwner = role == "Owner";
             _isManager = dto.Organizers.Contains(email);
-            _event.IsSubscribed = dto.Participants.Any(p => p.Email == email);
+			_isSubscribed = dto.Participants.Any(p => p.Email == email);
         }
         catch
         {

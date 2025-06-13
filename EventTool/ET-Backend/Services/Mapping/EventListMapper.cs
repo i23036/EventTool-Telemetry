@@ -9,40 +9,15 @@ namespace ET_Backend.Services.Mapping;
 public static class EventListMapper
 {
     /// <summary>
-    /// Wandelt ein Event-Model in ein EventListDto um.
+    /// Wandelt ein Event-Model in ein EventListDto um
+    /// (Variante mit Account-Objekt des Viewers).
     /// </summary>
     public static EventListDto ToDto(Models.Event evt, Account viewer)
     {
-        int count = evt.Participants
-            .Where(p =>
-                !evt.Organizers.Any(o => o.Id == p.Id) &&
-                !evt.ContactPersons.Any(c => c.Id == p.Id))
-            .Count();
-
-        return new EventListDto(
-            evt.Id,
-            evt.Name,
-            evt.Description,
-            count,
-            evt.MaxParticipants,
-            evt.Organizers.Contains(viewer),
-            evt.Participants.Contains(viewer)
-        );
-    }
-
-    /// <summary>
-    /// Wandelt ein Event-Model in ein EventListDto um – nur anhand der Account-Id.
-    /// </summary>
-    public static EventListDto ToDto(Models.Event evt, int currentAccountId)
-    {
-        int count = evt.Participants
-            .Where(p =>
-                !evt.Organizers.Any(o => o.Id == p.Id) &&
-                !evt.ContactPersons.Any(c => c.Id == p.Id))
-            .Count();
-
-        bool isOrganizer  = evt.Organizers.Any(o => o.Id == currentAccountId);
-        bool isSubscribed = evt.Participants.Any(p => p.Id == currentAccountId);
+        // ► einfache Teilnehmer-Zählung (alle Datensätze in Participants)
+        int  count        = evt.Participants.Count;
+        bool isOrganizer  = evt.Organizers.Any(o  => o.Id == viewer.Id);
+        bool isSubscribed = evt.Participants.Any(p => p.Id == viewer.Id);
 
         return new EventListDto(
             evt.Id,
@@ -53,6 +28,20 @@ public static class EventListMapper
             isOrganizer,
             isSubscribed
         );
+    }
+
+    /// <summary>
+    /// Wandelt ein Event-Model in ein EventListDto um – nur anhand der Account-Id.
+    /// </summary>
+    public static EventListDto ToDto(Models.Event evt, int viewerId)
+    {
+        int count        = evt.Participants.Count;
+        bool isOrganizer = evt.Organizers.Any(o  => o.Id == viewerId);
+        bool isSubscribed= evt.Participants.Any(p => p.Id == viewerId);
+
+        return new EventListDto(evt.Id, evt.Name, evt.Description,
+            count, evt.MaxParticipants,
+            isOrganizer, isSubscribed);
     }
 
     /// <summary>

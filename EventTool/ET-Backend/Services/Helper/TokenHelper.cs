@@ -3,35 +3,25 @@ using System.Security.Claims;
 
 namespace ET_Backend.Services.Helper;
 
+/// <summary>
+/// Robustere Helfer zum Auslesen essentieller JWT-Claims.
+/// </summary>
 public static class TokenHelper
 {
-    public static int? GetAccountId(ClaimsPrincipal user)
-    {
-        var accId = user.FindFirst("accountId")?.Value;
-        return int.TryParse(accId, out var id) ? id : null;
-    }
+    public static string GetEmail(ClaimsPrincipal user) =>
+        // 1) Standard            2) Alternative             3) Plain "email"
+        user.FindFirst(JwtRegisteredClaimNames.Email)?.Value
+        ?? user.FindFirst(ClaimTypes.Email)?.Value
+        ?? user.FindFirst("email")?.Value
+        ?? string.Empty;
 
-    public static int? GetUserId(ClaimsPrincipal user)
-    {
-        var uid = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        return int.TryParse(uid, out var id) ? id : null;
-    }
+    public static string GetRole(ClaimsPrincipal user) =>
+        user.FindFirst(ClaimTypes.Role)?.Value
+        ?? user.FindFirst("role")?.Value
+        ?? string.Empty;
 
-    public static string? GetEmail(ClaimsPrincipal user)
-        => user.FindFirst(JwtRegisteredClaimNames.Email)?.Value;
-
-    public static string? GetOrgDomain(ClaimsPrincipal user)
-        => user.FindFirst("org")?.Value;
-
-    public static string? GetOrgName(ClaimsPrincipal user)
-        => user.FindFirst("orgName")?.Value;
-
-    public static string? GetRole(ClaimsPrincipal user)
-        => user.FindFirst(ClaimTypes.Role)?.Value;
-
-    public static bool IsOwner(ClaimsPrincipal user)
-        => GetRole(user)?.Equals("Owner", StringComparison.OrdinalIgnoreCase) == true;
-
-    public static bool IsOrganizer(ClaimsPrincipal user)
-        => GetRole(user)?.Equals("Organisator", StringComparison.OrdinalIgnoreCase) == true;
+    public static string GetOrgDomain(ClaimsPrincipal user) =>
+        user.FindFirst("org")?.Value
+        ?? user.FindFirst("orgDomain")?.Value
+        ?? string.Empty;
 }

@@ -105,7 +105,17 @@
 
                 <MudDivider Class="my-4" />
                 <div class="d-flex justify-end gap-3">
-                    <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SaveEvent">Speichern</MudButton>
+	                <MudButton Color="Color.Primary"
+	                           Variant="Variant.Filled"
+	                           OnClick="SaveEvent">
+		                Speichern
+	                </MudButton>
+
+	                <MudButton Color="Color.Secondary"
+	                           Variant="Variant.Filled"
+	                           OnClick="CancelEdit">
+		                Abbrechen
+	                </MudButton>
                 </div>
             </MudTabPanel>
 
@@ -264,6 +274,14 @@
                      success ? Severity.Success : Severity.Error);
 
         if (success) Navigation.NavigateTo("/home");
+    }
+
+    private void CancelEdit()
+    {
+	    if (_newEvent.Id > 0)          // Edit-Modus
+		    Navigation.NavigateTo($"/EventDetails/{_newEvent.Id}");
+	    else                           // Neu-Modus
+		    Navigation.NavigateTo("/home");
     }
 
     // ---------- Hilfs-Typen ----------

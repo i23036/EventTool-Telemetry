@@ -274,7 +274,7 @@ public class EventRepository : IEventRepository
             WHERE em.EventId IN @Ids;",
                 new { Ids = ids });
 
-            var map = new Dictionary<int, List<(Account acc, bool org, bool cp, bool part)>>();
+            var map = new Dictionary<int, List<(Account acc,bool part, bool org, bool cp)>>();
 
             foreach (var r in rows)
             {
@@ -289,9 +289,9 @@ public class EventRepository : IEventRepository
 
                 if (!map.ContainsKey(eid)) map[eid] = new();
                 map[eid].Add((acc,
+                    Convert.ToInt32(r.IsParticipant) == 1,
                     Convert.ToInt32(r.IsOrganizer) == 1,
-                    Convert.ToInt32(r.IsContactPerson) == 1,
-                    Convert.ToInt32(r.IsParticipant) == 1));
+                    Convert.ToInt32(r.IsContactPerson) == 1));
             }
 
             var orgIds = events.Select(e => e.Organization?.Id ?? 0).Distinct();
