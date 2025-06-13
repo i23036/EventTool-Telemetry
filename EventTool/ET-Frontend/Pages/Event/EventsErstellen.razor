@@ -43,17 +43,22 @@
 
                     <!-- Verwalter (mehrfach) -->
                     <MudItem xs="12" sm="6">
-                        <MudSelect T="string"
-                                   Label="Verwalter"
-                                   SelectedValues="_newEvent.Managers"
-                                   SelectedValuesChanged="@(val => _newEvent.Managers = val.ToList())"
-                                   MultiSelection="true"
-                                   Searchable="true">
-                            @foreach (var option in OrganizerOptions)
-                            {
-                                <MudSelectItem Value="@option.Email">@option.DisplayName</MudSelectItem>
-                            }
-                        </MudSelect>
+	                    <MudSelect T="string"
+	                               Label="Verwalter"
+	                               SelectedValues="_newEvent.Managers"
+	                               SelectedValuesChanged="@(val => _newEvent.Managers = val.ToList())"
+	                               MultiSelection="true"
+	                               Searchable="true">
+
+		                    @foreach (var option in OrganizerOptions)
+		                    {
+			                    <MudSelectItem Value="@option.Email"
+			                                   Disabled="@(option.Email.Equals(_currentUserEmail,
+				                                             StringComparison.OrdinalIgnoreCase))">
+				                    @option.DisplayName
+			                    </MudSelectItem>
+		                    }
+	                    </MudSelect>
                     </MudItem>
 
                     <!-- Ansprechpartner (mehrfach) -->
@@ -164,17 +169,28 @@
     private List<SelectItemDto> ContactOptions   = new();   // DropDown-Daten
     private List<EventParticipantViewModel> Participants = new();
 
-    // ---------- Lifecycle ----------
+    private string _currentUserEmail = string.Empty;
+
     protected override async Task OnInitializedAsync()
     {
-        if (Id is > 0)
+        // Bearbeiten-Modus
+	    if (Id is > 0)
         {
             _newEvent.Id = Id.Value;
             await LoadEventForEdit(Id.Value);
             await LoadParticipants();
         }
-
+		
         await LoadMembers(); // danach sind DropDowns gefüllt
+
+        var auth = await AuthProvider.GetAuthenticationStateAsync();
+        _currentUserEmail = auth.User
+	        .FindFirst(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Email)
+	        ?.Value ?? "";
+
+        // Creator sicher als Manager eintragen
+        if (!_newEvent.Managers.Contains(_currentUserEmail, StringComparer.OrdinalIgnoreCase))
+	        _newEvent.Managers.Add(_currentUserEmail);
     }
 
     // ---------- Daten laden ----------
@@ -241,7 +257,8 @@
         Participants = dto.Participants
             .Select(p => new EventParticipantViewModel
             {
-                Email           = p.Email,
+	            AccountId       = p.AccountId,
+	            Email           = p.Email,
                 FullName        = $"{p.Lastname}, {p.Firstname}",
                 IsOrganizer     = dto.Organizers.Contains(p.Email),
                 IsContactPerson = dto.ContactPersons.Contains(p.Email)
@@ -250,9 +267,18 @@
     }
 
     // ---------- UI-Interaktionen ----------
-    private void RemoveParticipant(EventParticipantViewModel member)
+    private async Task RemoveParticipant(EventParticipantViewModel member)
     {
-        Participants.Remove(member);
+	    var ok = await EventApi.RemoveParticipantAsync(_newEvent.Id, member.AccountId);
+	    if (ok)
+	    {
+		    Participants.Remove(member);
+		    Snackbar.Add($"{member.FullName} wurde entfernt.", Severity.Info);
+	    }
+	    else
+	    {
+		    Snackbar.Add("Teilnehmer konnte nicht entfernt werden.", Severity.Error);
+	    }
     }
 
     private async Task SaveEvent()
@@ -278,10 +304,10 @@
 
     private void CancelEdit()
     {
-	    if (_newEvent.Id > 0)          // Edit-Modus
-		    Navigation.NavigateTo($"/EventDetails/{_newEvent.Id}");
-	    else                           // Neu-Modus
-		    Navigation.NavigateTo("/home");
+        if (_newEvent.Id > 0)          // Edit-Modus
+            Navigation.NavigateTo($"/EventDetails/{_newEvent.Id}");
+        else                           // Neu-Modus
+            Navigation.NavigateTo("/home");
     }
 
     // ---------- Hilfs-Typen ----------
@@ -289,6 +315,7 @@
 
     public class EventParticipantViewModel
     {
+        public int AccountId { get; set; }
         public string Email { get; set; } = string.Empty;
         public string FullName { get; set; } = string.Empty;
         public bool IsOrganizer { get; set; }

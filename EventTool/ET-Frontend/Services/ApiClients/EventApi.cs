@@ -73,4 +73,10 @@ public class EventApi : IEventApi
 
         return req;
     }
+
+    public async Task<bool> RemoveParticipantAsync(int eventId, int accountId)
+    {
+        var resp = await _http.DeleteAsync($"api/event/{eventId}/participant/{accountId}");
+        return resp.IsSuccessStatusCode;
+    }
 }

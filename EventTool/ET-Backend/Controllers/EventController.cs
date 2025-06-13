@@ -83,6 +83,14 @@ namespace ET_Backend.Controllers
             return result.IsSuccess ? Ok() : BadRequest(result.Errors);
         }
 
+        [HttpDelete("{eventId:int}/participant/{accountId:int}")]
+        [Authorize(Roles = "Owner,Organisator")]
+        public async Task<IActionResult> RemoveParticipant(int eventId, int accountId)
+        {
+            var result = await _eventService.UnsubscribeToEvent(accountId, eventId);
+            return result.IsSuccess ? Ok() : BadRequest(result.Errors);
+        }
+
         [HttpPost]
         [Authorize]
         public async Task<IActionResult> CreateEvent([FromBody] EventDto value)
@@ -101,7 +109,7 @@ namespace ET_Backend.Controllers
             var newEvent = EventMapper.ToModel(value, orgResult.Value);
 
             // An Service übergeben (Model + OrgaId)
-            var result = await _eventService.CreateEvent(newEvent, orgResult.Value.Id);
+            var result = await _eventService.CreateEvent(newEvent, orgResult.Value.Id, User);
 
             return result.IsSuccess
                 ? Ok()

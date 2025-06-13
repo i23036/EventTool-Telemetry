@@ -1,4 +1,5 @@
 ﻿using ET.Shared.DTOs.Enums;
+using ET.Shared.DTOs.Validation;
 
 namespace ET.Shared.DTOs;
 
@@ -9,6 +10,8 @@ public record EventDto(
     string Description,
     string Location,
     List<EventParticipantDto> Participants,
+    [param: MinElements(1, 
+        ErrorMessage = "Mindestens ein Verwalter muss ausgewählt sein.")]
     List<string> Organizers,
     List<string> ContactPersons,
     int ProcessId,

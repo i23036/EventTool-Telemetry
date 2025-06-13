@@ -1,5 +1,4 @@
-﻿using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
+﻿using System.Security.Claims;
 using ET_Backend.Models;
 using ET_Backend.Repository.Event;
 using ET_Backend.Repository.Organization;
@@ -7,7 +6,6 @@ using ET_Backend.Repository.Person;
 using ET_Backend.Repository.Processes;
 using ET_Backend.Services.Helper;
 using ET_Backend.Services.Mapping;
-using ET_Backend.Services.Organization;
 using ET_Backend.Services.Person;
 using ET.Shared.DTOs;
 using FluentResults;
@@ -39,9 +37,25 @@ public class EventService : IEventService
         _accountService = accountService;
     }
 
-    public async Task<Result<Models.Event>> CreateEvent(Models.Event newEvent, int organizationId)
+    public async Task<Result<Models.Event>> CreateEvent(Models.Event newEvent, int organizationId, ClaimsPrincipal user)
     {
-        // Organisatoren laden
+        // Creator-E-Mail aus Token ziehen
+        string creatorEmail = TokenHelper.GetEmail(user);
+        
+        if (string.IsNullOrWhiteSpace(creatorEmail))
+            return Result.Fail("E-Mail im Token nicht gefunden.");
+        
+        // Creator ⇒ Organizer (falls noch nicht gesetzt)
+        if (newEvent.Organizers.All(o => !o.EMail.Equals(creatorEmail, StringComparison.OrdinalIgnoreCase)))
+        {
+            var accRes = await _accountRepository.GetAccount(creatorEmail);
+            if (accRes.IsFailed)
+                return Result.Fail($"Kein Account für Creator-E-Mail '{creatorEmail}' gefunden.");
+
+            newEvent.Organizers.Add(accRes.Value);
+        }
+
+        // weitere Organisatoren laden
         var organizerAccounts = new List<Account>();
         foreach (var email in newEvent.Organizers.Select(o => o.EMail).Distinct())
         {

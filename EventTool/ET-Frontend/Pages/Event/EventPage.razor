@@ -102,8 +102,7 @@
     private bool _loading = true;
     private bool _loadError = false;
     
-	private bool _isSubscribed;
-    private bool _isOwner;
+	private bool _isOwner;
     private bool _isManager;
 	private bool CanEdit => _isOwner || _isManager;
 	
@@ -128,9 +127,9 @@
             var role = user.FindFirst(ClaimTypes.Role)?.Value ?? "";
             var email = user.FindFirst(JwtRegisteredClaimNames.Email)?.Value ?? "";
 
+            _event.IsSubscribed = dto.Participants.Any(p => p.Email == email);
             _isOwner = role == "Owner";
             _isManager = dto.Organizers.Contains(email);
-			_isSubscribed = dto.Participants.Any(p => p.Email == email);
         }
         catch
         {
@@ -152,13 +151,11 @@
 	    if (success)
 	    {
 		    _event.IsSubscribed = !_event.IsSubscribed;
-
-		    Snackbar.Add(
+			Snackbar.Add(
 			    _event.IsSubscribed ? "Erfolgreich zum Event angemeldet." : "Von Event abgemeldet.",
 			    Severity.Success
 		    );
-
-		    StateHasChanged();
+			StateHasChanged();
 	    }
 	    else
 	    {

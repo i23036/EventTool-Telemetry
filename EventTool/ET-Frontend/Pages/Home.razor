@@ -43,7 +43,7 @@
 	                                    <MudButton Size="Size.Small"
 	                                               Variant="Variant.Outlined"
 	                                               Color="Color.Secondary"
-	                                               OnClick="@(() => Navigation.NavigateTo($"/EventErstellen/{eventItem.Item.EventId}"))">
+                                                   OnClick="@(() => NavigateToEventEdit(eventItem.Item.EventId))">
 		                                    Bearbeiten
 	                                    </MudButton>
                                     }
@@ -259,6 +259,11 @@
     private void NavigateToEventCreation()
     {
         Navigation.NavigateTo("/EventErstellen");
+    }
+
+    private void NavigateToEventEdit(int eventId)
+    {
+	    Navigation.NavigateTo($"/EventErstellen/{eventId}");
     }
 
     private void NavigateToEventDetails(int eventId)
