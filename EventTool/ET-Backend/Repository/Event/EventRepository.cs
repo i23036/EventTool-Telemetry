@@ -263,6 +263,9 @@ public class EventRepository : IEventRepository
 
             if (!events.Any()) return Result.Ok(events);
 
+            foreach (var e in events)
+                e.Organization = new Models.Organization { Id = orgId };
+
             var ids = events.Select(e => e.Id).ToList();
 
             var rows = await _db.QueryAsync<dynamic>($@"
@@ -323,8 +326,10 @@ public class EventRepository : IEventRepository
                         if (cp) e.ContactPersons.Add(acc);
                     }
 
-                if (orgs.TryGetValue(e.Organization?.Id ?? 0, out var o)) e.Organization = o;
-                if (procs.TryGetValue(e.Process?.Id ?? 0, out var p)) e.Process = p;
+                if (orgs.TryGetValue(e.Organization.Id, out var o))
+                    e.Organization = o;
+                if (procs.TryGetValue(e.Process?.Id ?? 0, out var p))
+                    e.Process = p;
             }
 
             _logger.LogInformation("Events geladen für OrganizationId: {OrgId}", orgId);

@@ -48,16 +48,23 @@ namespace ET_Backend.Controllers
             var evRes = await _eventService.GetEventsFromOrganization(orgRes.Value.Id);
             if (evRes.IsFailed) return BadRequest(evRes.Errors);
 
-            var filtered = evRes.Value.Where(e =>
-                    role == "Owner" ? true :                                 // Owner sieht alles
-                        role == "Organisator"
-                            ? (e.Status != EventStatus.Entwurf ||
-                               e.Organizers.Any(o => o.EMail == email))          // sieht Entwürfe nur als Verwalter
-                            : e.Status is EventStatus.Offen
-                                or EventStatus.Geschlossen
-                                or EventStatus.Abgesagt
-                                or EventStatus.Archiviert             // Member-Sicht
-            );
+            IEnumerable<Models.Event> filtered;
+
+            if (role == "Owner")
+            {
+                filtered = evRes.Value;
+            }
+            else if (role == "Organizer")
+            {
+                filtered = evRes.Value.Where(e =>
+                    e.Status != EventStatus.Entwurf ||
+                    e.Organizers.Any(o => string.Equals(o.EMail, email, StringComparison.OrdinalIgnoreCase)));
+            }
+            else
+            {
+                filtered = evRes.Value.Where(e =>
+                    e.Status is EventStatus.Offen or EventStatus.Geschlossen or EventStatus.Abgesagt or EventStatus.Archiviert);
+            }
 
             return Ok(filtered.Select(e => EventListMapper.ToDto(e, email)));
         }
