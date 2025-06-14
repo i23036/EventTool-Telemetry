@@ -167,7 +167,7 @@ public class EventRepository : IEventRepository
     {
         // 🔹 1. Event laden
         var evt = await _db.QueryFirstOrDefaultAsync<Models.Event>($@"
-            SELECT Id, Name, EventType, Description, OrganizationId, ProcessId,
+            SELECT Id, Name, EventType, Description, Status, OrganizationId, ProcessId,
                    StartDate, EndDate, StartTime, EndTime,
                    Location, MinParticipants, MaxParticipants,
                    RegistrationStart, RegistrationEnd, IsBlueprint,
@@ -253,7 +253,7 @@ public class EventRepository : IEventRepository
         try
         {
             var events = (await _db.QueryAsync<Models.Event>($@"
-            SELECT Id, Name, EventType, Description, OrganizationId, ProcessId,
+            SELECT Id, Name, EventType, Description, Status, OrganizationId, ProcessId,
                    StartDate, EndDate, StartTime, EndTime,
                    Location, MinParticipants, MaxParticipants,
                    RegistrationStart, RegistrationEnd, IsBlueprint
@@ -344,7 +344,7 @@ public class EventRepository : IEventRepository
         {
             await _db.ExecuteAsync($@"
             UPDATE {_db.Tbl("Events")} SET
-                Name=@Name, Description=@Description, EventType = @EventType, OrganizationId=@OrgId,
+                Name=@Name, Description=@Description, Status=@Status, EventType = @EventType, OrganizationId=@OrgId,
                 ProcessId=@ProcId, StartDate=@StartDate, EndDate=@EndDate,
                 StartTime=@StartTime, EndTime=@EndTime, Location=@Location,
                 MinParticipants=@MinPart, MaxParticipants=@MaxPart,
@@ -355,6 +355,7 @@ public class EventRepository : IEventRepository
                 {
                     ev.Name,
                     ev.Description,
+                    ev.Status,
                     ev.EventType,
                     OrgId = ev.Organization?.Id,
                     ProcId = ev.Process?.Id,
