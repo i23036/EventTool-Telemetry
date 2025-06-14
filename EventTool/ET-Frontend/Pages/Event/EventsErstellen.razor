@@ -53,10 +53,14 @@
 		                    @foreach (var option in OrganizerOptions)
 		                    {
 			                    <MudSelectItem Value="@option.Email"
-			                                   Disabled="@(option.Email.Equals(_currentUserEmail,
-				                                             StringComparison.OrdinalIgnoreCase))">
+			                                   Disabled="@(
+			                                             // Wenn nicht Owner: kein Zugriff auf Owner
+			                                             (!string.Equals(_currentUserRole, "Owner", StringComparison.OrdinalIgnoreCase) &&
+			                                              (option.Email.Equals(_currentUserEmail, StringComparison.OrdinalIgnoreCase) || option.Role == 0))
+			                                             )">
 				                    @option.DisplayName
 			                    </MudSelectItem>
+
 		                    }
 	                    </MudSelect>
                     </MudItem>
@@ -170,10 +174,22 @@
     private List<EventParticipantViewModel> Participants = new();
 
     private string _currentUserEmail = string.Empty;
+    private string _currentUserRole = string.Empty;
 
     protected override async Task OnInitializedAsync()
     {
-        // Bearbeiten-Modus
+	    // Erst Rolle & E-Mail laden
+	    _currentUserRole = await JwtClaimHelper.GetUserRoleAsync(AuthProvider);
+
+	    var auth = await AuthProvider.GetAuthenticationStateAsync();
+	    _currentUserEmail = auth.User
+		    .FindFirst(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Email)
+		    ?.Value ?? "";
+
+		// Danach die Member laden
+	    await LoadMembers();
+	    
+	    // Bearbeiten-Modus
 	    if (Id is > 0)
         {
             _newEvent.Id = Id.Value;
@@ -181,13 +197,6 @@
             await LoadParticipants();
         }
 		
-        await LoadMembers(); // danach sind DropDowns gefüllt
-
-        var auth = await AuthProvider.GetAuthenticationStateAsync();
-        _currentUserEmail = auth.User
-	        .FindFirst(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Email)
-	        ?.Value ?? "";
-
         // Creator sicher als Manager eintragen
         if (!_newEvent.Managers.Contains(_currentUserEmail, StringComparer.OrdinalIgnoreCase))
 	        _newEvent.Managers.Add(_currentUserEmail);
@@ -212,7 +221,7 @@
         var members = await resp.Content.ReadFromJsonAsync<List<OrganizationMemberDto>>() ?? new();
         OrganizerOptions = members
             .Where(m => m.Role == 0 || m.Role == 1)              // Owner / Organisator
-            .Select(m => new SelectItemDto(m.Email, $"{m.Lastname} ({m.Email})"))
+            .Select(m => new SelectItemDto(m.Email, $"{m.Lastname} ({m.Email})", m.Role))
             .ToList();
 
         ContactOptions = members
@@ -283,7 +292,12 @@
 
     private async Task SaveEvent()
     {
-        // Teilnehmerliste vor Mapping aktualisieren
+	    if (_newEvent.Managers == null || !_newEvent.Managers.Any())
+	    {
+		    Snackbar.Add("Mindestens ein Verwalter muss ausgewählt sein.", Severity.Warning);
+		    return;
+	    }
+
         _newEvent.Participants = Participants
             .Select(p => new EventParticipantDto(0, "", "", p.Email))
             .ToList();
@@ -311,7 +325,7 @@
     }
 
     // ---------- Hilfs-Typen ----------
-    public record SelectItemDto(string Email, string DisplayName);
+    public record SelectItemDto(string Email, string DisplayName, int Role = 1); // 0=Owner, 1=Organisator
 
     public class EventParticipantViewModel
     {

@@ -142,7 +142,7 @@
         Console.WriteLine($"[Home] Benutzerrolle: {role}");
 
         IsOwner = string.Equals(role, "owner", StringComparison.OrdinalIgnoreCase);
-        CanCreateEvents = IsOwner || string.Equals(role, "organisator", StringComparison.OrdinalIgnoreCase);
+        CanCreateEvents = IsOwner || string.Equals(role, "organizer", StringComparison.OrdinalIgnoreCase);
     }
 
 
