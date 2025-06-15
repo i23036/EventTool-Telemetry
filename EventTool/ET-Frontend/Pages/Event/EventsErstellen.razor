@@ -52,16 +52,23 @@
 
 		                    @foreach (var option in OrganizerOptions)
 		                    {
-			                    <MudSelectItem Value="@option.Email"
-			                                   Disabled="@(
-			                                             // Wenn nicht Owner: kein Zugriff auf Owner
-			                                             (!string.Equals(_currentUserRole, "Owner", StringComparison.OrdinalIgnoreCase) &&
-			                                              (option.Email.Equals(_currentUserEmail, StringComparison.OrdinalIgnoreCase) || option.Role == 0))
-			                                             )">
+			                    var isOwner = string.Equals(_currentUserRole, "Owner", StringComparison.OrdinalIgnoreCase);
+			                    var isEdit = _newEvent.Id > 0;
+			                    var isSelf = option.Email.Equals(_currentUserEmail, StringComparison.OrdinalIgnoreCase);
+			                    var isOptionOwner = option.Role == 0;
+
+			                    // Bedingungen für Deaktivierung
+			                    bool disableItem =
+				                    !isOwner && ( // Wenn NICHT Owner:
+					                    isOptionOwner // ... Owner-Einträge immer sperren
+					                    || (!isEdit && isSelf) // ... bei Erstellung darf sich Organisator selbst NICHT abwählen
+				                    );
+
+			                    <MudSelectItem Value="@option.Email" Disabled="@disableItem">
 				                    @option.DisplayName
 			                    </MudSelectItem>
-
 		                    }
+
 	                    </MudSelect>
                     </MudItem>
 

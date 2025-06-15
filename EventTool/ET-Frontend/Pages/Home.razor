@@ -25,46 +25,41 @@
 
             <!-- Events Tab -->
             <MudTabPanel Text="Events">
-                <MudText Typo="Typo.h4" Class="mb-3">Events</MudText>
-                <MudDataGrid T="EventViewModel" Items="@Events" Dense="true">
-                    <Columns>
-                        <PropertyColumn Property="x => x.Name" Title="Name" />
-                        <PropertyColumn Property="x => x.Description" Title="Beschreibung" />
-                        <PropertyColumn Property="x => x.Participants" Title="Teilnehmer" />
-                        <PropertyColumn Property="x => x.MaxParticipants" Title="Maximale Teilnehmer" />
-                        <PropertyColumn Property="e => e.StatusDisplay" Title="Status" SortBy="e => e.StatusDisplay" />
-                        <TemplateColumn CellClass="d-flex justify-end">
-                            <CellTemplate Context="eventItem">
-                                <MudStack Row Spacing="1">
-                                    <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary" OnClick="@(() => NavigateToEventDetails(eventItem.Item.Id))">
-                                        Details
-                                    </MudButton>
-                                    @if (eventItem.Item.IsOrganizer || IsOwner)
-                                    {
-	                                    <MudButton Size="Size.Small"
-	                                               Variant="Variant.Outlined"
-	                                               Color="Color.Secondary"
-                                                   OnClick="@(() => NavigateToEventEdit(eventItem.Item.Id))">
-		                                    Bearbeiten
-	                                    </MudButton>
-                                    }
-                                    <MudButton Size="Size.Small"
-                                               Variant="Variant.Filled"
-                                               Color="@(eventItem.Item.IsSubscribed ? Color.Error : Color.Success)"
-                                               Disabled="@( !eventItem.Item.CanSubscribe )"
-                                               OnClick="@(() => ToggleSubscription(eventItem.Item))">
-	                                    @(eventItem.Item.IsSubscribed ? "Abmelden" : "Anmelden")
-                                    </MudButton>
-								</MudStack>
-                            </CellTemplate>
-                        </TemplateColumn>
-                    </Columns>
-                </MudDataGrid>
-                @if (CanCreateEvents){
-                    <MudButton Class="float-end mt-4" Variant="Variant.Filled" Color="Color.Primary" OnClick="NavigateToEventCreation">
-                        Event erstellen
-                    </MudButton>
-                }
+	            <MudText Typo="Typo.h4" Class="mb-3">Events</MudText>
+
+	            @if ((IsOwner || IsOrganizer) && ManagedEvents.Any())
+	            {
+		            <EventGrid Title="Verwaltete Events"
+		                       Events="ManagedEvents"
+		                       IsOwner="IsOwner"
+		                       ShowSubscription="false"
+		                       OnSubscribeToggle="ToggleSubscription" />
+	            }
+				
+	            @if (IsOwner && OwnerDrafts.Any())
+	            {
+		            <EventGrid Title="Entwürfe"
+		                       Events="OwnerDrafts"
+		                       IsOwner="IsOwner"
+		                       ShowSubscription="false"
+		                       OnSubscribeToggle="ToggleSubscription" />
+	            }
+
+	            <EventGrid Title="Öffentliche Events"
+	                       Events="PublicEvents"
+	                       IsOwner="IsOwner"
+	                       ShowSubscription="true"
+	                       OnSubscribeToggle="ToggleSubscription" />
+
+	            @if (CanCreateEvents)
+	            {
+		            <MudButton Class="float-end mt-4"
+		                       Variant="Variant.Filled"
+		                       Color="Color.Primary"
+		                       OnClick="NavigateToEventCreation">
+			            Event erstellen
+		            </MudButton>
+	            }
             </MudTabPanel>
 
             <!-- Organisation Tab -->
@@ -118,9 +113,13 @@
 @code {
     private List<OrganizationMemberViewModel> OrgMembers = new();
     private List<EventViewModel> Events = new();
+    private List<EventViewModel> ManagedEvents = new();
+    private List<EventViewModel> PublicEvents = new();
 
     private bool ShowConfirmDialog = false;
     private bool IsOwner = false;
+    private bool IsOrganizer = false;
+    private bool IsMember = false;
     private bool CanCreateEvents = false;
 
     private OrganizationMemberViewModel MemberToDelete;
@@ -138,13 +137,17 @@
 
     private async Task CheckUserPermissions()
     {
-        var role = await JwtClaimHelper.GetUserRoleAsync(AuthProvider);
-        Console.WriteLine($"[Home] Benutzerrolle: {role}");
+	    var role = await JwtClaimHelper.GetUserRoleAsync(AuthProvider);
+	    Console.WriteLine($"[Home] Benutzerrolle: {role}");
 
-        IsOwner = string.Equals(role, "owner", StringComparison.OrdinalIgnoreCase);
-        CanCreateEvents = IsOwner || string.Equals(role, "organizer", StringComparison.OrdinalIgnoreCase);
+	    IsOwner     = string.Equals(role, "Owner", StringComparison.OrdinalIgnoreCase);
+	    IsOrganizer = string.Equals(role, "Organizer", StringComparison.OrdinalIgnoreCase);
+	    IsMember    = string.Equals(role, "Member", StringComparison.OrdinalIgnoreCase);
+    
+	    CanCreateEvents = IsOwner || IsOrganizer;
     }
 
+    private List<EventViewModel> OwnerDrafts = new();
 
     private async Task LoadEvents()
     {
@@ -154,15 +157,22 @@
 	    request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
 	    var response = await Http.SendAsync(request);
-	    if (response.IsSuccessStatusCode)
-	    {
-		    var dtoList = await response.Content.ReadFromJsonAsync<List<EventListDto>>();
-		    Events = dtoList?.Select(EventListViewMapper.ToViewModel).ToList() ?? new();
-	    }
-	    else
+	    if (!response.IsSuccessStatusCode)
 	    {
 		    Console.WriteLine("Fehler beim Laden der Events");
+		    return;
 	    }
+
+	    var dtoList = await response.Content.ReadFromJsonAsync<List<EventListDto>>() ?? new();
+
+	    Events = dtoList.Select(EventListViewMapper.ToViewModel).ToList();
+
+	    ManagedEvents = Events.Where(e => e.IsManagedByMe).ToList();
+	    PublicEvents  = Events.Where(e => e.IsPublic).ToList();
+
+	    // Nur Owner bekommen zusätzliche Entwurf-Liste
+	    if (IsOwner)
+		    OwnerDrafts = Events.Where(e => e.IsDraft && !e.IsManagedByMe).ToList();
     }
 
     private async Task LoadMembers()

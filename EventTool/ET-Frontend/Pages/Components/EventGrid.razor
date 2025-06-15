@@ -1,0 +1,57 @@
+﻿@inject NavigationManager Navigation
+
+<MudText Typo="Typo.h5" Class="mb-2">@Title</MudText>
+
+<MudDataGrid T="EventViewModel" Items="@Events" Dense="true" Class="mb-6">
+    <Columns>
+        <PropertyColumn Property="x => x.Name" Title="Name" />
+        <PropertyColumn Property="x => x.Description" Title="Beschreibung" />
+        <PropertyColumn Property="x => x.Participants" Title="Teilnehmer" />
+        <PropertyColumn Property="x => x.MaxParticipants" Title="Maximale Teilnehmer" />
+        <PropertyColumn Property="e => e.StatusDisplay" Title="Status" SortBy="e => e.StatusDisplay" />
+        <TemplateColumn CellClass="d-flex justify-end">
+            <CellTemplate Context="eventItem">
+                <MudStack Row Spacing="1">
+                    <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary"
+                               OnClick="@(() => NavigateToEventDetails(eventItem.Item.Id))">
+                        Details
+                    </MudButton>
+
+                    @if (eventItem.Item.IsOrganizer || IsOwner)
+                    {
+                        <MudButton Size="Size.Small"
+                                   Variant="Variant.Outlined"
+                                   Color="Color.Secondary"
+                                   OnClick="@(() => NavigateToEventEdit(eventItem.Item.Id))">
+                            Bearbeiten
+                        </MudButton>
+                    }
+
+                    @if (ShowSubscription && eventItem.Item.CanSubscribe)
+                    {
+                        <MudButton Size="Size.Small"
+                                   Variant="Variant.Filled"
+                                   Color="@(eventItem.Item.IsSubscribed ? Color.Error : Color.Success)"
+                                   OnClick="@(() => OnSubscribeToggle.InvokeAsync(eventItem.Item))">
+                            @(eventItem.Item.IsSubscribed ? "Abmelden" : "Anmelden")
+                        </MudButton>
+                    }
+                </MudStack>
+            </CellTemplate>
+        </TemplateColumn>
+    </Columns>
+</MudDataGrid>
+
+@code {
+    [Parameter] public List<EventViewModel> Events { get; set; } = new();
+    [Parameter] public string Title { get; set; } = "";
+    [Parameter] public bool IsOwner { get; set; }
+    [Parameter] public bool ShowSubscription { get; set; } = true;
+    [Parameter] public EventCallback<EventViewModel> OnSubscribeToggle { get; set; }
+
+    private void NavigateToEventDetails(int eventId)
+        => Navigation.NavigateTo($"/EventDetails/{eventId}");
+
+    private void NavigateToEventEdit(int eventId)
+        => Navigation.NavigateTo($"/EventErstellen/{eventId}");
+}

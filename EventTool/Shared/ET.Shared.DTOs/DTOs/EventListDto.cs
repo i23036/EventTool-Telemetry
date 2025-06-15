@@ -9,5 +9,8 @@ public record EventListDto(
     int Participants, 
     int MaxParticipants, 
     bool IsOrganizer, 
-    bool IsSubscribed
+    bool IsSubscribed,
+    bool IsDraft,       
+    bool IsManagedByMe,
+    bool IsPublic
     );

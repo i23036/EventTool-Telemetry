@@ -11,4 +11,8 @@
     public int    MaxParticipants { get; set; }
     public bool   IsOrganizer     { get; set; }
     public bool   IsSubscribed    { get; set; }
+
+    public bool IsDraft         { get; set; }
+    public bool IsManagedByMe   { get; set; }
+    public bool IsPublic        { get; set; }
 }

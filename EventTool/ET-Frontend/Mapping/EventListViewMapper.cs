@@ -10,13 +10,14 @@ public static class EventListViewMapper
         Id              = dto.EventId,
         Name            = dto.Name,
         Description     = dto.Description,
-
         StatusDisplay   = dto.StatusDisplay,
         CanSubscribe    = dto.CanSubscribe,
-
         Participants    = dto.Participants,
         MaxParticipants = dto.MaxParticipants,
         IsOrganizer     = dto.IsOrganizer,
-        IsSubscribed    = dto.IsSubscribed
+        IsSubscribed    = dto.IsSubscribed,
+        IsDraft         = dto.IsDraft,
+        IsManagedByMe   = dto.IsManagedByMe,
+        IsPublic        = dto.IsPublic
     };
 }
