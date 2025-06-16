@@ -6,7 +6,7 @@
 
 <MudText Typo="Typo.h5" Class="mb-2">@Title</MudText>
 
-<MudDataGrid T="EventViewModel" Items="@Events" Dense="true" Class="mb-6">
+<MudDataGrid T="EventViewModel" Items="@Events" Dense="true" Style="width:100%;" TableClass="table-fixed" Class="mb-6">
 	<Columns>
 		<PropertyColumn Property="x => x.Name" Title="Name" />
 		<PropertyColumn Property="x => x.Description" Title="Beschreibung" />
@@ -46,6 +46,10 @@
 							@(eventItem.Item.IsSubscribed ? "Abmelden" : "Anmelden")
 						</MudButton>
 					}
+					else
+					{
+						<div style="width:91.55px;visibility:hidden;" aria-hidden="true"></div>
+					}
 
 					<MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary"
 					           OnClick="@(() => NavigateToEventDetails(eventItem.Item.Id))">
@@ -58,7 +62,6 @@
 	</Columns>
 </MudDataGrid>
 
-<!-- simple confirm -->
 <SimpleConfirm @bind-IsOpen="_showDelete"
 			   Message="Event wirklich löschen? Dies kann nicht rückgängig gemacht werden."
 			   ConfirmText="Löschen"

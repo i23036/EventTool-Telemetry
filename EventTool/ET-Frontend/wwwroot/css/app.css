@@ -75,3 +75,7 @@
 code {
     color: #c02d76;
 }
+
+.table-fixed {
+    table-layout: fixed;
+}
