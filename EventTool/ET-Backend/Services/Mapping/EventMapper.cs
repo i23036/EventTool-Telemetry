@@ -5,7 +5,13 @@ namespace ET_Backend.Services.Mapping;
 
 public static class EventMapper
 {
-    public static Models.Event ToModel(EventDto dto, Models.Organization org, Process? process = null)
+    public static Models.Event ToModel(
+        EventDto dto,
+        Models.Organization org,
+        Process? process = null,
+        List<Account>? organizers = null,
+        List<Account>? contactPersons = null,
+        List<Account>? participants = null)
     {
         return new Models.Event
         {
@@ -13,9 +19,9 @@ public static class EventMapper
             EventType = dto.EventType,
             Description = dto.Description,
             Location = dto.Location,
-            Organizers = new List<Account>(), // Werden im Service gefüllt
-            ContactPersons = new List<Account>(), // Werden im Service gefüllt
-            Participants = new List<Account>(), // Bei Erstellung leer
+            Organizers = organizers ?? new List<Account>(),
+            ContactPersons = contactPersons ?? new List<Account>(),
+            Participants = participants ?? new List<Account>(),
             Organization = org,
             Process = process,
             StartDate = dto.StartDate,

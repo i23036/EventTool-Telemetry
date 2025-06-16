@@ -39,7 +39,7 @@ namespace ET_Backend.Controllers
         {
             var user  = User;
             var email = TokenHelper.GetEmail(user);
-            var role  = TokenHelper.GetRole(user);               // Owner | Organisator | Member
+            var role  = TokenHelper.GetRole(user);               // Owner | Organizer | Member
 
             // Events holen (alle)
             var orgRes = await _organizationService.GetOrganization(domain);
@@ -48,7 +48,7 @@ namespace ET_Backend.Controllers
             var evRes = await _eventService.GetEventsFromOrganization(orgRes.Value.Id);
             if (evRes.IsFailed) return BadRequest(evRes.Errors);
 
-            IEnumerable<Models.Event> filtered;
+            IEnumerable<Event> filtered;
 
             if (role == "Owner")
             {
@@ -74,8 +74,9 @@ namespace ET_Backend.Controllers
         [Authorize]
         public async Task<IActionResult> Subscribe(int eventId)
         {
-            if (!int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var accountId))
-                return Unauthorized();
+            var accountIdStr = User.FindFirst("accountId")?.Value;
+            if (!int.TryParse(accountIdStr, out var accountId))
+                return Unauthorized("accountId claim fehlt.");
 
             var result = await _eventService.SubscribeToEvent(accountId, eventId);
             return result.IsSuccess ? Ok() : BadRequest(result.Errors);
@@ -85,8 +86,9 @@ namespace ET_Backend.Controllers
         [Authorize]
         public async Task<IActionResult> Unsubscribe(int eventId)
         {
-            if (!int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var accountId))
-                return Unauthorized();
+            var accountIdStr = User.FindFirst("accountId")?.Value;
+            if (!int.TryParse(accountIdStr, out var accountId))
+                return Unauthorized("accountId claim fehlt.");
 
             var result = await _eventService.UnsubscribeToEvent(accountId, eventId);
             return result.IsSuccess ? Ok() : BadRequest(result.Errors);
@@ -102,7 +104,7 @@ namespace ET_Backend.Controllers
 
         [HttpPost]
         [Authorize]
-        public async Task<IActionResult> CreateEvent([FromBody] EventDto value)
+        public async Task<IActionResult> CreateEvent([FromBody] EventDto dto)
         {
             // Orga-Domain direkt aus dem JWT-Claim holen
             var orgDomain = User.FindFirst("org")?.Value;
@@ -114,11 +116,8 @@ namespace ET_Backend.Controllers
             if (orgResult.IsFailed)
                 return BadRequest("Organisation nicht gefunden.");
 
-            // Mapper: DTO → Model
-            var newEvent = EventMapper.ToModel(value, orgResult.Value);
-
             // An Service übergeben (Model + OrgaId)
-            var result = await _eventService.CreateEvent(newEvent, orgResult.Value.Id, User);
+            var result = await _eventService.CreateEvent(dto, orgResult.Value.Id, User);
 
             return result.IsSuccess
                 ? Ok()
@@ -137,22 +136,23 @@ namespace ET_Backend.Controllers
         }
 
         [HttpDelete("{eventId}")]
+        [Authorize]
         public async Task<IActionResult> DeleteEvent(int eventId)
         {
-            var user = await _userService.GetCurrentUserAsync(User);
-            if (user == null || user.Organization == null)
-                return Unauthorized("Ungültiger Benutzer oder keine Organisation gefunden.");
+            var role  = TokenHelper.GetRole(User);
+            var email = TokenHelper.GetEmail(User);
 
-            Result result = await _eventService.DeleteEvent(eventId);
+            var evRes = await _eventService.GetEvent(eventId);
+            if (evRes.IsFailed) return NotFound();
 
-            if (result.IsSuccess)
-            {
-                return Ok();
-            }
-            else
-            {
-                return BadRequest();
-            }
+            var isOrganizer = evRes.Value.Organizers
+                .Any(o => o.EMail.Equals(email, StringComparison.OrdinalIgnoreCase));
+
+            if (!(role == "Owner" || isOrganizer))
+                return Forbid();
+
+            var result = await _eventService.DeleteEvent(eventId);
+            return result.IsSuccess ? Ok() : BadRequest(result.Errors);
         }
 
         [HttpGet("{eventId:int}")]

@@ -18,4 +18,5 @@ public interface IEventApi
     /// <summary> Lädt eine Event-Detail-Seite. </summary>
     Task<EventDto?> GetEventAsync(int eventId);
     Task<bool> RemoveParticipantAsync(int eventId, int accountId);
+    Task<bool> DeleteEventAsync(int eventId);
 }

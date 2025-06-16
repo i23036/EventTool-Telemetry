@@ -79,4 +79,11 @@ public class EventApi : IEventApi
         var resp = await _http.DeleteAsync($"api/event/{eventId}/participant/{accountId}");
         return resp.IsSuccessStatusCode;
     }
+
+    public async Task<bool> DeleteEventAsync(int eventId)
+    {
+        var req  = await BuildRequest(HttpMethod.Delete, $"api/event/{eventId}");
+        var resp = await _http.SendAsync(req);
+        return resp.IsSuccessStatusCode;
+    }
 }

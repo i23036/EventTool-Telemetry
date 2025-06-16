@@ -1,5 +1,7 @@
 ﻿@page "/home"
+
 @attribute [Authorize]
+
 @using Microsoft.AspNetCore.Authorization
 @using System.Net.Http.Headers
 @using ET.Shared.DTOs
@@ -7,9 +9,9 @@
 @using Blazored.SessionStorage
 @using ET_Frontend.Helpers
 @using ET_Frontend.Mapping
-@using ET_Frontend.Models.Event
 @using ET_Frontend.Pages.Components
 @using Microsoft.AspNetCore.Components.Authorization
+
 @inject HttpClient Http
 @inject ISessionStorageService SessionStorage
 @inject NavigationManager Navigation
@@ -20,7 +22,7 @@
 <PageTitle>Home</PageTitle>
 
 <div class="flex-md-column align-content-between justify-content-center w-100 h-100">
-    <MudPaper Width="100%" Height="100%">
+    <MudPaper Width="100%" Height="100%" style="overflow-y:auto;">
         <MudTabs Class="h-100" Elevation="2" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-6 h-100">
 
             <!-- Events Tab -->
@@ -32,7 +34,6 @@
 		            <EventGrid Title="Verwaltete Events"
 		                       Events="ManagedEvents"
 		                       IsOwner="IsOwner"
-		                       ShowSubscription="false"
 		                       OnSubscribeToggle="ToggleSubscription" />
 	            }
 				
@@ -41,14 +42,12 @@
 		            <EventGrid Title="Entwürfe"
 		                       Events="OwnerDrafts"
 		                       IsOwner="IsOwner"
-		                       ShowSubscription="false"
 		                       OnSubscribeToggle="ToggleSubscription" />
 	            }
 
-	            <EventGrid Title="Öffentliche Events"
+                <EventGrid Title="@(IsMember ? string.Empty : "Öffentliche Events")"
 	                       Events="PublicEvents"
 	                       IsOwner="IsOwner"
-	                       ShowSubscription="true"
 	                       OnSubscribeToggle="ToggleSubscription" />
 
 	            @if (CanCreateEvents)
@@ -130,9 +129,9 @@
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadEvents();
+	    await CheckUserPermissions();
+	    await LoadEvents();
         await LoadMembers();
-        await CheckUserPermissions();
     }
 
     private async Task CheckUserPermissions()

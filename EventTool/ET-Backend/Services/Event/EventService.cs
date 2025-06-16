@@ -37,98 +37,94 @@ public class EventService : IEventService
         _accountService = accountService;
     }
 
-    public async Task<Result<Models.Event>> CreateEvent(Models.Event newEvent, int organizationId, ClaimsPrincipal user)
-    {
-        // Creator-E-Mail aus Token ziehen
-        string creatorEmail = TokenHelper.GetEmail(user);
-        
-        if (string.IsNullOrWhiteSpace(creatorEmail))
-            return Result.Fail("E-Mail im Token nicht gefunden.");
-        
-        // Creator ⇒ Organizer (falls noch nicht gesetzt)
-        if (newEvent.Organizers.All(o => !o.EMail.Equals(creatorEmail, StringComparison.OrdinalIgnoreCase)))
-        {
-            var accRes = await _accountRepository.GetAccount(creatorEmail);
-            if (accRes.IsFailed)
-                return Result.Fail($"Kein Account für Creator-E-Mail '{creatorEmail}' gefunden.");
+    // EventService.cs
+public async Task<Result<Models.Event>> CreateEvent(
+    EventDto dto, int organizationId, ClaimsPrincipal user)
+{
+    // ───────── 1. Creator-Infos  ─────────
+    var creatorEmail = TokenHelper.GetEmail(user);
+    var creatorRole  = TokenHelper.GetRole (user);
 
-            newEvent.Organizers.Add(accRes.Value);
-        }
+    if (string.IsNullOrWhiteSpace(creatorEmail) ||
+        string.IsNullOrWhiteSpace(creatorRole))
+        return Result.Fail("Benutzerinformationen im Token fehlen.");
 
-        // weitere Organisatoren laden
-        var organizerAccounts = new List<Account>();
-        foreach (var email in newEvent.Organizers.Select(o => o.EMail).Distinct())
-        {
-            var accRes = await _accountRepository.GetAccount(email);
-            if (accRes.IsFailed)
-            {
-                _logger.LogWarning("Kein Account für Organizer-E-Mail '{Email}' gefunden.", email);
-                return Result.Fail($"Kein Account für Organizer-E-Mail '{email}' gefunden.");
-            }
-            organizerAccounts.Add(accRes.Value);
-        }
+    var isOwner     = creatorRole.Equals("Owner",     StringComparison.OrdinalIgnoreCase);
+    var isOrganizer = creatorRole.Equals("Organizer", StringComparison.OrdinalIgnoreCase);
 
-        // Kontaktpersonen laden
-        var contactPersonAccounts = new List<Account>();
-        foreach (var email in newEvent.ContactPersons.Select(c => c.EMail).Distinct())
-        {
-            var accRes = await _accountRepository.GetAccount(email);
-            if (accRes.IsFailed)
-            {
-                _logger.LogWarning("Kein Account für ContactPerson-E-Mail '{Email}' gefunden.", email);
-                return Result.Fail($"Kein Account für ContactPerson-E-Mail '{email}' gefunden.");
-            }
-            contactPersonAccounts.Add(accRes.Value);
-        }
+    // ───────── 2. Pflicht-Check  ─────────
+    var selfListed = dto.Organizers
+        .Any(m => m.Equals(creatorEmail, StringComparison.OrdinalIgnoreCase));
 
-        // Organisation laden
-        var orgRes = await _organizationRepository.GetOrganization(organizationId);
-        if (orgRes.IsFailed)
-        {
-            _logger.LogWarning("Organisation mit Id {OrgId} nicht gefunden.", organizationId);
-            return Result.Fail("Organisation nicht gefunden.");
-        }
+    if (isOrganizer && !selfListed)
+        return Result.Fail("Als Organisator musst du dich selbst als Verwalter eintragen.");
 
-        newEvent.Organization = orgRes.Value;
-        newEvent.Organizers = organizerAccounts;
-        newEvent.ContactPersons = contactPersonAccounts;
+    // ───────── 3. Accounts auflösen  ─────────
+    var resolve = await _accountService.ResolveEmailsAsync(
+                      dto.Organizers,
+                      dto.ContactPersons,
+                      dto.Participants.Select(p => p.Email).ToList());
 
-        // Event speichern
-        var result = await _eventRepository.CreateEvent(newEvent, organizationId);
+    if (resolve.IsFailed) return Result.Fail(resolve.Errors);
 
-        if (result.IsSuccess)
-            _logger.LogInformation("Event '{EventName}' erfolgreich erstellt (Id={EventId}).", newEvent.Name, result.Value.Id);
-        else
-            _logger.LogError("Fehler beim Erstellen des Events '{EventName}': {Error}", newEvent.Name, result.Errors.FirstOrDefault()?.Message);
+    // ───────── 4. Organisation  ─────────
+    var orgRes = await _organizationRepository.GetOrganization(organizationId);
+    if (orgRes.IsFailed) return Result.Fail("Organisation nicht gefunden.");
 
-        return result;
-    }
+    // ───────── 5. DTO → Model  ─────────
+    var model = EventMapper.ToModel(
+        dto,
+        orgRes.Value,
+        organizers:     resolve.Value.Organizers,
+        contactPersons: resolve.Value.ContactPersons,
+        participants:   resolve.Value.Participants);
 
+    // ───────── 6. Speichern  ─────────
+    var repoRes = await _eventRepository.CreateEvent(model, organizationId);
+
+    _logger.LogInformation("CreateEvent: {Name} durch {User} ({Role}) – Erfolg={Ok}",
+                           dto.Name, creatorEmail, creatorRole, repoRes.IsSuccess);
+
+    return repoRes;
+}
+    
     public async Task<Result> UpdateEventAsync(EventDto dto, ClaimsPrincipal user)
     {
-        // Claims via TokenHelper auslesen
+        // Claims auslesen
         var email     = TokenHelper.GetEmail(user);
         var role      = TokenHelper.GetRole(user);
         var orgDomain = TokenHelper.GetOrgDomain(user);
 
-        if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(role) || string.IsNullOrWhiteSpace(orgDomain))
+        if (string.IsNullOrWhiteSpace(email) || 
+            string.IsNullOrWhiteSpace(role)  || 
+            string.IsNullOrWhiteSpace(orgDomain))
             return Result.Fail("Fehlende Benutzerinformationen im Token.");
 
-        // Berechtigung prüfen
-        bool isOwner     = role.Equals("Owner", StringComparison.OrdinalIgnoreCase);
-        bool isOrganizer = dto.Organizers.Contains(email);
+        var isOwner     = role.Equals("Owner", StringComparison.OrdinalIgnoreCase);
+        
+        // Aktuellen Stand des Events laden (wichtig für Rechte-Check)
+        var currentEvRes = await _eventRepository.GetEvent(dto.Id);
+        if (currentEvRes.IsFailed)
+            return Result.Fail("Event nicht gefunden.");
 
-        if (!isOwner && !isOrganizer)
+        var wasOrganizer = currentEvRes.Value.Organizers
+            .Any(o => o.EMail.Equals(email, StringComparison.OrdinalIgnoreCase));
+
+        /*  ▸ Owner dürfen immer
+            ▸ Ein (ehemaliger) Organizer darf, solange er vor der Änderung Organizer war.
+               Dabei darf er sich aber selbst aus der neuen Liste entfernen, um die
+               Verwaltung zu übergeben. */
+        if (!isOwner && !wasOrganizer)
             return Result.Fail("Keine Berechtigung zur Bearbeitung dieses Events.");
 
+        // Validierung: mindestens ein Organizer muss übrig bleiben
+        if (dto.Organizers == null || dto.Organizers.Count == 0)
+            return Result.Fail("Mindestens ein Verwalter muss ausgewählt sein.");
+        
         // Organisation laden
         var orgResult = await _organizationRepository.GetOrganization(orgDomain);
         if (orgResult.IsFailed)
             return Result.Fail("Organisation konnte nicht geladen werden.");
-
-        // Mapping (DTO → Model)
-        var ev = EventMapper.ToModel(dto, orgResult.Value);
-        ev.Id = dto.Id;
 
         // Teilnehmer/Rollen auflösen (Accounts)
         var res = await _accountService.ResolveEmailsAsync(
@@ -139,12 +135,24 @@ public class EventService : IEventService
         if (res.IsFailed)
             return Result.Fail(res.Errors);
 
-        ev.Organizers     = res.Value.Organizers;
-        ev.ContactPersons = res.Value.ContactPersons;
-        ev.Participants   = res.Value.Participants;
+        // Mapping (DTO → Model) mit korrekten Accounts
+        var ev = EventMapper.ToModel(
+            dto,
+            orgResult.Value,
+            organizers:     res.Value.Organizers,
+            contactPersons: res.Value.ContactPersons,
+            participants:   res.Value.Participants
+        );
+        ev.Id = dto.Id;
 
         // Speichern
-        return await _eventRepository.EditEvent(ev);
+        var result = await _eventRepository.EditEvent(ev);
+
+        _logger.LogInformation(
+            "UpdateEvent: EventId={EventId} durch {User} ({Role}) – Erfolg={Success}",
+            dto.Id, email, role, result.IsSuccess);
+        
+        return result;
     }
 
     public async Task<Result<List<Models.Event>>> GetEventsFromOrganization(int organizationId)

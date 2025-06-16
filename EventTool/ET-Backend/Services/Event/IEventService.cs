@@ -6,7 +6,7 @@ namespace ET_Backend.Services.Event;
 
 public interface IEventService
 {
-    Task<Result<Models.Event>> CreateEvent(Models.Event newEvent, int organizationId, ClaimsPrincipal user);
+    Task<Result<Models.Event>> CreateEvent(EventDto dto, int organizationId, ClaimsPrincipal user);
     Task<Result> UpdateEventAsync(EventDto dto, ClaimsPrincipal user);
     public Task<Result<List<Models.Event>>> GetEventsFromOrganization(int organizationId);
     public Task<Result<List<Models.Event>>> GetEventsFromOrganization(String domain);

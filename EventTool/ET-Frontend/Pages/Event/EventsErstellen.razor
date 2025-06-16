@@ -205,8 +205,12 @@
         }
 		
         // Creator sicher als Manager eintragen
-        if (!_newEvent.Managers.Contains(_currentUserEmail, StringComparer.OrdinalIgnoreCase))
-	        _newEvent.Managers.Add(_currentUserEmail);
+        // Nur wenn Organizer UND NEUER Event (nicht Edit)
+        if (_newEvent.Id == 0 && _currentUserRole.Equals("Organizer", StringComparison.OrdinalIgnoreCase))
+        {
+	        if (!_newEvent.Managers.Contains(_currentUserEmail, StringComparer.OrdinalIgnoreCase))
+		        _newEvent.Managers.Add(_currentUserEmail);
+        }
     }
 
     // ---------- Daten laden ----------
