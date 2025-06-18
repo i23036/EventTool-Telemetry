@@ -144,7 +144,7 @@
                         <Columns>
                             <PropertyColumn Property="x => x.FullName"    Title="Name" />
                             <PropertyColumn Property="x => x.Email"       Title="E-Mail" />
-                            <PropertyColumn Property="x => x.RoleDisplay" Title="Rolle" />
+                            <PropertyColumn Property="x => x.RoleDisplay" Title="weitere Funktion" />
                             <TemplateColumn Title="" CellClass="text-end">
                                 <CellTemplate Context="ctx">
                                     <MudButton Variant="Variant.Filled" Color="Color.Error" Size="Size.Small"
@@ -347,7 +347,7 @@
         public bool IsContactPerson { get; set; }
         public string RoleDisplay =>
             IsOrganizer
-                ? "(Organisator)"
+                ? "(Verwalter)"
                 : IsContactPerson
                     ? "(Ansprechpartner)"
                     : "";

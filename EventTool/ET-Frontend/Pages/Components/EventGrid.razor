@@ -72,6 +72,7 @@
 	[Parameter] public string                        Title             { get; set; } = "";
 	[Parameter] public bool                          IsOwner           { get; set; }
 	[Parameter] public EventCallback<EventViewModel> OnSubscribeToggle { get; set; }
+	[Parameter] public EventCallback                 OnDeleted         { get; set; }
 
 	private EventViewModel _toDelete;
 	private bool           _showDelete;
@@ -96,6 +97,10 @@
 	    if (success)
 	    {
 		    Events.Remove(_toDelete);
+
+		    if (OnDeleted.HasDelegate)
+			    await OnDeleted.InvokeAsync();
+
 		    Snackbar.Add("Event gelöscht.", Severity.Success);
 		    StateHasChanged();
 	    }

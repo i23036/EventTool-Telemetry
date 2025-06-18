@@ -34,6 +34,7 @@
 		            <EventGrid Title="Verwaltete Events"
 		                       Events="ManagedEvents"
 		                       IsOwner="IsOwner"
+		                       OnDeleted="HandleDeleteFromGrid"
 		                       OnSubscribeToggle="ToggleSubscription" />
 	            }
 				
@@ -42,14 +43,18 @@
 		            <EventGrid Title="Entwürfe"
 		                       Events="OwnerDrafts"
 		                       IsOwner="IsOwner"
+		                       OnDeleted="HandleDeleteFromGrid"
 		                       OnSubscribeToggle="ToggleSubscription" />
 	            }
 
-                <EventGrid Title="@(IsMember ? string.Empty : "Öffentliche Events")"
-	                       Events="PublicEvents"
-	                       IsOwner="IsOwner"
-	                       OnSubscribeToggle="ToggleSubscription" />
-
+	            @if (PublicEvents.Any())
+	            {
+		            <EventGrid Title="@(IsMember ? string.Empty : "Öffentliche Events")"
+		                       Events="PublicEvents"
+		                       IsOwner="IsOwner"
+		                       OnSubscribeToggle="ToggleSubscription" />
+	            }
+	            
 	            @if (CanCreateEvents)
 	            {
 		            <MudButton Class="float-end mt-4"
@@ -68,7 +73,8 @@
                     <MudText Typo="Typo.h4" Class="mb-3">Mitglieder</MudText>
                     <MudDataGrid T="OrganizationMemberViewModel" Items="@OrgMembers" Dense="true">
                         <Columns>
-                            <PropertyColumn Property="x => x.LastName" Title="Nachname" />
+	                        <PropertyColumn Property="x => x.FirstName" Title="Vorname" />
+	                        <PropertyColumn Property="x => x.LastName" Title="Nachname" />
                             <PropertyColumn Property="x => x.Email" Title="E-Mail" />
                             <TemplateColumn Title="Rolle">
                                 <CellTemplate Context="ctx">
@@ -181,7 +187,7 @@
         if (response.IsSuccessStatusCode)
         {
             var dtoList = await response.Content.ReadFromJsonAsync<List<OrganizationMemberDto>>();
-            OrgMembers = dtoList.Select(dto => new OrganizationMemberViewModel(dto.Email, dto.Lastname, dto.Role)).ToList();
+            OrgMembers = dtoList.Select(dto => new OrganizationMemberViewModel(dto.Email, dto.Firstname, dto.Lastname, dto.Role)).ToList();
         }
         else
         {
@@ -312,5 +318,11 @@
 	    }
 	    else
 		    Snackbar.Add("Aktion fehlgeschlagen.", Severity.Error);
+    }
+
+    private async Task HandleDeleteFromGrid()
+    {
+	    await LoadEvents();     
+	    StateHasChanged();     
     }
 }

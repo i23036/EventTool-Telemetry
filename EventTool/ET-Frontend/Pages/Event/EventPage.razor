@@ -80,13 +80,16 @@
 			    Zurück
 		    </MudButton>
 
-		    <MudButton Class="mt-2 ms-2"
-		               Variant="Variant.Filled"
-		               Color="@(_event.IsSubscribed ? Color.Error : Color.Success)"
-		               OnClick="ToggleSubscription"
-		               Disabled="@( _event.Status != EventStatus.Offen )">
-			    @(_event.IsSubscribed ? "Abmelden" : "Anmelden")
-		    </MudButton>
+		    @if (_isOpen)
+		    {
+			    <MudButton Class="mt-2 ms-2"
+			               Variant="Variant.Filled"
+			               Color="@(_event.IsSubscribed ? Color.Error : Color.Success)"
+			               OnClick="ToggleSubscription"
+			               Disabled="@( _event.Status != EventStatus.Offen )">
+				    @(_event.IsSubscribed ? "Abmelden" : "Anmelden")
+			    </MudButton>
+		    }
 			
 		    @if (CanEdit)
 		    {
@@ -113,6 +116,7 @@
 
 	private bool _loading = true;
 	private bool _loadError = false;
+	private bool _isOpen = false;
 
 	private bool _isOwner;
 	private bool _isManager;
@@ -145,6 +149,7 @@
 			_event.IsSubscribed = dto.Participants.Any(p => p.Email == email);
 			_isOwner = role == "Owner";
 			_isManager = dto.Organizers.Contains(email);
+			_isOpen = dto.Status == EventStatus.Offen;
 		}
 		catch
 		{

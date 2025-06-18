@@ -1,7 +1,6 @@
 ﻿using Dapper;
 using ET.Shared.DTOs.Enums;
 using System.Data;
-using System.Resources;
 
 namespace ET_Backend.Repository;
 
@@ -156,304 +155,291 @@ public class DatabaseInitializer(IDbConnection db, ILogger<DatabaseInitializer> 
         _db.Execute("DROP TABLE IF EXISTS Organizations;");
     }
 
-
     public void SeedDemoData()
     {
-        // Anlegen der ersten Demo-Organisation und des Admin-Users!
-        var orgExists = _db.ExecuteScalar<int>("SELECT COUNT(1) FROM Organizations WHERE Domain = 'demo.org';") > 0;
-        if (!orgExists)
+        SeedOrganizations();
+        SeedUsersAndAccounts();
+        SeedOrganizationMembers();
+        SeedDemoEvents();
+    }
+
+    // -----------------------------------------------------------------------------
+// 1) Organisationen + Logos anlegen
+// -----------------------------------------------------------------------------
+private void SeedOrganizations()
+{
+    var orgs = new[]
+    {
+        new { Name = "DemoOrg",     Domain = "demo.org",   Desc = "Demo-Organisation", Logo = "BitWorksSimpel-Gro.png" },
+        new { Name = "CodeCompany", Domain = "code.org",   Desc = "Softwareunternehmen", Logo = "1.png" },
+        new { Name = "Rohrspatzen", Domain = "musik.org",  Desc = "Lokaler Musikverein", Logo = "2.png" },
+        new { Name = "Bergschule",  Domain = "schule.org", Desc = "Grundschule", Logo = "3.png" }
+    };
+
+    foreach (var o in orgs)
+    {
+        bool exists = _db.ExecuteScalar<int>(
+            "SELECT COUNT(1) FROM Organizations WHERE Domain = @Domain;",
+            new { o.Domain }) > 0;
+
+        if (!exists)
         {
-            var logoBase64 = DbUtils.GetBase64FromImage("Resources/Seed/BitWorksSimpel-Gro.png");
-
-            // Organisation erstellen
-            _db.Execute(@"
-            INSERT INTO Organizations (Name, Domain, Description, OrgaPicAsBase64)
-            VALUES (@Name, @Domain, @Description, @OrgaPicAsBase64);",
-                new
-                {
-                    Name = "DemoOrg",
-                    Domain = "demo.org",
-                    Description = "Dies ist eine Demo-Organisation",
-                    OrgaPicAsBase64 = logoBase64
-                });
-
-            // User erstellen
-            _db.Execute(@"
-            INSERT INTO Users (Firstname, Lastname, Password)
-            VALUES ('Max', 'Mustermann', 'demo');");
-
-            // Account erstellen
-            _db.Execute(@"
-            INSERT INTO Accounts (Email, IsVerified, UserId)
-            VALUES (
-                'admin@demo.org',
-                1,
-                (SELECT Id FROM Users WHERE Lastname = 'Mustermann')
-            );");
-
-            // OrgaMember mit Rolle Owner
-            _db.Execute(@"
-            INSERT INTO OrganizationMembers (AccountId, OrganizationId, Role)
-            VALUES (
-            (SELECT Id FROM Accounts WHERE Email = 'admin@demo.org'),
-            (SELECT Id FROM Organizations WHERE Domain = 'demo.org'),
-            0 -- Role.Owner
-            );");
-        }
-
-        // Zusätzliche Test-Organisationen für die Dev-Umgebung
-        var additionalOrgs = new[]
-        {
-            new { Name = "DemoOrg1", Domain = "demo1.org", Description = "Zweite Demo-Organisation", LogoFile = "1.png" },
-            new { Name = "DemoOrg2", Domain = "demo2.org", Description = "Dritte Demo-Organisation", LogoFile = "2.png" },
-            new { Name = "DemoOrg3", Domain = "demo3.org", Description = "Vierte Demo-Organisation", LogoFile = "3.png" }
-        };
-
-        foreach (var org in additionalOrgs)
-        {
-            var exists = _db.ExecuteScalar<int>(
-                "SELECT COUNT(1) FROM Organizations WHERE Domain = @Domain;",
-                new { org.Domain }) > 0;
-
-            if (!exists)
-            {
-                // Logo in Base64 laden
-                var logoBase64 = DbUtils.GetBase64FromImage($"Resources/Seed/{org.LogoFile}");
-
-                // Organisation einfügen
-                _db.Execute(@"
-            INSERT INTO Organizations (Name, Domain, Description, OrgaPicAsBase64)
-            VALUES (@Name, @Domain, @Description, @Logo);",
-                    new { org.Name, org.Domain, org.Description, Logo = logoBase64 });
-
-                // Account für "Max Mustermann" anlegen – UserId aus Mustermann holen
-                var userId = _db.ExecuteScalar<int>("SELECT Id FROM Users WHERE Lastname = 'Mustermann' LIMIT 1;");
-                _db.Execute(@"
-            INSERT INTO Accounts (Email, IsVerified, UserId)
-            VALUES (
-                @Email,
-                1,
-                @UserId
-            );",
-                    new { Email = $"admin@{org.Domain}", UserId = userId });
-
-                // OrgaMember mit Rolle Owner
-                _db.Execute(@"
-            INSERT INTO OrganizationMembers (AccountId, OrganizationId, Role)
-            VALUES (
-                (SELECT Id FROM Accounts WHERE Email = @Email),
-                (SELECT Id FROM Organizations WHERE Domain = @Domain),
-                0 -- Role.Owner
-            );",
-                    new { Email = $"admin@{org.Domain}", org.Domain });
-            }
-        }
-
-        /* ---------- 1. Zusätzliche Accounts für demo.org ---------- */
-        // Rollen-Konvention: 0 = Owner | 1 = Organisator | 2 = Member
-        var orgId = _db.ExecuteScalar<int>(
-        "SELECT Id FROM Organizations WHERE Domain = 'demo.org';");
-
-        void EnsureUser(string first, string last, string email, int role)
-        {
-            // User
-            var usrId = _db.ExecuteScalar<int?>(
-                "SELECT Id FROM Users WHERE Firstname = @first AND Lastname = @last;",
-                new { first, last });
-            if (usrId is null)
-            {
-                _db.Execute(
-                    "INSERT INTO Users (Firstname, Lastname, Password) VALUES (@first, @last, 'demo');",
-                    new { first, last });
-                usrId = _db.ExecuteScalar<int>(
-                    "SELECT Id FROM Users WHERE Firstname = @first AND Lastname = @last;",
-                    new { first, last });
-            }
-
-            // Account
-            var accId = _db.ExecuteScalar<int?>(
-                "SELECT Id FROM Accounts WHERE Email = @email;", new { email });
-            if (accId is null)
-            {
-                _db.Execute(
-                    "INSERT INTO Accounts (Email, IsVerified, UserId) VALUES (@email, 1, @usrId);",
-                    new { email, usrId });
-                accId = _db.ExecuteScalar<int>(
-                    "SELECT Id FROM Accounts WHERE Email = @email;", new { email });
-            }
-
-            // Orga-Mitgliedschaft
-            var exists = _db.ExecuteScalar<int>(@"
-            SELECT COUNT(1) FROM OrganizationMembers
-            WHERE AccountId = @accId AND OrganizationId = @orgId;",
-                new { accId, orgId }) > 0;
-
-            if (!exists)
-            {
-                _db.Execute(@"
-                INSERT INTO OrganizationMembers (AccountId, OrganizationId, Role)
-                VALUES (@accId, @orgId, @role);",
-                    new { accId, orgId, role });
-            }
-        }
-
-        // 2 Organisatoren
-        EnsureUser("Olaf",  "Organizer",  "olaf@demo.org",  1);
-        EnsureUser("Olivia","Organizer",  "olivia@demo.org", 1);
-
-        // 3 normale Mitglieder
-        EnsureUser("Mia",  "Member", "mia@demo.org",     2);
-        EnsureUser("Milan","Member", "milan@demo.org",   2);
-        EnsureUser("Mona", "Member", "mona@demo.org",    2);
-
-
-        // Trigger
-        var triggerCount = _db.ExecuteScalar<int>("SELECT COUNT(1) FROM Triggers;");
-        if (triggerCount == 0)
-        {
-            _db.Execute(@"
-            INSERT INTO Triggers (Attribut)
-            VALUES ('E-Mail bestätigt');
-            ");
-        }
-
-        // Processes
-        var processCount = _db.ExecuteScalar<int>("SELECT COUNT(1) FROM Processes;");
-        if (processCount == 0)
-        {
-            _db.Execute(@"
-            INSERT INTO Processes (Name, OrganizationId)
-            VALUES ('Onboarding', (SELECT Id FROM Organizations WHERE Domain = 'demo.org'));
-            ");
-        }
-
-        // ProcessSteps
-        var stepCount = _db.ExecuteScalar<int>("SELECT COUNT(1) FROM ProcessSteps;");
-        if (stepCount == 0)
-        {
-            _db.Execute(@"
-            INSERT INTO ProcessSteps (Name, OrganizationId, TriggerId)
-            VALUES (
-                'Willkommen',
-                (SELECT Id FROM Organizations WHERE Domain = 'demo.org'),
-                (SELECT Id FROM Triggers WHERE Attribut = 'E-Mail bestätigt')
-                );
-            ");
-        }
-
-        // Events
-        var eventExists = _db.ExecuteScalar<int>("SELECT COUNT(1) FROM Events;") > 0;
-        if (!eventExists)
-        {
-            var today = DateTime.Today;
-            var startTime = new TimeOnly(10, 0);
-            var endTime = new TimeOnly(12, 0);
-
-            var orgaId = _db.ExecuteScalar<int>("SELECT Id FROM Organizations WHERE Domain = 'demo.org'");
-            var processId = _db.ExecuteScalar<int?>("SELECT Id FROM Processes WHERE Name = 'Onboarding'");
-
-            var parameters = new DynamicParameters();
-            parameters.Add("Name", "Kickoff Meeting");
-            parameters.Add("EventType", "Workshop");
-            parameters.Add("Description", "Erstes Demo-Event");
-            parameters.Add("OrgId", orgaId);
-            parameters.Add("ProcessId", processId.HasValue ? processId.Value : (object?)null);
-            parameters.Add("StartDate", today, DbType.Date);
-            parameters.Add("EndDate", today, DbType.Date);
-            parameters.Add("StartTime", today.Add(startTime.ToTimeSpan()), DbType.DateTime);
-            parameters.Add("EndTime", today.Add(endTime.ToTimeSpan()), DbType.DateTime);
-            parameters.Add("Location", "Konferenzraum A");
-            parameters.Add("MinParticipants", 5);
-            parameters.Add("MaxParticipants", 20);
-            parameters.Add("RegStart", today, DbType.Date);
-            parameters.Add("RegEnd", today.AddDays(6), DbType.Date);
-            parameters.Add("Status", 1); // Status = Offen
-            parameters.Add("IsBlueprint", false);
-
-            _db.Execute(@"
-            INSERT INTO Events (
-                Name, EventType, Description, OrganizationId, ProcessId,
-                StartDate, EndDate, StartTime, EndTime, Location,
-                MinParticipants, MaxParticipants,
-                RegistrationStart, RegistrationEnd, Status, IsBlueprint
-            )
-            VALUES (
-                @Name, @EventType, @Description, @OrgId, @ProcessId,
-                @StartDate, @EndDate, @StartTime, @EndTime, @Location,
-                @MinParticipants, @MaxParticipants,
-                @RegStart, @RegEnd, @Status, @IsBlueprint
-            );", parameters);
-
-            // Organisator eintragen
-            var eventId = _db.ExecuteScalar<int>("SELECT Id FROM Events WHERE Name = 'Kickoff Meeting'");
-            _db.Execute(@"
-            INSERT INTO EventMembers (
-                AccountId, EventId, IsOrganizer, IsContactPerson, IsParticipant
-            )
-            VALUES (
-                @AccId, @EvtId, 1, 0, 0
-            );", 
-                new { AccId = _db.ExecuteScalar<int>("SELECT Id FROM Accounts WHERE Email = 'admin@demo.org'"), EvtId = eventId });
-        }
-
-        /* ---------- 2. Demo-Events für alle Status ---------- */
-        bool eventsSeeded = _db.ExecuteScalar<int>(
-        "SELECT COUNT(1) FROM Events WHERE Name LIKE 'Seed_%';") >= 5;
-
-        if (!eventsSeeded)
-        {
-            var today = DateTime.Today;
-            var start = new TimeOnly(10, 0);
-            var end   = new TimeOnly(12, 0);
-
-            void InsertEvent(string name, EventStatus status, int max, int min = 0)
-            {
-                var p = new DynamicParameters();
-                p.Add("Name",           $"Seed_{name}");
-                p.Add("EventType",      "Workshop");
-                p.Add("Description",    $"Seed-Event im Status {status}");
-                p.Add("OrgId",          orgId);
-                p.Add("ProcessId",      null);
-                p.Add("StartDate",      today,                   DbType.Date);
-                p.Add("EndDate",        today,                   DbType.Date);
-                p.Add("StartTime",      today.Add(start.ToTimeSpan()), DbType.DateTime);
-                p.Add("EndTime",        today.Add(end.ToTimeSpan()),   DbType.DateTime);
-                p.Add("Location",       "Raum 42");
-                p.Add("MinParticipants",min);
-                p.Add("MaxParticipants",max);
-                p.Add("RegStart",       today,                   DbType.Date);
-                p.Add("RegEnd",         today.AddDays(7),        DbType.Date);
-                p.Add("Status",         (int)status);
-                p.Add("IsBlueprint",    false);
-
-                _db.Execute(@"
-                    INSERT INTO Events (
-                        Name, EventType, Description, OrganizationId, ProcessId,
-                        StartDate, EndDate, StartTime, EndTime, Location,
-                        MinParticipants, MaxParticipants,
-                        RegistrationStart, RegistrationEnd, Status, IsBlueprint)
-                    VALUES (
-                        @Name, @EventType, @Description, @OrgId, @ProcessId,
-                        @StartDate, @EndDate, @StartTime, @EndTime, @Location,
-                        @MinParticipants, @MaxParticipants,
-                        @RegStart, @RegEnd, @Status, @IsBlueprint);", p);
-
-                // Owner als Organizer eintragen
-               var evtId = _db.ExecuteScalar<int>(
-                    "SELECT Id FROM Events WHERE Name = @Name;", new { Name = p.Get<string>("Name") });
-                _db.Execute(@"
-                    INSERT INTO EventMembers (AccountId, EventId, IsOrganizer)
-                    VALUES (
-                        (SELECT Id FROM Accounts WHERE Email = 'admin@demo.org'),
-                        @EventId, 1);",
-                    new { EventId = evtId });
-            }
-
-            InsertEvent("Entwurf",     EventStatus.Entwurf,   10);
-            InsertEvent("Offen",       EventStatus.Offen,     10);
-            InsertEvent("Geschlossen", EventStatus.Geschlossen,10);
-            InsertEvent("Abgesagt",    EventStatus.Abgesagt,  10);
-            InsertEvent("Archiviert",  EventStatus.Archiviert,10);
+            var base64 = DbUtils.GetBase64FromImage($"Resources/Seed/{o.Logo}");
+            _db.Execute("""
+                INSERT INTO Organizations (Name, Domain, Description, OrgaPicAsBase64)
+                VALUES (@Name, @Domain, @Desc, @Logo);
+            """, new { o.Name, o.Domain, o.Desc, Logo = base64 });
         }
     }
+}
+
+// -----------------------------------------------------------------------------
+// 2) Benutzer + Accounts anlegen (Max + Petra + weitere Demo-User)
+// -----------------------------------------------------------------------------
+private void SeedUsersAndAccounts()
+{
+    void EnsureUser(string first, string last, string pwd = "demo")
+    {
+        if (_db.ExecuteScalar<int>(
+                "SELECT COUNT(1) FROM Users WHERE Firstname=@first AND Lastname=@last;",
+                new { first, last }) == 0)
+        {
+            _db.Execute("INSERT INTO Users (Firstname, Lastname, Password) VALUES (@first,@last,@pwd);",
+                        new { first, last, pwd });
+        }
+    }
+
+    // --- Max Mustermann (nur DemoOrg-Owner) ---------------------------
+    EnsureUser("Max", "Mustermann");
+    int maxUid = _db.ExecuteScalar<int>("SELECT Id FROM Users WHERE Firstname='Max' AND Lastname='Mustermann';");
+    _db.Execute("""
+        INSERT OR IGNORE INTO Accounts (Email,IsVerified,UserId)
+        VALUES ('owner@demo.org',1,@uid);
+    """, new { uid = maxUid });
+    
+    // Zusätzliche Demo-Accounts für DemoOrg (orga1/2 + mem1..3)
+    var demoOrgUsers = new[]
+    {
+        new { First="Olaf",  Last="Organizer",  Mail="orga1@demo.org" },
+        new { First="Olivia",Last="Organizer",  Mail="orga2@demo.org" },
+        new { First="Mia",   Last="Member",    Mail="mem1@demo.org"  },
+        new { First="Milan", Last="Member",    Mail="mem2@demo.org"  },
+        new { First="Mona",  Last="Member",    Mail="mem3@demo.org"  }
+    };
+
+    foreach (var u in demoOrgUsers)
+    {
+        EnsureUser(u.First, u.Last);
+        EnsureAccount(u.Mail, u.First, u.Last);
+    }
+
+    // --- Petra Wechsler (Vorführuser mit 3 Rollen) --------------------
+    EnsureUser("Petra", "Wechsler");
+    int petraUid = _db.ExecuteScalar<int>("SELECT Id FROM Users WHERE Firstname='Petra' AND Lastname='Wechsler';");
+
+    var petraAccounts = new[]
+    {
+        "petra@code.org",   // Owner CodeCompany
+        "petra@musik.org",  // Owner Rohrspatzen
+        "petra@schule.org"  // Member Bergschule
+    };
+    foreach (var mail in petraAccounts)
+    {
+        _db.Execute("""
+            INSERT OR IGNORE INTO Accounts (Email,IsVerified,UserId)
+            VALUES (@mail,1,@uid);
+        """, new { mail, uid = petraUid });
+    }
+
+    // --- Spezifische weitere Nutzer ----------------------------------
+    EnsureUser("Bernd",  "Rektor");       // Owner Bergschule
+    EnsureUser("Sabine", "Sekretärin");   // Organizer Bergschule
+    EnsureUser("Chris",  "Code");         // Organizer CodeCompany
+    EnsureUser("Clara",  "Coderin");      // Organizer CodeCompany
+
+    // 9 Bergschul-Mitglieder
+    for (int i = 1; i <= 9; i++) EnsureUser($"Schueler{i}", "Berg");
+    // 5 Rohrspatzen-Mitglieder
+    for (int i = 1; i <= 5; i++) EnsureUser($"Mitglied{i}", "Rohr");
+    // 4 CodeCompany-Mitglieder
+    for (int i = 1; i <= 4; i++) EnsureUser($"Mitarbeiter{i}", "Code");
+
+    // Accounts zu den neuen Usern (Mail = vorname@domain)
+    void EnsureAccount(string email, string first, string last)
+    {
+        int uId = _db.ExecuteScalar<int>("SELECT Id FROM Users WHERE Firstname=@first AND Lastname=@last;",
+                                         new { first, last });
+        _db.Execute("INSERT OR IGNORE INTO Accounts (Email,IsVerified,UserId) VALUES (@email,1,@uId);",
+                    new { email, uId });
+    }
+
+    EnsureAccount("rektor@schule.org",     "Bernd",  "Rektor");
+    EnsureAccount("sekretariat@schule.org","Sabine", "Sekretärin");
+    EnsureAccount("chris@code.org",        "Chris",  "Code");
+    EnsureAccount("clara@code.org",        "Clara",  "Coderin");
+
+    for (int i = 1; i <= 9; i++)
+        EnsureAccount($"schueler{i}@schule.org", $"Schueler{i}", "Berg");
+    for (int i = 1; i <= 5; i++)
+        EnsureAccount($"mitglied{i}@musik.org",  $"Mitglied{i}", "Rohr");
+    for (int i = 1; i <= 4; i++)
+        EnsureAccount($"mitarbeiter{i}@code.org", $"Mitarbeiter{i}", "Code");
+}
+
+// -----------------------------------------------------------------------------
+// 3) Mitgliedschaften (OrganizationMembers) mit Rollen zuordnen
+// -----------------------------------------------------------------------------
+private void SeedOrganizationMembers()
+{
+    int Owner  = 0, Organizer = 1, Member = 2;
+
+    void Add(string mail, string domain, int role)
+    {
+        int accId = _db.ExecuteScalar<int>("SELECT Id FROM Accounts WHERE Email=@mail", new { mail });
+        int orgId = _db.ExecuteScalar<int>("SELECT Id FROM Organizations WHERE Domain=@domain", new { domain });
+        _db.Execute("""
+            INSERT OR IGNORE INTO OrganizationMembers (AccountId,OrganizationId,Role)
+            VALUES (@accId,@orgId,@role);
+        """, new { accId, orgId, role });
+    }
+
+    // DemoOrg – Max + 2 Orgas + 3 Member
+    Add("owner@demo.org", "demo.org", Owner);
+    Add("orga1@demo.org", "demo.org", Organizer);
+    Add("orga2@demo.org", "demo.org", Organizer);
+    Add("mem1@demo.org",  "demo.org", Member);
+    Add("mem2@demo.org",  "demo.org", Member);
+    Add("mem3@demo.org",  "demo.org", Member);
+
+    // CodeCompany
+    Add("petra@code.org",     "code.org", Owner);
+    Add("chris@code.org",     "code.org", Organizer);
+    Add("clara@code.org",     "code.org", Organizer);
+    for (int i = 1; i <= 4; i++)
+        Add($"mitarbeiter{i}@code.org", "code.org", Member);
+
+    // Rohrspatzen
+    Add("petra@musik.org", "musik.org", Owner);
+    for (int i = 1; i <= 5; i++)
+        Add($"mitglied{i}@musik.org", "musik.org", Member);
+
+    // Bergschule
+    Add("rektor@schule.org",     "schule.org", Owner);
+    Add("sekretariat@schule.org","schule.org", Organizer);
+    Add("petra@schule.org",      "schule.org", Member);
+    for (int i = 1; i <= 9; i++)
+        Add($"schueler{i}@schule.org", "schule.org", Member);
+}
+
+// -----------------------------------------------------------------------------
+// 4) Demo-Events gemäß Vorgaben anlegen
+// -----------------------------------------------------------------------------
+private void SeedDemoEvents()
+{
+    var today  = DateTime.Today;
+    var startT = new TimeOnly(10, 0);
+    var endT   = new TimeOnly(12, 0);
+
+    // Mail->AccountId Dictionary
+    var acc = _db.Query<(int Id, string Email)>("SELECT Id,Email FROM Accounts")
+                 .ToDictionary(x => x.Email, x => x.Id);
+
+    foreach (var org in _db.Query<(int Id, string Domain)>("SELECT Id,Domain FROM Organizations"))
+    {
+        // Event-Definition pro Orga
+        var list = new List<(string Title, EventStatus Status, string? OrganizerMail)>();
+
+        switch (org.Domain)
+        {
+            case "demo.org":
+                list.Add(("Planung",       EventStatus.Entwurf,     "orga1@demo.org")); // NICHT Owner
+                list.Add(("Workshop",      EventStatus.Offen,       "owner@demo.org"));
+                list.Add(("Jahrestreffen", EventStatus.Geschlossen, "owner@demo.org"));
+                list.Add(("AbsageEvent",   EventStatus.Abgesagt,    "owner@demo.org"));
+                list.Add(("ArchivTest",    EventStatus.Archiviert,  "owner@demo.org"));
+                break;
+
+            case "code.org":
+                list.Add(("Teammeeting",   EventStatus.Offen,   "petra@code.org"));
+                list.Add(("Geheimprojekt", EventStatus.Entwurf, "chris@code.org")); // Entwurf ohne Petra
+                break;
+
+            case "musik.org":
+                list.Add(("Jubiläumskonzert", EventStatus.Offen, "petra@musik.org"));
+                break;
+
+            case "schule.org":
+                list.Add(("Schulfest",  EventStatus.Offen, "rektor@schule.org"));
+                list.Add(("Infoabend",  EventStatus.Offen, "sekretariat@schule.org"));
+                break;
+        }
+
+        foreach (var ev in list)
+        {
+            string evName = $"{org.Domain}-{ev.Title}";
+
+            var p = new DynamicParameters();
+            p.Add("Name",             evName);
+            p.Add("EventType",        "Standard");
+            p.Add("Description",      "Seed-Event");
+            p.Add("OrgId",            org.Id);
+            p.Add("ProcessId",        null);
+            p.Add("StartDate",        today);
+            p.Add("EndDate",          today);
+            p.Add("StartTime",        today.Add(startT.ToTimeSpan()));
+            p.Add("EndTime",          today.Add(endT.ToTimeSpan()));
+            p.Add("Location",         "Online");
+            p.Add("MinParticipants",  1);
+            p.Add("MaxParticipants",  100);
+            p.Add("RegStart",         today);
+            p.Add("RegEnd",           today.AddDays(7));
+            p.Add("Status",           (int)ev.Status);
+            p.Add("IsBlueprint",      false);
+
+            _db.Execute("""
+                INSERT INTO Events (
+                    Name,EventType,Description,OrganizationId,ProcessId,
+                    StartDate,EndDate,StartTime,EndTime,Location,
+                    MinParticipants,MaxParticipants,
+                    RegistrationStart,RegistrationEnd,Status,IsBlueprint)
+                VALUES (
+                    @Name,@EventType,@Description,@OrgId,@ProcessId,
+                    @StartDate,@EndDate,@StartTime,@EndTime,@Location,
+                    @MinParticipants,@MaxParticipants,
+                    @RegStart,@RegEnd,@Status,@IsBlueprint);
+            """, p);
+
+            int evtId = _db.ExecuteScalar<int>("SELECT Id FROM Events WHERE Name=@Name;", new { Name = evName });
+
+            int? orgAccId = null;
+                
+            // Organizer eintragen, sofern Mail vorhanden und Account gefunden
+            if (ev.OrganizerMail is not null && acc.TryGetValue(ev.OrganizerMail, out int tmpId))
+            {
+                orgAccId = tmpId;
+                _db.Execute("""
+                                INSERT INTO EventMembers (AccountId,EventId,IsOrganizer,IsParticipant)
+                                VALUES (@a,@e,1,1);
+                            """, new { a = orgAccId, e = evtId });
+            }
+
+            // ------------------------ Teilnehmer (max. 2) -----------------------------
+            var participants = acc.Values
+                .Where(id =>
+                    (!orgAccId.HasValue || id != orgAccId.Value) &&               // nicht der Organizer
+                    _db.ExecuteScalar<int>(
+                        "SELECT COUNT(1) FROM OrganizationMembers WHERE AccountId=@id AND OrganizationId=@oid;",
+                        new { id, oid = org.Id }) > 0)
+                .Take(2);
+
+            foreach (var pid in participants)
+            {
+                _db.Execute("""
+                                INSERT OR IGNORE INTO EventMembers (AccountId,EventId,IsParticipant)
+                                VALUES (@pid,@evtId,1);
+                            """, new { pid, evtId });
+            }
+        }
+    }
+}
 }
