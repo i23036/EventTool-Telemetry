@@ -4,7 +4,7 @@ public enum ProcessStepTrigger
 {
     MinParticipantsReached,
 
-    MaxParticipantsReached,
+    MaxParticipantsReached = 1,
 
     StatusChanged,
 

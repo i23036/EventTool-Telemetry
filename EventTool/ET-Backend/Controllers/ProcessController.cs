@@ -1,56 +1,30 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using ET.Shared.DTOs;
 using ET_Backend.Services.Processes;
-using ET.Shared.DTOs;
-using ET_Backend.Models;
-using ET_Backend.Services.Mapping;
-
-// For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 
 namespace ET_Backend.Controllers;
 
-/// <summary>
-/// Stellt API-Endpunkte zur Verwaltung von Prozessen bereit.
-/// </summary>
+/// <summary>API-Endpunkte zum Abrufen und Speichern des Prozesses eines Events.</summary>
 [ApiController]
 [Route("api/process")]
 public class ProcessController : ControllerBase
 {
-    private readonly IProcessService _processService;
+    private readonly IProcessService _svc;
+    public ProcessController(IProcessService svc) => _svc = svc;
 
-    public ProcessController(IProcessService processService)
+    // GET  api/process/{eventId}
+    [HttpGet("{eventId:int}")]
+    [Authorize]
+    public async Task<IActionResult> Get(int eventId)
+        => Ok(await _svc.GetForEvent(eventId));
+
+    // PUT  api/process/{eventId}
+    [HttpPut("{eventId:int}")]
+    [Authorize]
+    public async Task<IActionResult> Update(int eventId, [FromBody] ProcessDto dto)
     {
-        _processService = processService;
-    }
-
-    /// <summary>
-    /// Holt einen Prozess anhand der ID.
-    /// </summary>
-    [HttpGet("{id}")]
-    public async Task<IActionResult> GetCurrentProcess([FromBody] ProcessDto dto)
-    {
-        Process processModel = ProcessMapper.ToModel(dto);
-
-        var result = await _processService.GetProcess(processModel);
-
-        if (result.IsSuccess)
-            return Ok();
-
-        return BadRequest(result.Errors);
-    }
-
-    /// <summary>
-    /// Aktualisiert einen Prozess anhand der ID.
-    /// </summary>
-    [HttpPut("{id}")]
-    public async Task<IActionResult> UpdateProcess([FromBody] ProcessDto dto)
-    {
-        Process processModel = ProcessMapper.ToModel(dto);
-
-        var result = await _processService.UpdateProcess(processModel);
-
-        if (result.IsSuccess)
-            return Ok();
-
-        return BadRequest(result.Errors);
+        var res = await _svc.UpdateForEvent(eventId, dto);
+        return res.IsSuccess ? NoContent() : BadRequest(res.Errors);
     }
 }

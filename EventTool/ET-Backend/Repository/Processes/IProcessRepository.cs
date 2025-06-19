@@ -1,5 +1,5 @@
-﻿using FluentResults;
-using System.Diagnostics;
+﻿using ET_Backend.Models;
+using FluentResults;
 
 namespace ET_Backend.Repository.Processes;
 
@@ -10,15 +10,8 @@ namespace ET_Backend.Repository.Processes;
 public interface IProcessRepository
 {
     // === Lesen ===
-
-    Task<Result<Models.Process>> GetProcess(int Id);
-
+    Task<Result<Process>> GetByEvent(int eventId);
+    
     // === Schreiben ===
-
-    Task<Result<Models.Process>> CreateProcess();
-
-    Task<Result<Models.Process>> UpdateProcess(int Id);
-
-    // === Löschen ===
-    Task<Result<bool>> DeleteProcess(int Id);
+    Task<Result>          Upsert(Process proc);
 }

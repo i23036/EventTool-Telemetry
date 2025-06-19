@@ -2,6 +2,8 @@
 @using ET_Frontend.Models
 @using ET_Frontend.Models.Enums
 @inject IDialogService DialogService
+@inject Services.ApiClients.IProcessAPI ProcessApi
+@inject ISnackbar Snackbar
 
 <MudText Typo="Typo.h4" Class="mb-4">Prozess</MudText>
 <MudText Typo="Typo.body1" Class="mb-4">Hier können Sie Ihren Prozess bearbeiten.</MudText>
@@ -53,7 +55,8 @@
 </MudStack>
 
 @code {
-    private ProcessStepTrigger trigger1 = ProcessStepTrigger.EndOfEventLogins;
+	[Parameter] public int EventId { get; set; }
+	private ProcessStepTrigger trigger1 = ProcessStepTrigger.EndOfEventLogins;
     private List<ProcessStepViewModel> _processStepsList = new()
     {
         new ProcessStepViewModel { TypeName = "E-Mail senden", Type = ProcessStepType.SendEMail, Trigger = ProcessStepTrigger.EndOfEventLogins, Condition = ProcessStepCondition.ParticipantsOverMin, OffsetInHours = 2},
@@ -61,9 +64,17 @@
         new ProcessStepViewModel { TypeName = "E-Mail senden", Type = ProcessStepType.SendEMail, Trigger = ProcessStepTrigger.EndOfEventLogins, Condition = ProcessStepCondition.ParticipantsOverMin, OffsetInHours = -3}
     };
 
+    protected override async Task OnInitializedAsync()
+	    => _processStepsList = (await ProcessApi.GetAsync(EventId)).ProcessSteps;
+
     private async Task SaveProzess()
     {
-        //TODO save Prozess
+	    var ok = await ProcessApi.UpdateAsync(
+		    EventId,
+		    new ProcessViewModel { Id = EventId, ProcessSteps = _processStepsList });
+
+	    Snackbar.Add(ok ? "Prozess gespeichert!" : "Fehler beim Speichern.",
+		    ok ? Severity.Success : Severity.Error);
     }
 
     private Task ConfigureProzessStep(ProcessStepType stepType)
@@ -78,9 +89,6 @@
         {
             return DialogService.ShowAsync<ChangeStateDialog>("ProzessStep Dialog", options);
         }
-
-
-        
     }
 
     private Task DeleteProcessStep()

@@ -109,7 +109,15 @@ public class EventRepository : IEventRepository
                 Status = (int)newEvent.Status,
                 IsBlueprint = newEvent.IsBlueprint ? 1 : 0
             }, tx);
+            
+            var procId = await _db.InsertAndGetIdAsync(
+                "INSERT INTO Processes (EventId) VALUES (@Evt);",
+                new { Evt = evtId }, tx);
 
+            await _db.ExecuteAsync(
+                "UPDATE Events SET ProcessId=@Pid WHERE Id=@Evt;",
+                new { Pid = procId, Evt = evtId }, tx);
+            
             if (newEvent.Participants?.Any() == true)
                 foreach (var p in newEvent.Participants)
                     await UpsertEventMember(p.Id, evtId, false, false, true, tx);
@@ -307,9 +315,9 @@ public class EventRepository : IEventRepository
                 new { Ids = orgIds })).ToDictionary(o => o.Id);
 
             var procs = (await _db.QueryAsync<Process>($@"
-            SELECT Id, OrganizationId
-            FROM {_db.Tbl("Processes")}
-            WHERE Id IN @Ids;",
+                SELECT Id, EventId
+                FROM {_db.Tbl("Processes")}
+                WHERE Id IN @Ids;",
                 new { Ids = processIds })).ToDictionary(p => p.Id);
 
             foreach (var e in events)

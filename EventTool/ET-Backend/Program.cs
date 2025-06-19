@@ -96,6 +96,7 @@ builder.Services.AddScoped<IAccountService, AccountService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IProcessService, ProcessService>();
 builder.Services.AddScoped<IProcessStepService, ProcessStepService>();
+builder.Services.AddHostedService<ProcessWorkerService>();
 
 // Email-Service
 builder.Services.Configure<EmailSettings>(

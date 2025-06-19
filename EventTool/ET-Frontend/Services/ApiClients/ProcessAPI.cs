@@ -1,35 +1,21 @@
-﻿using ET_Frontend.Helpers;
+﻿using ET_Frontend.Mapping;
 using ET_Frontend.Models;
-using ET_Frontend.Mapping;
-using Microsoft.AspNetCore.Components.Authorization;
+using ET.Shared.DTOs;
 using System.Net.Http.Json;
 
-namespace ET_Frontend.Services.ApiClients
+namespace ET_Frontend.Services.ApiClients;
+
+public class ProcessAPI : IProcessAPI
 {
-    /// <summary>
-    /// Implementierung der Prozess-API für das Frontend.
-    /// </summary>
-    public class ProcessAPI : IProcessAPI
-    {
-        private readonly HttpClient _httpClient;
-        private readonly AuthenticationStateProvider _authProvider;
+    private readonly HttpClient _http;
+    public ProcessAPI(HttpClient http) => _http = http;
 
-        /// <summary>
-        /// Konstruktor mit HttpClient- und AuthenticationStateProvider-Injektion.
-        /// </summary>
-        public ProcessAPI(HttpClient httpClient, AuthenticationStateProvider authProvider)
-        {
-            _httpClient = httpClient;
-            _authProvider = authProvider;
-        }
+    public async Task<ProcessViewModel> GetAsync(int eventId)
+        => ProcessViewMapper.ToViewModel(
+            await _http.GetFromJsonAsync<ProcessDto>($"event/{eventId}/process")
+            ?? new ProcessDto(0, new()));
 
-        /// <inheritdoc />
-        public async Task<bool> UpdateProcessAsync(ProcessViewModel model)
-        {
-            var userId = JwtClaimHelper.GetUserIdAsync(_authProvider);
-            var dto = ProcessViewMapper.ToDto(model);
-            var response = await _httpClient.PutAsJsonAsync($"process/{userId}", dto);
-            return response.IsSuccessStatusCode;
-        }
-    }
+    public async Task<bool> UpdateAsync(int eventId, ProcessViewModel vm)
+        => (await _http.PutAsJsonAsync($"event/{eventId}/process",
+            ProcessViewMapper.ToDto(vm))).IsSuccessStatusCode;
 }

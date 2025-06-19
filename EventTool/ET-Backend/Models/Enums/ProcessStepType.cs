@@ -4,5 +4,5 @@ public enum ProcessStepType
 {
     SendEMail,
 
-    ChangeStatus
+    CloseEvent
 }

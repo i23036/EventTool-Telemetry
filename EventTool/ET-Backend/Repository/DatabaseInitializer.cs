@@ -1,6 +1,7 @@
 ﻿using Dapper;
 using ET.Shared.DTOs.Enums;
 using System.Data;
+using ET_Backend.Models.Enums;
 
 namespace ET_Backend.Repository;
 
@@ -54,32 +55,45 @@ public class DatabaseInitializer(IDbConnection db, ILogger<DatabaseInitializer> 
         ");
 
         _db.Execute(@"
-            CREATE TABLE IF NOT EXISTS Processes (
-                Id              INTEGER PRIMARY KEY AUTOINCREMENT,
-                OrganizationId  INTEGER NOT NULL
-            );
-        ");
+    CREATE TABLE IF NOT EXISTS Events (
+        Id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+        Name                TEXT NOT NULL,
+        EventType           TEXT NOT NULL,
+        Description         TEXT,
+        OrganizationId      INTEGER NOT NULL,
+        ProcessId           INTEGER,         
+        StartDate           DATE,
+        EndDate             DATE,
+        StartTime           TIME,
+        EndTime             TIME,
+        Location            TEXT,
+        MinParticipants     INTEGER,
+        MaxParticipants     INTEGER,
+        RegistrationStart   DATE,
+        RegistrationEnd     DATE,
+        Status              INTEGER NOT NULL DEFAULT 0,
+        IsBlueprint         INTEGER DEFAULT 0,
+        FOREIGN KEY (OrganizationId) REFERENCES Organizations(Id)
+    );
+");
 
         _db.Execute(@"
-            CREATE TABLE IF NOT EXISTS Events (
-                Id                  INTEGER PRIMARY KEY AUTOINCREMENT,
-                Name                TEXT NOT NULL,
-                EventType           TEXT NOT NULL,
-                Description         TEXT,
-                OrganizationId      INTEGER NOT NULL,
-                ProcessId           INTEGER,
-                StartDate           DATE,
-                EndDate             DATE,
-                StartTime           TIME,
-                EndTime             TIME,
-                Location            TEXT,
-                MinParticipants     INTEGER,
-                MaxParticipants     INTEGER,
-                RegistrationStart   DATE,
-                RegistrationEnd     DATE,
-                Status              INTEGER NOT NULL DEFAULT 0, -- Enum: EventStatus
-                IsBlueprint         INTEGER DEFAULT 0,
-                FOREIGN KEY (OrganizationId) REFERENCES Organizations(Id),
+    CREATE TABLE IF NOT EXISTS Processes (
+        Id      INTEGER PRIMARY KEY AUTOINCREMENT,
+        EventId INTEGER NOT NULL UNIQUE,
+        FOREIGN KEY (EventId) REFERENCES Events(Id) ON DELETE CASCADE
+    );
+");
+        
+        _db.Execute(@"
+            CREATE TABLE IF NOT EXISTS ProcessSteps (
+                Id             INTEGER PRIMARY KEY AUTOINCREMENT,
+                TypeName       TEXT NOT NULL,
+                Type           INTEGER NOT NULL,
+                Trigger        INTEGER NOT NULL,
+                Condition      INTEGER NOT NULL,
+                OffsetInHours  INTEGER NOT NULL,
+                ProcessId      INTEGER NOT NULL,
                 FOREIGN KEY (ProcessId) REFERENCES Processes(Id)
             );
         ");
@@ -109,26 +123,6 @@ public class DatabaseInitializer(IDbConnection db, ILogger<DatabaseInitializer> 
         ");
 
         _db.Execute(@"
-            CREATE TABLE IF NOT EXISTS Triggers (
-                Id       INTEGER PRIMARY KEY AUTOINCREMENT,
-                Attribut TEXT NOT NULL
-            );
-        ");
-
-        _db.Execute(@"
-            CREATE TABLE IF NOT EXISTS ProcessSteps (
-                Id             INTEGER PRIMARY KEY AUTOINCREMENT,
-                TypeName       TEXT NOT NULL,
-                Type           INTEGER NOT NULL,
-                Trigger        INTEGER NOT NULL,
-                Condition      INTEGER NOT NULL,
-                OffsetInHours  INTEGER NOT NULL,
-                ProcessId      INTEGER NOT NULL,
-                FOREIGN KEY (ProcessId) REFERENCES Processes(Id)
-            );
-        ");
-
-        _db.Execute(@"
             CREATE TABLE IF NOT EXISTS EmailVerificationTokens (
                  Id         INTEGER PRIMARY KEY AUTOINCREMENT,
                  AccountId  INTEGER NOT NULL,
@@ -143,16 +137,22 @@ public class DatabaseInitializer(IDbConnection db, ILogger<DatabaseInitializer> 
 
     public void DropAllTables()
     {
-        _db.Execute("DROP TABLE IF EXISTS EmailVerificationTokens;");
-        _db.Execute("DROP TABLE IF EXISTS EventMembers;");
-        _db.Execute("DROP TABLE IF EXISTS Events;");
-        _db.Execute("DROP TABLE IF EXISTS OrganizationMembers;");
-        _db.Execute("DROP TABLE IF EXISTS Accounts;");
-        _db.Execute("DROP TABLE IF EXISTS ProcessSteps;");
-        _db.Execute("DROP TABLE IF EXISTS Processes;");
-        _db.Execute("DROP TABLE IF EXISTS Triggers;");
+        // FK-Prüfung ausschalten, damit SQLite nicht meckert
+        _db.Execute("PRAGMA foreign_keys = OFF;");
+
+        // ─ Von den abhängigen zu den Basis-Tabellen ─
+        _db.Execute("DROP TABLE IF EXISTS EmailVerificationTokens;"); // ↘ Accounts
+        _db.Execute("DROP TABLE IF EXISTS EventMembers;");            // ↘ Events + Accounts
+        _db.Execute("DROP TABLE IF EXISTS ProcessSteps;");            // ↘ Processes
+        _db.Execute("DROP TABLE IF EXISTS Processes;");               // ↘ Events
+        _db.Execute("DROP TABLE IF EXISTS OrganizationMembers;");     // ↘ Accounts + Organizations
+        _db.Execute("DROP TABLE IF EXISTS Events;");                  // ↘ Organizations
+        _db.Execute("DROP TABLE IF EXISTS Accounts;");                // ↘ Users
         _db.Execute("DROP TABLE IF EXISTS Users;");
         _db.Execute("DROP TABLE IF EXISTS Organizations;");
+
+        // FK-Prüfung wieder aktivieren
+        _db.Execute("PRAGMA foreign_keys = ON;");
     }
 
     public void SeedDemoData()
@@ -272,32 +272,6 @@ private void SeedUsersAndAccounts()
         _db.Execute("INSERT OR IGNORE INTO Accounts (Email,IsVerified,UserId) VALUES (@email,1,@uId);",
                     new { email, uId });
     }
-        // Processes
-        var processCount = _db.ExecuteScalar<int>("SELECT COUNT(1) FROM Processes;");
-        if (processCount == 0)
-        {
-            _db.Execute(@"INSERT INTO Processes (OrganizationId) 
-                              VALUES (
-                                  1);
-                              ");
-        }
-
-        // ProcessSteps
-        var stepCount = _db.ExecuteScalar<int>("SELECT COUNT(1) FROM ProcessSteps;");
-        if (stepCount == 0)
-        {
-            _db.Execute(@"
-                INSERT INTO ProcessSteps (TypeName, Type, Trigger, Condition, OffsetInHours, ProcessId)
-                VALUES (
-                    'Email anpassen',
-                    0,
-                    0,
-                    0,
-                    0,
-                    (SELECT Id FROM Processes LIMIT 1)
-                    );
-            ");
-        }
         
     EnsureAccount("rektor@schule.org",     "Bernd",  "Rektor");
     EnsureAccount("sekretariat@schule.org","Sabine", "Sekretärin");
@@ -405,14 +379,12 @@ private void SeedDemoEvents()
         {
             string evName = $"{org.Domain}-{ev.Title}";
             var orgId = _db.ExecuteScalar<int>("SELECT Id FROM Organizations WHERE Domain = 'demo.org'");
-            var processId = _db.ExecuteScalar<int>("SELECT Id FROM Processes WHERE Id = 1");
-
+            
             var p = new DynamicParameters();
             p.Add("Name",             evName);
             p.Add("EventType",        "Standard");
             p.Add("Description",      "Seed-Event");
             p.Add("OrgId",            org.Id);
-            p.Add("ProcessId",        null);
             p.Add("StartDate",        today);
             p.Add("EndDate",          today);
             p.Add("StartTime",        today.Add(startT.ToTimeSpan()));
@@ -427,19 +399,42 @@ private void SeedDemoEvents()
 
             _db.Execute("""
                 INSERT INTO Events (
-                    Name,EventType,Description,OrganizationId,ProcessId,
+                    Name,EventType,Description,OrganizationId,
                     StartDate,EndDate,StartTime,EndTime,Location,
                     MinParticipants,MaxParticipants,
                     RegistrationStart,RegistrationEnd,Status,IsBlueprint)
                 VALUES (
-                    @Name,@EventType,@Description,@OrgId,@ProcessId,
+                    @Name,@EventType,@Description,@OrgId,
                     @StartDate,@EndDate,@StartTime,@EndTime,@Location,
                     @MinParticipants,@MaxParticipants,
                     @RegStart,@RegEnd,@Status,@IsBlueprint);
             """, p);
 
             int evtId = _db.ExecuteScalar<int>("SELECT Id FROM Events WHERE Name=@Name;", new { Name = evName });
+            
+            // 1) Prozess für dieses Event erzeugen
+            int procId = _db.ExecuteScalar<int>(
+                "INSERT INTO Processes (EventId) VALUES (@Evt); SELECT last_insert_rowid();",
+                new { Evt = evtId });
 
+            // Event mit ProcessId verknüpfen
+            _db.Execute("UPDATE Events SET ProcessId=@Pid WHERE Id=@Evt;", new { Pid = procId, Evt = evtId });
+
+            // 2) Nur für demo.org: Auto-Close-Step anlegen
+            if (org.Domain == "demo.org")
+            {
+                _db.Execute(@"
+                    INSERT INTO ProcessSteps
+                            (TypeName, Type, Trigger, Condition, OffsetInHours, ProcessId)
+                    VALUES ('Auto-Close when full',
+                            @Type, @Trigger, 0, 0, @Pid);",
+                    new {
+                        Type    = (int)ProcessStepType.CloseEvent,
+                        Trigger = (int)ProcessStepTrigger.MaxParticipantsReached,
+                        Pid     = procId
+                    });
+            }
+            
             int? orgAccId = null;
                 
             // Organizer eintragen, sofern Mail vorhanden und Account gefunden
