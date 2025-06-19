@@ -25,13 +25,12 @@ namespace ET_Backend.Services.Person
         /// <inheritdoc />
         public async Task<Account?> GetCurrentUserAsync(ClaimsPrincipal user)
         {
-            // E-Mail-Claim aus dem JWT holen (Custom-Claim: 'email')
-            var email = user.FindFirst(JwtRegisteredClaimNames.Email)?.Value;
+            var idClaim = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
-            if (string.IsNullOrWhiteSpace(email))
+            if (!int.TryParse(idClaim, out var accountId))
                 return null;
 
-            var result = await _accountRepo.GetAccount(email);
+            var result = await _accountRepo.GetAccount(accountId);
             return result.IsSuccess ? result.Value : null;
         }
 
@@ -94,6 +93,16 @@ namespace ET_Backend.Services.Person
         public async Task<Result> DeleteUserAsync(int userId)
         {
             return await _userRepository.DeleteUser(userId);
+        }
+
+        public async Task<Account?> GetCurrentAccountAsync(ClaimsPrincipal user)
+        {
+            var accIdStr = user.FindFirst("accountId")?.Value;
+            if (!int.TryParse(accIdStr, out var accId))
+                return null;
+
+            var result = await _accountRepo.GetAccount(accId);
+            return result.IsSuccess ? result.Value : null;
         }
     }
 }

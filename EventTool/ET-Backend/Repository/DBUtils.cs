@@ -49,7 +49,9 @@ public static class DbUtils
     {
         if (db.IsSQLite())
         {
-            return await db.ExecuteScalarAsync<int>($"{sql} RETURNING Id;", param, tx);
+            await db.ExecuteAsync(sql, param, tx);
+            var id = await db.ExecuteScalarAsync<long>("SELECT last_insert_rowid();", transaction: tx);
+            return (int)id;
         }
         else
         {
@@ -57,6 +59,7 @@ public static class DbUtils
             return await db.ExecuteScalarAsync<int>(fullSql, param, tx);
         }
     }
+
 
     /// <summary>
     /// Gibt den Split-Typ für Rollen zurück (long in SQLite, int in SQL Server).

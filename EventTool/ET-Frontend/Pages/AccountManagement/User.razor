@@ -131,20 +131,14 @@
     </div>
 }
 
-
-@if (showDeleteConfirmDialog)
-{
-    <SimpleConfirm Message="Die Mitgliedschaft wird dauerhaft entfernt."
-                   ConfirmText="Entfernen"
-                   OnConfirm="HandleDeleteConfirm" />
-}
-
-@if (showSaveEmailConfirmDialog)
-{
-    <SimpleConfirm Message="Möchten Sie die geänderte E-Mail-Adresse speichern?"
-                   ConfirmText="Speichern"
-                   OnConfirm="HandleSaveEmailConfirm" />
-}
+<SimpleConfirm @bind-IsOpen="showDeleteConfirmDialog"
+               Message="Die Mitgliedschaft wird dauerhaft entfernt."
+               ConfirmText="Entfernen"
+               OnConfirm="HandleDeleteConfirm" />
+<SimpleConfirm @bind-IsOpen="showSaveEmailConfirmDialog"
+               Message="Möchten Sie die geänderte E-Mail-Adresse speichern?"
+               ConfirmText="Speichern"
+               OnConfirm="HandleSaveEmailConfirm" />
 
 @code {
     private List<MembershipViewModel> Mitgliedschaften = new();

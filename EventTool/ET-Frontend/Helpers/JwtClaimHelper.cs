@@ -1,64 +1,62 @@
-﻿using System.IdentityModel.Tokens.Jwt;
-using Microsoft.AspNetCore.Components.Authorization;
+﻿using Microsoft.AspNetCore.Components.Authorization;
 using System.Security.Claims;
 
 namespace ET_Frontend.Helpers;
 
 /// <summary>
-/// Stellt Hilfsmethoden zum komfortablen Auslesen von JWT-Claims im Frontend bereit.
+/// Stellt Hilfsmethoden zum komfortablen und konsistenten Auslesen von JWT-Claims im Frontend bereit.
 /// </summary>
 public static class JwtClaimHelper
 {
     /// <summary>
     /// Liest einen bestimmten Claim aus dem aktuellen Authentifizierungszustand.
     /// </summary>
-    /// <param name="provider">Das Authentifizierungs-Provider-Objekt.</param>
-    /// <param name="claimType">Der Typ des Claims (z. B. "org", "orgName").</param>
-    /// <returns>Der Wert des Claims oder ein leerer String, falls nicht gefunden.</returns>
     public static async Task<string> GetClaimAsync(AuthenticationStateProvider provider, string claimType)
     {
         var authState = await provider.GetAuthenticationStateAsync();
         var user = authState.User;
-
         return user?.FindFirst(claimType)?.Value ?? string.Empty;
     }
 
     /// <summary>
-    /// Liefert die Domain der Organisation anhand des "org"-Claims.
-    /// Fallback ist "demo.org", falls kein Token oder Claim vorhanden.
+    /// Liefert die Benutzer-ID (UserId) – wer bin ich?
+    /// </summary>
+    public static async Task<int> GetUserIdAsync(AuthenticationStateProvider provider)
+    {
+        var id = await GetClaimAsync(provider, ClaimTypes.NameIdentifier);
+        return int.TryParse(id, out var userId) ? userId : -1;
+    }
+
+    /// <summary>
+    /// Liefert die aktuell genutzte Account-ID – in welchem Account bin ich eingeloggt?
+    /// </summary>
+    public static async Task<int> GetAccountIdAsync(AuthenticationStateProvider provider)
+    {
+        var id = await GetClaimAsync(provider, "accountId");
+        return int.TryParse(id, out var accountId) ? accountId : -1;
+    }
+
+    /// <summary>
+    /// Liefert die Domain der aktuellen Organisation (org).
     /// </summary>
     public static async Task<string> GetUserDomainAsync(AuthenticationStateProvider provider)
     {
         var domain = await GetClaimAsync(provider, "org");
-        return string.IsNullOrWhiteSpace(domain) ? "demo.org" : domain;
+        return string.IsNullOrWhiteSpace(domain) ? "demo.org" : domain; // Fallback für Login-Page
     }
 
     /// <summary>
-    /// Liefert den ausgeschriebenen Namen der Organisation anhand des "orgName"-Claims.
+    /// Liefert den Namen der aktuellen Organisation (orgName).
     /// </summary>
     public static Task<string> GetUserOrganizationNameAsync(AuthenticationStateProvider provider)
         => GetClaimAsync(provider, "orgName");
 
     /// <summary>
-    /// Gibt die Benutzer-ID anhand des "sub"-Claims zurück.
+    /// Liefert die Rolle des aktuell genutzten Accounts.
     /// </summary>
-    /// <param name="provider">Das Authentifizierungs-Provider-Objekt.</param>
-    /// <returns>Die Benutzer-ID als int, oder -1 bei Fehler.</returns>
-    public static async Task<int> GetUserIdAsync(AuthenticationStateProvider provider)
-    {
-        var id = await GetClaimAsync(provider, ClaimTypes.NameIdentifier)
-                 ?? await GetClaimAsync(provider, "uid")
-                 ?? await GetClaimAsync(provider, JwtRegisteredClaimNames.Sub);
-
-        return int.TryParse(id, out var userId) ? userId : -1;
-    }
-
     public static async Task<string> GetUserRoleAsync(AuthenticationStateProvider provider)
     {
         var role = await GetClaimAsync(provider, ClaimTypes.Role);
-
-        return string.IsNullOrWhiteSpace(role)
-            ? string.Empty
-            : role.Trim().ToLower(); // z. B. "owner", "organisator", "mitglied"
+        return string.IsNullOrWhiteSpace(role) ? string.Empty : role.Trim().ToLower();
     }
 }

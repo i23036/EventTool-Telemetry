@@ -1,12 +1,18 @@
-﻿namespace ET_Frontend.Models.Event;
-
-public class EventViewModel
+﻿public class EventViewModel
 {
-    public int EventId { get; set; }
-    public string Name { get; set; } = string.Empty;
-    public string Description { get; set; } = string.Empty;
-    public int Participants { get; set; }
-    public int MaxParticipants { get; set; }
-    public bool IsOrganizer { get; set; }
-    public bool IsSubscribed { get; set; }
+    public int    Id              { get; set; }
+    public string Name            { get; set; } = "";
+    public string Description     { get; set; } = "";
+
+    public string StatusDisplay   { get; set; } = "";
+    public bool   CanSubscribe    { get; set; }
+
+    public int    Participants    { get; set; }
+    public int    MaxParticipants { get; set; }
+    public bool   IsOrganizer     { get; set; }
+    public bool   IsSubscribed    { get; set; }
+
+    public bool IsDraft         { get; set; }
+    public bool IsManagedByMe   { get; set; }
+    public bool IsPublic        { get; set; }
 }

@@ -224,7 +224,10 @@ public class AuthenticateService : IAuthenticateService
         var acc = accResult.Value;
 
         if (acc.UserId != currentUserId)
-            return Result.Fail("Kein Zugriff auf diesen Account.");   // Controller macht daraus 403
+        {
+            _logger.LogWarning("AccountId {0} gehört nicht zu UserId {1}.", accountId, currentUserId);
+            return Result.Fail("Mitgliedschaft konnte nicht geladen werden.");
+        }
 
         // privater Helper bleibt privat
         var token = GenerateJwtToken(acc);
@@ -294,11 +297,19 @@ public class AuthenticateService : IAuthenticateService
     {
         var claims = new[]
         {
-            new Claim(JwtRegisteredClaimNames.Sub, account.Id.ToString()),
+            // UserId (wer bin ich? – bleibt Sub und NameIdentifier)
+            new Claim(JwtRegisteredClaimNames.Sub, account.UserId.ToString()),
             new Claim(ClaimTypes.NameIdentifier, account.UserId.ToString()),
+
+            // AccountId (in welchem Account bin ich eingeloggt?)
+            new Claim("accountId", account.Id.ToString()),
+
+            // Mail & Orga
             new Claim(JwtRegisteredClaimNames.Email, account.EMail),
             new Claim("org", account.Organization.Domain),
             new Claim("orgName", account.Organization.Name),
+
+            // Rolle
             new Claim(ClaimTypes.Role, account.Role.ToString())
         };
 

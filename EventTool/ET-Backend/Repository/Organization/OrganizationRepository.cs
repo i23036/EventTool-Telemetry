@@ -106,7 +106,7 @@ public class OrganizationRepository : IOrganizationRepository
         try
         {
             var sql = @"
-            SELECT a.Email, u.Lastname, om.Role
+            SELECT a.Email, u.Firstname, u.Lastname, om.Role
             FROM OrganizationMembers om
             JOIN Accounts a ON om.AccountId = a.Id
             JOIN Users u ON a.UserId = u.Id
