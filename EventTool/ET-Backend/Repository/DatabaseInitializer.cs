@@ -55,7 +55,8 @@ public class DatabaseInitializer(IDbConnection db, ILogger<DatabaseInitializer> 
 
         _db.Execute(@"
             CREATE TABLE IF NOT EXISTS Processes (
-                Id INTEGER PRIMARY KEY AUTOINCREMENT
+                Id              INTEGER PRIMARY KEY AUTOINCREMENT,
+                OrganizationId  INTEGER NOT NULL
             );
         ");
 
@@ -275,7 +276,10 @@ private void SeedUsersAndAccounts()
         var processCount = _db.ExecuteScalar<int>("SELECT COUNT(1) FROM Processes;");
         if (processCount == 0)
         {
-            _db.Execute("INSERT INTO Processes DEFAULT VALUES;");
+            _db.Execute(@"INSERT INTO Processes (OrganizationId) 
+                              VALUES (
+                                  1);
+                              ");
         }
 
         // ProcessSteps
@@ -294,6 +298,7 @@ private void SeedUsersAndAccounts()
                     );
             ");
         }
+        
     EnsureAccount("rektor@schule.org",     "Bernd",  "Rektor");
     EnsureAccount("sekretariat@schule.org","Sabine", "Sekretärin");
     EnsureAccount("chris@code.org",        "Chris",  "Code");
@@ -383,6 +388,7 @@ private void SeedDemoEvents()
             case "code.org":
                 list.Add(("Teammeeting",   EventStatus.Offen,   "petra@code.org"));
                 list.Add(("Geheimprojekt", EventStatus.Entwurf, "chris@code.org")); // Entwurf ohne Petra
+                list.Add(("Jahresfeier",   EventStatus.Offen,   "chris@code.org"));
                 break;
 
             case "musik.org":

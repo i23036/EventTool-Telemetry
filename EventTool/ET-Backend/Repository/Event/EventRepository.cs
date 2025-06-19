@@ -307,7 +307,7 @@ public class EventRepository : IEventRepository
                 new { Ids = orgIds })).ToDictionary(o => o.Id);
 
             var procs = (await _db.QueryAsync<Process>($@"
-            SELECT Id, Name, OrganizationId
+            SELECT Id, OrganizationId
             FROM {_db.Tbl("Processes")}
             WHERE Id IN @Ids;",
                 new { Ids = processIds })).ToDictionary(p => p.Id);
