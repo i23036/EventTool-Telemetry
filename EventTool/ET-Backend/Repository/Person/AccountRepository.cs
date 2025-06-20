@@ -483,4 +483,25 @@ public class AccountRepository : IAccountRepository
             return Result.Fail($"DBError: {ex.Message}");
         }
     }
+    
+    public async Task<Result<List<string>>> GetBoundEventNames(int accountId)
+    {
+        try
+        {
+            var sql = @"
+            SELECT e.Name
+            FROM Events e
+            JOIN EventMembers em ON e.Id = em.EventId
+            WHERE em.AccountId = @AccId
+              AND (em.IsOrganizer = 1 OR em.IsContactPerson = 1 OR em.IsParticipant = 1);";
+
+            var names = (await _db.QueryAsync<string>(sql, new { AccId = accountId })).ToList();
+
+            return Result.Ok(names);
+        }
+        catch (Exception ex)
+        {
+            return Result.Fail($"DBError: {ex.Message}");
+        }
+    }
 }

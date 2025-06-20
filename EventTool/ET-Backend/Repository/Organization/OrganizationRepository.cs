@@ -275,9 +275,39 @@ public class OrganizationRepository : IOrganizationRepository
 
             return rows > 0 ? Result.Ok() : Result.Fail("NotFound");
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            return Result.Fail("DBError");
+            return Result.Fail($"DBError: {ex.Message}");
+        }
+    }
+    
+    /// <summary>
+    /// Liefert alle Event-Namen, in denen der Account innerhalb
+    /// der Organisation noch als Organisator/Teilnehmer vorkommt.
+    /// </summary>
+    public async Task<Result<List<string>>> GetActiveEventNames(int accountId, int organizationId)
+    {
+        try
+        {
+            const string sql = """
+                                   SELECT e.Name
+                                   FROM   Events            e
+                                   JOIN   EventMembers      em ON em.EventId = e.Id
+                                   WHERE  em.AccountId      = @Acc
+                                     AND  e.OrganizationId  = @Org
+                                     AND  (em.IsOrganizer   = 1
+                                           OR em.IsParticipant = 1
+                                           OR em.IsContactPerson = 1);
+                               """;
+
+            var names = (await _db.QueryAsync<string>(sql, new { Acc = accountId, Org = organizationId }))
+                .ToList();
+
+            return Result.Ok(names);
+        }
+        catch (Exception ex)
+        {
+            return Result.Fail($"DBError: {ex.Message}");
         }
     }
 }

@@ -22,4 +22,5 @@ public interface IAccountRepository
     public Task<Result<List<Account>>> GetAccountsByMail(IEnumerable<string> mails);
     public Task<Result> UpdateEmail(int accountId, string email);
     public Task<Result> UpdateEmailDomainsForOrganization(int orgId, string oldDomain, string newDomain);
+    public Task<Result<List<string>>> GetBoundEventNames(int accountId);
 }
