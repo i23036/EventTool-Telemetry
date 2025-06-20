@@ -357,12 +357,22 @@ public class EventRepository : IEventRepository
         {
             await _db.ExecuteAsync($@"
             UPDATE {_db.Tbl("Events")} SET
-                Name=@Name, Description=@Description, Status=@Status, EventType = @EventType, OrganizationId=@OrgId,
-                ProcessId=@ProcId, StartDate=@StartDate, EndDate=@EndDate,
-                StartTime=@StartTime, EndTime=@EndTime, Location=@Location,
-                MinParticipants=@MinPart, MaxParticipants=@MaxPart,
-                RegistrationStart=@RegStart, RegistrationEnd=@RegEnd,
-                IsBlueprint=@IsBp
+                Name              = @Name,
+                Description       = @Description,
+                Status            = @Status,
+                EventType         = @EventType,
+                OrganizationId    = @OrgId,
+                ProcessId         = COALESCE(@ProcId, ProcessId),
+                StartDate         = @StartDate,
+                EndDate           = @EndDate,
+                StartTime         = @StartTime,
+                EndTime           = @EndTime,
+                Location          = @Location,
+                MinParticipants   = @MinPart,
+                MaxParticipants   = @MaxPart,
+                RegistrationStart = @RegStart,
+                RegistrationEnd   = @RegEnd,
+                IsBlueprint       = @IsBp
             WHERE Id=@Id;",
                 new
                 {

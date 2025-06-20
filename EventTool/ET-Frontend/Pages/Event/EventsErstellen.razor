@@ -17,6 +17,7 @@
 @inject Microsoft.AspNetCore.Components.Authorization.AuthenticationStateProvider AuthProvider
 @inject IEventApi EventApi
 @inject ISnackbar Snackbar
+@inject IProcessAPI ProcessApi
 
 <PageTitle>Event erstellen</PageTitle>
 
@@ -160,7 +161,7 @@
 
             <!-- Prozess -->
             <MudTabPanel Text="Prozess">
-	            <ProcessPanel EventId="_newEvent.Id"></ProcessPanel>
+                <ProcessPanel @ref="_processPanel" EventId="_newEvent.Id"></ProcessPanel>
             </MudTabPanel>
         </MudTabs>
     </MudPaper>
@@ -178,6 +179,8 @@
 
     private string _currentUserEmail = string.Empty;
     private string _currentUserRole = string.Empty;
+
+    private ProcessPanel? _processPanel;
 
     protected override async Task OnInitializedAsync()
     {
@@ -316,6 +319,14 @@
             success = await EventApi.UpdateEventAsync(dto); // PUT
         else
             success = await EventApi.CreateEventAsync(dto); // POST
+
+        if (success && _processPanel is not null)
+        {
+	        // 1. aktuelle Prozess-Steps vom Panel holen
+	        var processVm = _processPanel.GetCurrentProcess();  
+	        // 2. Prozess updaten – Event-ID kommt nach Create() zurück und steht in _newEvent.Id
+	        await ProcessApi.UpdateAsync(_newEvent.Id, processVm);
+        }
 
         Snackbar.Add(success ? "Event gespeichert!" : "Speichern fehlgeschlagen.",
                      success ? Severity.Success : Severity.Error);

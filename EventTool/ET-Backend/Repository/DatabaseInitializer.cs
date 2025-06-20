@@ -141,13 +141,13 @@ public class DatabaseInitializer(IDbConnection db, ILogger<DatabaseInitializer> 
         _db.Execute("PRAGMA foreign_keys = OFF;");
 
         // ─ Von den abhängigen zu den Basis-Tabellen ─
-        _db.Execute("DROP TABLE IF EXISTS EmailVerificationTokens;"); // ↘ Accounts
-        _db.Execute("DROP TABLE IF EXISTS EventMembers;");            // ↘ Events + Accounts
-        _db.Execute("DROP TABLE IF EXISTS ProcessSteps;");            // ↘ Processes
-        _db.Execute("DROP TABLE IF EXISTS Processes;");               // ↘ Events
-        _db.Execute("DROP TABLE IF EXISTS OrganizationMembers;");     // ↘ Accounts + Organizations
-        _db.Execute("DROP TABLE IF EXISTS Events;");                  // ↘ Organizations
-        _db.Execute("DROP TABLE IF EXISTS Accounts;");                // ↘ Users
+        _db.Execute("DROP TABLE IF EXISTS EventMembers;");            
+        _db.Execute("DROP TABLE IF EXISTS ProcessSteps;");            
+        _db.Execute("DROP TABLE IF EXISTS Processes;");               
+        _db.Execute("DROP TABLE IF EXISTS Events;");                  
+        _db.Execute("DROP TABLE IF EXISTS EmailVerificationTokens;"); 
+        _db.Execute("DROP TABLE IF EXISTS OrganizationMembers;");     
+        _db.Execute("DROP TABLE IF EXISTS Accounts;");                
         _db.Execute("DROP TABLE IF EXISTS Users;");
         _db.Execute("DROP TABLE IF EXISTS Organizations;");
 
