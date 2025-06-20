@@ -11,6 +11,8 @@
 @using ET_Frontend.Mapping
 @using ET_Frontend.Pages.Components
 @using Microsoft.AspNetCore.Components.Authorization
+@using System.Threading
+
 
 @inject HttpClient Http
 @inject ISessionStorageService SessionStorage
@@ -129,11 +131,17 @@
     private OrganizationMemberViewModel RoleChangeMember;
     private int NewRoleToSet;
 
+    private PeriodicTimer? _refreshTimer;
+    private CancellationTokenSource _cts = new();
+
     protected override async Task OnInitializedAsync()
     {
 	    await CheckUserPermissions();
 	    await LoadEvents();
         await LoadMembers();
+
+        _refreshTimer = new PeriodicTimer(TimeSpan.FromSeconds(10));
+        _ = AutoRefreshAsync();
     }
 
     private async Task CheckUserPermissions()
@@ -324,5 +332,25 @@
     {
 	    await LoadEvents();     
 	    StateHasChanged();     
+    }
+
+    private async Task AutoRefreshAsync()
+    {
+	    try
+	    {
+		    while (await _refreshTimer!.WaitForNextTickAsync(_cts.Token))
+		    {
+			    await LoadEvents();
+			    await InvokeAsync(StateHasChanged);
+		    }
+	    }
+	    catch (OperationCanceledException) { /* Timer gestoppt */ }
+    }
+
+    public void Dispose()
+    {
+	    _cts.Cancel();
+	    _cts.Dispose();
+	    _refreshTimer?.Dispose();
     }
 }

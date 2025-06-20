@@ -6,105 +6,157 @@
 @inject ISnackbar Snackbar
 
 <MudText Typo="Typo.h4" Class="mb-4">Prozess</MudText>
-<MudText Typo="Typo.body1" Class="mb-4">Hier können Sie Ihren Prozess bearbeiten.</MudText>
+<MudText Typo="Typo.body1" Class="mb-4">
+    Definieren Sie hier automatische Aktionen für Ihr Event.
+</MudText>
+
 <MudSpacer />
-<MudDataGrid T="ProcessStepViewModel" Items="@_processStepsList" Dense="true">
+
+<MudDataGrid T="ProcessStepViewModel" Items="@_steps" Dense="true">
     <Columns>
-        <PropertyColumn Property="x => x.TypeName" Title="Prozesschritt" />
+        <PropertyColumn Property="x => x.TypeName" Title="Prozess-Schritt" />
+
         <TemplateColumn CellClass="d-flex justify-end">
-            <CellTemplate Context="processStepItem">
+            <CellTemplate Context="row">
                 <MudStack Row Spacing="5">
-                    <MudSelect @bind-Value="processStepItem.Item.Trigger"
-                               FitContent="true"
-                               HelperText="Auslöser">
-                               <MudSelectItem Value="ProcessStepTrigger.MinParticipantsReached">Minimale Teilnehmer erreicht</MudSelectItem>
-                               <MudSelectItem Value="ProcessStepTrigger.MaxParticipantsReached">Maximale Teilnehmer erreicht</MudSelectItem>
-                               <MudSelectItem Value="ProcessStepTrigger.StatusChanged">Statusänderung</MudSelectItem>
-                               <MudSelectItem Value="ProcessStepTrigger.ParticipantRegisters">Teilnehmer meldet sich an</MudSelectItem>
-                               <MudSelectItem Value="ProcessStepTrigger.StartOfEventLogins">Anmeldestart</MudSelectItem>
-                               <MudSelectItem Value="ProcessStepTrigger.EndOfEventLogins">Anmeldeschluss</MudSelectItem>
+
+                    <!-- Trigger ----------------------------------------- -->
+                    <MudSelect @bind-Value="row.Item.Trigger" FitContent="true" HelperText="Auslöser">
+                        <MudSelectItem Value="ProcessStepTrigger.MinParticipantsReached">Min. Teilnehmer erreicht</MudSelectItem>
+                        <MudSelectItem Value="ProcessStepTrigger.MaxParticipantsReached">Max. Teilnehmer erreicht</MudSelectItem>
+                        <MudSelectItem Value="ProcessStepTrigger.StatusChanged">Status geändert</MudSelectItem>
+                        <MudSelectItem Value="ProcessStepTrigger.ParticipantRegisters">Neue Anmeldung</MudSelectItem>
+                        <MudSelectItem Value="ProcessStepTrigger.StartOfEventLogins">Anmeldestart</MudSelectItem>
+                        <MudSelectItem Value="ProcessStepTrigger.EndOfEventLogins">Anmeldeschluss</MudSelectItem>
                     </MudSelect>
-                    <MudSelect @bind-Value="processStepItem.Item.Condition"
-                               FitContent="true"
-                               HelperText="Bedingung">
-                               <MudSelectItem Value="ProcessStepCondition.ParticipantsOverMin">Anmeldungen über Minimum</MudSelectItem>
-                               <MudSelectItem Value="ProcessStepCondition.none">Keine Bedingung</MudSelectItem>
+
+                    <!-- Condition ---------------------------------------- -->
+                    <MudSelect @bind-Value="row.Item.Condition" FitContent="true" HelperText="Bedingung">
+                        <MudSelectItem Value="ProcessStepCondition.ParticipantsOverMin">Anmeldungen > Minimum</MudSelectItem>
+                        <MudSelectItem Value="ProcessStepCondition.none">Keine Bedingung</MudSelectItem>
                     </MudSelect>
-                    <MudTextField HelperText="Zeitverzug in Stunden" @bind-Value="processStepItem.Item.OffsetInHours" />
-                    <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary" OnClick="@(() => ConfigureProzessStep(processStepItem.Item.Type))">
-                        Bearbeiten
+
+                    <!-- Offset ------------------------------------------- -->
+                    <MudNumericField T="int"
+                                     HelperText="Verzögerung (h)"
+                                     Style="width:90px"
+                                     @bind-Value="row.Item.OffsetInHours" />
+
+                    <!-- Bearbeiten (Dialog je nach Step-Type) ------------- -->
+                    <MudButton Size="Size.Small"
+                               Variant="Variant.Filled"
+                               Color="Color.Primary"
+                               OnClick="@(() => ConfigureStepAsync(row.Item))">
+                        Details
                     </MudButton>
-                    <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Error" OnClick="@(() => DeleteProcessStep())">
+
+                    <!-- Löschen ------------------------------------------ -->
+                    <MudButton Size="Size.Small"
+                               Variant="Variant.Filled"
+                               Color="Color.Error"
+                               OnClick="@(() => DeleteStep(row.Item))">
                         Löschen
                     </MudButton>
+
                 </MudStack>
             </CellTemplate>
         </TemplateColumn>
     </Columns>
 </MudDataGrid>
+
 <MudStack Row Justify="Justify.FlexEnd" Class="mt-6">
-    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="CreateNewProcessStep">
-        Neuen Prozessschritt hinzufügen
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="AddStep">
+        Neuer Schritt
     </MudButton>
-    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="DiscardChanges">
+    <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="DiscardChanges">
         Änderungen verwerfen
     </MudButton>
-    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveProzess">
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveProcessAsync">
         Speichern
     </MudButton>
 </MudStack>
 
-@code {
-	[Parameter] public int EventId { get; set; }
-	private ProcessStepTrigger trigger1 = ProcessStepTrigger.EndOfEventLogins;
-    private List<ProcessStepViewModel> _processStepsList = new()
+@code
+{
+    /* -------------------------------------------------------------
+       Parameter & Felder
+    ------------------------------------------------------------- */
+    [Parameter] public int EventId { get; set; }
+
+    private List<ProcessStepViewModel> _steps = new();
+
+    /* -------------------------------------------------------------
+       Lifecycle – Prozessschritte beim Öffnen laden
+    ------------------------------------------------------------- */
+    protected override async Task OnParametersSetAsync()
     {
-        new ProcessStepViewModel { TypeName = "E-Mail senden", Type = ProcessStepType.SendEMail, Trigger = ProcessStepTrigger.EndOfEventLogins, Condition = ProcessStepCondition.ParticipantsOverMin, OffsetInHours = 2},
-        new ProcessStepViewModel { TypeName = "Status ändern", Type = ProcessStepType.ChangeStatus, Trigger = ProcessStepTrigger.EndOfEventLogins, Condition = ProcessStepCondition.ParticipantsOverMin, OffsetInHours = 1},
-        new ProcessStepViewModel { TypeName = "E-Mail senden", Type = ProcessStepType.SendEMail, Trigger = ProcessStepTrigger.EndOfEventLogins, Condition = ProcessStepCondition.ParticipantsOverMin, OffsetInHours = -3}
-    };
-
-    protected override async Task OnInitializedAsync()
-	    => _processStepsList = (await ProcessApi.GetAsync(EventId)).ProcessSteps;
-
-    private async Task SaveProzess()
-    {
-	    var ok = await ProcessApi.UpdateAsync(
-		    EventId,
-		    new ProcessViewModel { Id = EventId, ProcessSteps = _processStepsList });
-
-	    Snackbar.Add(ok ? "Prozess gespeichert!" : "Fehler beim Speichern.",
-		    ok ? Severity.Success : Severity.Error);
-    }
-
-    private Task ConfigureProzessStep(ProcessStepType stepType)
-    {
-        var options = new DialogOptions { CloseOnEscapeKey = true };
-
-        if (stepType == ProcessStepType.SendEMail)
-        {
-            return DialogService.ShowAsync<EMailDialog>("ProzessStep Dialog", options);
-        }
+        if (EventId > 0)
+            _steps = (await ProcessApi.GetAsync(EventId)).ProcessSteps ?? new();
         else
+            _steps = new();  // neues Event → leere Liste
+    }
+
+    /* -------------------------------------------------------------
+       Public API für EventErstellen.razor
+       (wird von dort nach dem Speichern des Events aufgerufen)
+    ------------------------------------------------------------- */
+    public ProcessViewModel GetCurrentProcess()
+        => new(EventId, _steps);
+
+    /* -------------------------------------------------------------
+       CRUD-Aktionen
+    ------------------------------------------------------------- */
+
+    private void AddStep()
+    {
+        _steps.Add(new ProcessStepViewModel
         {
-            return DialogService.ShowAsync<ChangeStateDialog>("ProzessStep Dialog", options);
+            TypeName = "E-Mail senden",
+            Type = ProcessStepType.SendEMail,
+            Trigger = ProcessStepTrigger.StatusChanged,
+            Condition = ProcessStepCondition.none,
+            OffsetInHours = 0
+        });
+    }
+
+    private void DeleteStep(ProcessStepViewModel step)
+        => _steps.Remove(step);
+
+    private async Task SaveProcessAsync()
+    {
+        if (EventId == 0)
+        {
+            Snackbar.Add("Event muss zuerst gespeichert werden.", Severity.Warning);
+            return;
         }
+
+        var ok = await ProcessApi.UpdateAsync(EventId, GetCurrentProcess());
+
+        Snackbar.Add(ok ? "Prozess gespeichert!" : "Fehler beim Speichern.",
+                     ok ? Severity.Success : Severity.Error);
     }
 
-    private Task DeleteProcessStep()
+    private async Task DiscardChanges()
     {
-        var options = new DialogOptions { CloseOnEscapeKey = true };
-
-        return DialogService.ShowAsync<EMailDialog>("ProzessStep Dialog", options); //TODO hier Simple Confirm
+        if (EventId > 0)
+            _steps = (await ProcessApi.GetAsync(EventId)).ProcessSteps ?? new();
+        else
+            _steps.Clear();
     }
 
-    private void DiscardChanges()
+    /* -------------------------------------------------------------
+   Detail-Dialog (E-Mail oder Status­wechsel)
+------------------------------------------------------------- */
+    private Task ConfigureStepAsync(ProcessStepViewModel step)
     {
-        //TODO Änderungen verwefen implementieren
-    }
+	    var parameters = new DialogParameters { ["Step"] = step };
+	    var options    = new DialogOptions   { CloseOnEscapeKey = true };
 
-    private void CreateNewProcessStep()
-    {
-        //TODO Neuen Prozessschritt erstellen;
+	    return step.Type switch
+	    {
+		    ProcessStepType.SendEMail    => DialogService.ShowAsync<EMailDialog>     ("E-Mail Schritt",  parameters, options),
+		    ProcessStepType.ChangeStatus => DialogService.ShowAsync<ChangeStateDialog>("Status-Schritt", parameters, options),
+		    _                            => Task.CompletedTask
+	    };
     }
 }
