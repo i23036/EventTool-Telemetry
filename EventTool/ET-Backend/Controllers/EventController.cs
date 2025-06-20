@@ -171,16 +171,15 @@ namespace ET_Backend.Controllers
         }
         
         [HttpGet("{eventId:int}/process")]
-        [Authorize]
-        public async Task<IActionResult> GetProcess(int eventId)
+        public async Task<IActionResult> GetProcessForEvent(int eventId)
         {
-            var proc = await _processService.GetForEvent(eventId);
-            return Ok(proc);
+            var dto = await _processService.GetForEvent(eventId);
+            return dto is null ? NotFound() : Ok(dto);
         }
 
         [HttpPut("{eventId:int}/process")]
-        [Authorize]
-        public async Task<IActionResult> UpdateProcess(int eventId, [FromBody] ProcessDto dto)
+        public async Task<IActionResult> UpdateProcessForEvent(
+            int eventId, [FromBody] ProcessDto dto)
         {
             await _processService.UpdateForEvent(eventId, dto);
             return NoContent();

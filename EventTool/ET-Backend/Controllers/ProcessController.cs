@@ -13,18 +13,19 @@ public class ProcessController : ControllerBase
     private readonly IProcessService _svc;
     public ProcessController(IProcessService svc) => _svc = svc;
 
-    // GET  api/process/{eventId}
     [HttpGet("{eventId:int}")]
     [Authorize]
     public async Task<IActionResult> Get(int eventId)
         => Ok(await _svc.GetForEvent(eventId));
 
-    // PUT  api/process/{eventId}
     [HttpPut("{eventId:int}")]
     [Authorize]
     public async Task<IActionResult> Update(int eventId, [FromBody] ProcessDto dto)
     {
         var res = await _svc.UpdateForEvent(eventId, dto);
-        return res.IsSuccess ? NoContent() : BadRequest(res.Errors);
+
+        return res.IsSuccess
+            ? NoContent()
+            : BadRequest(res.Errors);
     }
 }

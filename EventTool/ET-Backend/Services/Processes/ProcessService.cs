@@ -19,28 +19,18 @@ public class ProcessService : IProcessService
         _repo = repo;
     }
 
-    // ========= Lesen =========
-    public async Task<ProcessDto> GetForEvent(int eventId)
+    public async Task<ProcessDto?> GetForEvent(int eventId)
     {
-        var result = await _repo.GetByEvent(eventId);     // <─ GetByEvent ist async
-        if (result.IsFailed)
-            throw new InvalidOperationException(
-                $"Kein Prozess für EventId={eventId}: {string.Join(',', result.Errors)}");
+        var res = await _repo.GetByEvent(eventId);     
 
-        return ProcessMapper.ToDto(result.Value);         // ➜ DTO fürs Frontend
+        return res.IsSuccess ? ProcessMapper.ToDto(res.Value) : null;  
     }
 
-// ========= Schreiben =========
     public async Task<Result> UpdateForEvent(int eventId, ProcessDto dto)
     {
-        // aktuellen Prozess mit Id besorgen
-        var current = await _repo.GetByEvent(eventId);
-        if (current.IsFailed) return current.ToResult();
-
         var model = ProcessMapper.ToModel(dto);
-        model.Id      = current.Value.Id;  // Id behalten
-        model.EventId = eventId;           // Sicherheit
+        model.EventId = eventId;
 
-        return await _repo.Upsert(model);  // Steps ersetzen
+        return await _repo.Upsert(model);
     }
 }
