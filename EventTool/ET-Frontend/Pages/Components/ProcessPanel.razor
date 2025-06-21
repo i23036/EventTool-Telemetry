@@ -18,15 +18,13 @@
 	            <MudStack Row Spacing="5">
 					
 		            <!-- Step-Bezeichnung ----------------------------------------- -->
-		            <MudItem xs="12" sm="6">
-						<MudTextField Label="Bezeichnung" @bind-Value="row.Item.Name" FullWidth="true" />
-		            </MudItem>
+					<MudTextField @bind-Value="row.Item.Name" HelperText="Bezeichnung" />
 
 		            <!-- Action ----------------------------------------- -->
 		            <MudSelect @bind-Value="row.Item.Action" FitContent="true" HelperText="Aktion">
 			            <MudSelectItem Value="ProcessStepAction.SendEmail">Versendet eine Email</MudSelectItem>
 			            <MudSelectItem Value="ProcessStepAction.OpenEvent">Statusänderung zu Offen</MudSelectItem>
-			            <MudSelectItem Value="ProcessStepAction.CloseEvent">Statusänderung zu Geschllossen</MudSelectItem>
+			            <MudSelectItem Value="ProcessStepAction.CloseEvent">Statusänderung zu Geschlossen</MudSelectItem>
 			            <MudSelectItem Value="ProcessStepAction.CancelEvent">Statusänderung zu Abgesagt</MudSelectItem>
 		            </MudSelect>
 
@@ -45,6 +43,17 @@
 		                             HelperText="Offset"
 		                             Style="width: 90px"
 		                             @bind-Value="row.Item.Offset"/>
+					
+		            <!-- Verkettung ------------------------- -->
+		            <MudSelect T="int"
+		                       @bind-Value="row.Item.TriggeredByStepId"
+		                       HelperText="Optional, um Schritte zu verketten">
+			            <MudSelectItem Value="0">(Kein vorheriger Schritt)</MudSelectItem>
+			            @foreach (var s in _steps.Where(s => s != row.Item))
+			            {
+				            <MudSelectItem Value="@s.Id">@s.Name</MudSelectItem>
+			            }
+		            </MudSelect>
 
 		            <!-- Löschen ------------------------------------------ -->
 		            <MudButton Size="Size.Small"
@@ -76,33 +85,42 @@
 {
     [Parameter] public int EventId { get; set; }
 
-    private List<ProcessStepViewModel> _steps = new();
+	private List<ProcessStepViewModel> _steps = [];
+	private int _tempStepId = -1;
 
-    protected override async Task OnInitializedAsync()
-	    => _steps = (await ProcessApi.GetAsync(EventId)).ProcessSteps;
 
-    public ProcessViewModel GetCurrentProcess()
-        => new(Id, EventId, _steps);
+	protected override async Task OnInitializedAsync()
+	{
+		_steps = (await ProcessApi.GetAsync(EventId))?.ProcessSteps ?? [];
+	}
 
-    private void CreateNewProcessStep()
-    {
-	    _steps.Add(new ProcessStepViewModel
-	    {
-		    Name      = "Neuer Schritt",
-		    Action          = ProcessStepAction.SendEMail,
-		    Trigger       = ProcessStepTrigger.EndOfEventLogins,
-		    Condition     = ProcessStepCondition.none,
-		    OffsetInHours = 0
-	    });
-    }
+	public ProcessViewModel GetCurrentProcess()
+		=> new() { Id = EventId, EventId = EventId, ProcessSteps = _steps };
+
+	private void CreateNewProcessStep()
+	{
+		_steps.Add(new ProcessStepViewModel
+		{
+			Id                = _tempStepId--, // temporäre negative ID
+			Name              = "Neuer Schritt",
+			Action            = ProcessStepAction.SendEmail,
+			Trigger           = ProcessStepTrigger.OpenSubscription,
+			Offset            = 0,
+			TriggeredByStepId = 0
+		});
+	}
 
     private void DeleteStep(ProcessStepViewModel step)
         => _steps.Remove(step);
 
     private async Task SaveProcess()
     {
-	    var ok = await ProcessApi.UpdateAsync(EventId,
-		    new ProcessViewModel { Id = EventId, ProcessSteps = _steps });
+	    var ok = await ProcessApi.UpdateAsync(EventId, new ProcessViewModel
+	    {
+		    Id           = EventId,
+		    EventId      = EventId,
+		    ProcessSteps = _steps
+	    });
 
 	    Snackbar.Add(ok ? "Prozess gespeichert!" : "Fehler beim Speichern.",
 		    ok ? Severity.Success       : Severity.Error);
@@ -110,7 +128,6 @@
 
     private async Task DiscardChanges()
     {
-	    _steps = (await ProcessApi.GetAsync(EventId))?.ProcessSteps
-	             ?? new();
+	    _steps = (await ProcessApi.GetAsync(EventId))?.ProcessSteps ?? [];
     }
 }

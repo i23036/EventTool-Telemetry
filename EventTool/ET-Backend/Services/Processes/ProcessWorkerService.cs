@@ -26,7 +26,7 @@ public class ProcessWorkerService : BackgroundService
         while (!stop.IsCancellationRequested)
         {
             await EvaluateAsync();
-            await Task.Delay(TimeSpan.FromSeconds(30), stop);
+            await Task.Delay(TimeSpan.FromSeconds(10), stop);
         }
     }
     

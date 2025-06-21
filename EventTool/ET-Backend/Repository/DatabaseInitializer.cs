@@ -87,12 +87,13 @@ public class DatabaseInitializer(IDbConnection db, ILogger<DatabaseInitializer> 
         
         _db.Execute(@"
             CREATE TABLE IF NOT EXISTS ProcessSteps (
-                Id             INTEGER PRIMARY KEY AUTOINCREMENT,
-                Name           TEXT NOT NULL,
-                Trigger        INTEGER NOT NULL,
-                Action         INTEGER NOT NULL,
-                Offset         INTEGER NOT NULL,
-                ProcessId      INTEGER NOT NULL,
+                Id                INTEGER PRIMARY KEY AUTOINCREMENT,
+                Name              TEXT NOT NULL,
+                Trigger           INTEGER NOT NULL,
+                Action            INTEGER NOT NULL,
+                Offset            INTEGER DEFAULT 0,
+                TriggeredByStepId INTEGER,
+                ProcessId         INTEGER NOT NULL,
                 FOREIGN KEY (ProcessId) REFERENCES Processes(Id)
             );
         ");
