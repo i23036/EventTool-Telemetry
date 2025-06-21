@@ -400,48 +400,75 @@ public class AccountRepository : IAccountRepository
     }
 
     public async Task<Result> RemoveFromOrganization(int accountId, int orgId)
+{
+    using var tx = _db.BeginSafeTransaction();
+    try
     {
-        using var tx = _db.BeginSafeTransaction();
-        try
-        {
-            // 1) UserId zum Account ermitteln
-            var userId = await _db.ExecuteScalarAsync<int>(
-                $"SELECT UserId FROM {_db.Tbl("Accounts")} WHERE Id = @Acc;",
-                new { Acc = accountId }, tx);
+        // 1) Überprüfen, ob Account noch Events verwaltet
+        var organizedEvents = (await _db.QueryAsync<string>(
+            $@"SELECT e.Name 
+               FROM {_db.Tbl("EventMembers")} em
+               JOIN {_db.Tbl("Events")} e ON em.EventId = e.Id
+               WHERE em.AccountId = @Acc 
+                 AND e.OrganizationId = @Org
+                 AND em.IsOrganizer   = 1;",
+            new { Acc = accountId, Org = orgId }, tx)).ToList();
 
-            // 2) Mitgliedschaft löschen
-            await _db.ExecuteAsync(
-                $"DELETE FROM {_db.Tbl("OrganizationMembers")} " +
-                "WHERE AccountId = @Acc;",                          
-                new { Acc = accountId }, tx);
-
-            // 3) Account löschen
-            await _db.ExecuteAsync(
-                $"DELETE FROM {_db.Tbl("Accounts")} WHERE Id = @Acc;",
-                new { Acc = accountId }, tx);
-
-            // 4) Prüfen, ob der User noch andere Accounts besitzt
-            var remaining = await _db.ExecuteScalarAsync<int>(
-                $"SELECT COUNT(1) FROM {_db.Tbl("Accounts")} WHERE UserId = @Usr;",
-                new { Usr = userId }, tx);
-
-            if (remaining == 0)
-            {
-                await _db.ExecuteAsync(
-                    $"DELETE FROM {_db.Tbl("Users")} WHERE Id = @Usr;",
-                    new { Usr = userId }, tx);
-            }
-
-            tx.Commit();
-            return Result.Ok();
-        }
-        catch (Exception ex)
+        if (organizedEvents.Any())
         {
             tx.Rollback();
-            return Result.Fail($"DBError: {ex.Message}");
+            var eventNames = string.Join(", ", organizedEvents);
+            // Fehlermeldung mit Nennung aller betroffenen Events
+            return Result.Fail($"Benutzer kann nicht entfernt werden, da er noch folgende Events verwaltet: {eventNames}");
         }
-    }
 
+        // 2) UserId zum Account ermitteln
+        var userId = await _db.ExecuteScalarAsync<int>(
+            $"SELECT UserId FROM {_db.Tbl("Accounts")} WHERE Id = @Acc;",
+            new { Acc = accountId }, tx);
+
+        //Event-Zuordnungen (Teilnahme/Kontakt) löschen
+        await _db.ExecuteAsync($@"
+                DELETE FROM {_db.Tbl("EventMembers")}
+                WHERE AccountId = @Acc 
+                AND EventId IN (
+                    SELECT Id FROM {_db.Tbl("Events")} WHERE OrganizationId = @Org
+                );",
+            new { Acc = accountId, Org = orgId }, tx);
+
+        
+        // 3) Mitgliedschaft in Organisation löschen
+        await _db.ExecuteAsync(
+            $"DELETE FROM {_db.Tbl("OrganizationMembers")} WHERE AccountId = @Acc AND OrganizationId = @Org;",
+            new { Acc = accountId, Org = orgId }, tx);
+
+        // 4) Account löschen
+        await _db.ExecuteAsync(
+            $"DELETE FROM {_db.Tbl("Accounts")} WHERE Id = @Acc;",
+            new { Acc = accountId }, tx);
+
+        // 5) Falls der User keine weiteren Accounts hat, User-Datensatz löschen
+        var remaining = await _db.ExecuteScalarAsync<int>(
+            $"SELECT COUNT(1) FROM {_db.Tbl("Accounts")} WHERE UserId = @Usr;",
+            new { Usr = userId }, tx);
+
+        if (remaining == 0)
+        {
+            await _db.ExecuteAsync(
+                $"DELETE FROM {_db.Tbl("Users")} WHERE Id = @Usr;",
+                new { Usr = userId }, tx);
+        }
+
+        tx.Commit();
+        return Result.Ok();
+    }
+    catch (Exception ex)
+    {
+        tx.Rollback();
+        return Result.Fail($"DBError: {ex.Message}");
+    }
+}
+    
     public async Task<Result> UpdateEmail(int accountId, string email)
     {
         try

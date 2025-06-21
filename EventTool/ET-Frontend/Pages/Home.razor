@@ -4,6 +4,7 @@
 
 @using Microsoft.AspNetCore.Authorization
 @using System.Net.Http.Headers
+@using System.Text.Json
 @using ET.Shared.DTOs
 @using ET_Frontend.Models
 @using Blazored.SessionStorage
@@ -284,9 +285,37 @@
                 StateHasChanged();
             }
             else
-	            Snackbar.Add("Mitglied konnte nicht entfernt werden.", Severity.Error);
-        }
+            {
+	            try
+	            {
+		            var json = await response.Content.ReadAsStringAsync();
 
+		            if (!string.IsNullOrWhiteSpace(json))
+		            {
+			            using var doc = JsonDocument.Parse(json);
+
+			            // JSON ist ein Array mit einem Objekt, das eine "message" enthält
+			            var firstItem = doc.RootElement.EnumerateArray().FirstOrDefault();
+
+			            if (firstItem.TryGetProperty("message", out var messageElement))
+			            {
+				            var msg = messageElement.GetString();
+				            if (!string.IsNullOrWhiteSpace(msg))
+				            {
+					            Snackbar.Add(msg, Severity.Error);
+					            return;
+				            }
+			            }
+		            }
+
+		            Snackbar.Add("Mitglied konnte nicht entfernt werden.", Severity.Error);
+	            }
+	            catch
+	            {
+		            Snackbar.Add("Mitglied konnte nicht entfernt werden.", Severity.Error);
+	            }
+            }
+        }
         ShowConfirmDialog = false;
         MemberToDelete = null;
     }
