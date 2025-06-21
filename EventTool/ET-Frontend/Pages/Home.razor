@@ -16,7 +16,7 @@
 @inject ISessionStorageService SessionStorage
 @inject NavigationManager Navigation
 @inject AuthenticationStateProvider AuthProvider
-@inject Services.ApiClients.IEventApi EventApi 
+@inject Services.ApiClients.IEventApi EventApi
 @inject ISnackbar Snackbar
 
 <PageTitle>Home</PageTitle>
@@ -27,43 +27,132 @@
 
             <!-- Events Tab -->
             <MudTabPanel Text="Events">
-	            <MudText Typo="Typo.h4" Class="mb-3">Events</MudText>
+                <MudText Typo="Typo.h4" Class="mb-3">Events</MudText>
 
-	            @if ((IsOwner || IsOrganizer) && ManagedEvents.Any())
-	            {
-		            <EventGrid Title="Verwaltete Events"
-		                       Events="ManagedEvents"
-		                       IsOwner="IsOwner"
-		                       OnDeleted="HandleDeleteFromGrid"
-		                       OnSubscribeToggle="ToggleSubscription" />
-	            }
-				
-	            @if (IsOwner && OwnerDrafts.Any())
-	            {
-		            <EventGrid Title="Entwürfe"
-		                       Events="OwnerDrafts"
-		                       IsOwner="IsOwner"
-		                       OnDeleted="HandleDeleteFromGrid"
-		                       OnSubscribeToggle="ToggleSubscription" />
-	            }
+                <!-- Filterleiste -->
+                <div class="d-flex align-items-center flex-wrap gap-3 mb-4">
 
-	            @if (PublicEvents.Any())
-	            {
-		            <EventGrid Title="@(IsMember ? string.Empty : "Öffentliche Events")"
-		                       Events="PublicEvents"
-		                       IsOwner="IsOwner"
-		                       OnSubscribeToggle="ToggleSubscription" />
-	            }
-	            
-	            @if (CanCreateEvents)
-	            {
-		            <MudButton Class="float-end mt-4"
-		                       Variant="Variant.Filled"
-		                       Color="Color.Primary"
-		                       OnClick="NavigateToEventCreation">
-			            Event erstellen
-		            </MudButton>
-	            }
+                    <MudTextField T="string"
+                                  @bind-Value="_eventTitleFilter"
+                                  Placeholder="Eventtitel suchen..."
+                                  Adornment="Adornment.Start"
+                                  AdornmentIcon="@Icons.Material.Filled.Search"
+                                  Dense="true"
+                                  Style="min-width: 200px;" />
+
+                    <MudSelect T="string"
+                               @bind-Value="_selectedStatus"
+                               Placeholder="Status"
+                               Style="min-width: 150px;"
+                               Dense="true"
+                               Clearable="true"
+                               DisableUnderline="true">
+                        @foreach (var status in _statusOptions)
+                        {
+                            <MudSelectItem Value="@status">@status</MudSelectItem>
+                        }
+                    </MudSelect>
+
+                    <MudCheckBox T="bool"
+                                 Label="Kann bearbeiten"
+                                 @bind-Value="_onlyEditable"
+                                 Class="mt-1" />
+
+                    <MudButton OnClick="ApplyEventFilter"
+                               Color="Color.Primary"
+                               Variant="Variant.Filled"
+                               Class="mt-1">
+                        Suchen
+                    </MudButton>
+
+                </div>
+
+                @if (FilteredEvents.Any())
+                {
+                    <MudGrid Gutter="Size.Medium">
+                        @foreach (var ev in FilteredEvents)
+                        {
+                            <MudItem xs="12" sm="6" md="4" lg="3">
+                                <MudCard Class="pa-4 mb-4 d-flex flex-column" Style="height: 100%;">
+                                    <MudCardContent>
+                                        <div class="d-flex justify-between align-center mb-1">
+                                            <MudText Typo="Typo.h6">@ev.Name</MudText>
+                                            <MudChip T="object"
+                                                     Variant="Variant.Filled"
+                                                     Color="@GetStatusColor(ev.StatusDisplay)">
+                                                @ev.StatusDisplay
+                                            </MudChip>
+                                        </div>
+
+                                        <MudText Typo="Typo.body2" Class="mb-2">@ev.Description</MudText>
+
+                                        <MudText Typo="Typo.caption" Class="mb-1">
+                                            <MudIcon Icon="@Icons.Material.Filled.Group" Class="me-1" />
+                                            Teilnehmer: @ev.Participants / @ev.MaxParticipants
+                                        </MudText>
+
+                                    </MudCardContent>
+
+                                    <MudCardActions Class="mt-auto d-flex flex-column gap-2">
+                                        <MudButton Variant="Variant.Filled"
+                                                   Color="@(ev.IsSubscribed ? Color.Error : Color.Success)"
+                                                   OnClick="@(() => ToggleSubscription(ev))"
+                                                   FullWidth="true">
+                                            @(ev.IsSubscribed ? "ABMELDEN" : "ANMELDEN")
+                                        </MudButton>
+
+                                        <div class="d-flex justify-between gap-1 w-100">
+                                            @if (ev.IsManagedByMe || IsOwner)
+                                            {
+                                                <MudButton Variant="Variant.Outlined"
+                                                           Color="Color.Info"
+                                                           Size="Size.Small"
+                                                           StartIcon="@Icons.Material.Filled.Edit"
+                                                           OnClick="@(() => NavigateToEventEdit(ev.Id))"
+                                                           Class="flex-fill">
+                                                    Bearbeiten
+                                                </MudButton>
+
+                                                <MudButton Variant="Variant.Outlined"
+                                                           Color="Color.Error"
+                                                           Size="Size.Small"
+                                                           StartIcon="@Icons.Material.Filled.Delete"
+                                                           OnClick="@(() => AskDelete(ev))"
+                                                           Class="flex-fill">
+                                                    Löschen
+                                                </MudButton>
+                                            }
+
+                                            <MudButton Variant="Variant.Outlined"
+                                                       Color="Color.Secondary"
+                                                       Size="Size.Small"
+                                                       StartIcon="@Icons.Material.Filled.Info"
+                                                       OnClick="@(() => NavigateToEventDetails(ev.Id))"
+                                                       Class="flex-fill">
+                                                Details
+                                            </MudButton>
+                                        </div>
+                                    </MudCardActions>
+
+                                </MudCard>
+                            </MudItem>
+                        }
+                    </MudGrid>
+                }
+                else
+                {
+                    <MudText>Keine Events gefunden.</MudText>
+                }
+
+                @if (CanCreateEvents)
+                {
+                    <MudButton Class="float-end mt-4"
+                               Variant="Variant.Filled"
+                               Color="Color.Primary"
+                               OnClick="NavigateToEventCreation">
+                        Event erstellen
+                    </MudButton>
+                }
             </MudTabPanel>
 
             <!-- Organisation Tab -->
@@ -73,8 +162,7 @@
                     <MudText Typo="Typo.h4" Class="mb-3">Mitglieder</MudText>
                     <MudDataGrid T="OrganizationMemberViewModel" Items="@OrgMembers" Dense="true">
                         <Columns>
-	                        <PropertyColumn Property="x => x.FirstName" Title="Vorname" />
-	                        <PropertyColumn Property="x => x.LastName" Title="Nachname" />
+                            <PropertyColumn Property="x => x.LastName" Title="Nachname" />
                             <PropertyColumn Property="x => x.Email" Title="E-Mail" />
                             <TemplateColumn Title="Rolle">
                                 <CellTemplate Context="ctx">
@@ -104,82 +192,87 @@
                                    Message="Möchten Sie die Rolle dieses Mitglieds wirklich ändern?"
                                    ConfirmText="Ändern"
                                    OnConfirm="HandleRoleConfirm" />
-
                 </MudTabPanel>
             }
         </MudTabs>
     </MudPaper>
 </div>
 
-@code {
-    private List<OrganizationMemberViewModel> OrgMembers = new();
-    private List<EventViewModel> Events = new();
-    private List<EventViewModel> ManagedEvents = new();
-    private List<EventViewModel> PublicEvents = new();
+<SimpleConfirm @bind-IsOpen="_showDelete"
+               Message="Event wirklich löschen? Dies kann nicht rückgängig gemacht werden."
+               ConfirmText="Löschen"
+               OnConfirm="DeleteConfirmed" />
 
+@code {
+    private List<EventViewModel> Events = new();
+    private List<EventViewModel> FilteredEvents = new();
+    private List<OrganizationMemberViewModel> OrgMembers = new();
+
+    private EventViewModel _toDelete;
+    private bool _showDelete;
     private bool ShowConfirmDialog = false;
+    private bool ShowRoleConfirmDialog = false;
+
+    private OrganizationMemberViewModel MemberToDelete;
+    private OrganizationMemberViewModel RoleChangeMember;
+    private int NewRoleToSet;
+
+    private string _eventTitleFilter = string.Empty;
+    private bool _onlyEditable = false;
+
     private bool IsOwner = false;
     private bool IsOrganizer = false;
     private bool IsMember = false;
     private bool CanCreateEvents = false;
 
-    private OrganizationMemberViewModel MemberToDelete;
+    private string _selectedStatus = null;
+    private readonly List<string> _statusOptions = new() { "", "Offen", "Geschlossen", "Abgesagt", "Archiviert", "Entwurf" };
 
-    private bool ShowRoleConfirmDialog = false;
-    private OrganizationMemberViewModel RoleChangeMember;
-    private int NewRoleToSet;
 
     protected override async Task OnInitializedAsync()
     {
-	    await CheckUserPermissions();
-	    await LoadEvents();
+        await CheckUserPermissions();
+        await LoadEvents();
         await LoadMembers();
+        ApplyEventFilter();
     }
 
     private async Task CheckUserPermissions()
     {
-	    var role = await JwtClaimHelper.GetUserRoleAsync(AuthProvider);
-	    Console.WriteLine($"[Home] Benutzerrolle: {role}");
+        var role = await JwtClaimHelper.GetUserRoleAsync(AuthProvider);
+        Console.WriteLine($"[Home] Benutzerrolle: {role}");
 
-	    IsOwner     = string.Equals(role, "Owner", StringComparison.OrdinalIgnoreCase);
-	    IsOrganizer = string.Equals(role, "Organizer", StringComparison.OrdinalIgnoreCase);
-	    IsMember    = string.Equals(role, "Member", StringComparison.OrdinalIgnoreCase);
-    
-	    CanCreateEvents = IsOwner || IsOrganizer;
+        IsOwner = string.Equals(role, "Owner", StringComparison.OrdinalIgnoreCase);
+        IsOrganizer = string.Equals(role, "Organizer", StringComparison.OrdinalIgnoreCase);
+        IsMember = string.Equals(role, "Member", StringComparison.OrdinalIgnoreCase);
+
+        CanCreateEvents = IsOwner || IsOrganizer;
     }
-
-    private List<EventViewModel> OwnerDrafts = new();
 
     private async Task LoadEvents()
     {
-	    var token = await SessionStorage.GetItemAsync<string>("authToken");
-	    var domain = await JwtClaimHelper.GetUserDomainAsync(AuthProvider);
-	    var request = new HttpRequestMessage(HttpMethod.Get, $"api/event/eventList/{domain}");
-	    request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        var token = await SessionStorage.GetItemAsync<string>("authToken");
+        var domain = await JwtClaimHelper.GetUserDomainAsync(AuthProvider);
 
-	    var response = await Http.SendAsync(request);
-	    if (!response.IsSuccessStatusCode)
-	    {
-		    Console.WriteLine("Fehler beim Laden der Events");
-		    return;
-	    }
+        var request = new HttpRequestMessage(HttpMethod.Get, $"api/event/eventList/{domain}");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
-	    var dtoList = await response.Content.ReadFromJsonAsync<List<EventListDto>>() ?? new();
+        var response = await Http.SendAsync(request);
+        if (!response.IsSuccessStatusCode)
+        {
+            Snackbar.Add("Fehler beim Laden der Events", Severity.Error);
+            return;
+        }
 
-	    Events = dtoList.Select(EventListViewMapper.ToViewModel).ToList();
-
-	    ManagedEvents = Events.Where(e => e.IsManagedByMe).ToList();
-	    PublicEvents  = Events.Where(e => e.IsPublic).ToList();
-
-	    // Nur Owner bekommen zusätzliche Entwurf-Liste
-	    if (IsOwner)
-		    OwnerDrafts = Events.Where(e => e.IsDraft && !e.IsManagedByMe).ToList();
+        var dtoList = await response.Content.ReadFromJsonAsync<List<EventListDto>>() ?? new();
+        Events = dtoList.Select(EventListViewMapper.ToViewModel).ToList();
     }
 
     private async Task LoadMembers()
     {
         var token = await SessionStorage.GetItemAsync<string>("authToken");
         var domain = await JwtClaimHelper.GetUserDomainAsync(AuthProvider);
+
         var request = new HttpRequestMessage(HttpMethod.Get, $"api/organization/{domain}/members");
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
@@ -195,6 +288,103 @@
         }
     }
 
+    private void ApplyEventFilter()
+    {
+        IEnumerable<EventViewModel> relevant = Events;
+
+        if (_onlyEditable)
+            relevant = relevant.Where(e => e.IsManagedByMe);
+        else
+        {
+            relevant = Events
+                .Where(e => e.IsPublic)
+                .Concat(Events.Where(e => e.IsManagedByMe))
+                .Distinct();
+        }
+
+        if (IsOwner)
+            relevant = relevant.Concat(Events.Where(e => e.IsDraft && !e.IsManagedByMe));
+
+        if (!string.IsNullOrWhiteSpace(_eventTitleFilter))
+            relevant = relevant.Where(e => e.Name.Contains(_eventTitleFilter, StringComparison.OrdinalIgnoreCase));
+
+        if (!string.IsNullOrWhiteSpace(_selectedStatus))
+            relevant = relevant.Where(e => e.StatusDisplay == _selectedStatus);
+
+        FilteredEvents = relevant.ToList();
+    }
+
+    private void AskDelete(EventViewModel ev)
+    {
+        _toDelete = ev;
+        _showDelete = true;
+    }
+
+    private void RemoveMember(OrganizationMemberViewModel member)
+    {
+        MemberToDelete = member;
+        ShowConfirmDialog = true;
+    }
+
+
+    private async Task DeleteConfirmed(bool ok)
+    {
+        if (!ok || _toDelete == null) return;
+
+        var success = await EventApi.DeleteEventAsync(_toDelete.Id);
+        if (success)
+        {
+            Events.Remove(_toDelete);
+            ApplyEventFilter();
+            Snackbar.Add("Event gelöscht.", Severity.Success);
+        }
+        else
+        {
+            Snackbar.Add("Löschen fehlgeschlagen.", Severity.Error);
+        }
+
+        _toDelete = null;
+        _showDelete = false;
+    }
+
+    private async Task ToggleSubscription(EventViewModel ev)
+    {
+        bool ok = ev.IsSubscribed
+            ? await EventApi.UnsubscribeAsync(ev.Id)
+            : await EventApi.SubscribeAsync(ev.Id);
+
+        if (ok)
+        {
+            ev.IsSubscribed = !ev.IsSubscribed;
+            ev.Participants += ev.IsSubscribed ? 1 : -1;
+            Snackbar.Add(ev.IsSubscribed ? "Angemeldet!" : "Abgemeldet!", Severity.Success);
+        }
+        else
+        {
+            Snackbar.Add("Aktion fehlgeschlagen.", Severity.Error);
+        }
+
+        ApplyEventFilter();
+    }
+
+    private Color GetStatusColor(string status)
+    {
+        return status switch
+        {
+            "Offen" => Color.Success,
+            "Geschlossen" => Color.Warning,
+            "Abgesagt" => Color.Error,
+            "Archiviert" => Color.Transparent,
+            "Entwurf" => Color.Info,
+            _ => Color.Default
+        };
+    }
+
+    private void NavigateToEventEdit(int id) => Navigation.NavigateTo($"/EventErstellen/{id}");
+    private void NavigateToEventDetails(int id) => Navigation.NavigateTo($"/EventDetails/{id}");
+    private void NavigateToEventCreation() => Navigation.NavigateTo("/EventErstellen");
+    private void ChangeOrgaData() => Navigation.NavigateTo("/Organisationsdaten");
+
     private void PrepareRoleChange(OrganizationMemberViewModel member, int neueRolle)
     {
         if (member.Role == neueRolle) return;
@@ -208,19 +398,13 @@
     {
         if (confirmed && RoleChangeMember is not null)
         {
-	        var success = await UpdateRolle(RoleChangeMember, NewRoleToSet);
-	        // SnackBar-Rückmeldung basierend auf dem Ergebnis
-	        if (success)
-	        {
-		        Snackbar.Add("Rolle erfolgreich geändert.", Severity.Success);
-	        }
-	        else
-	        {
-		        Snackbar.Add("Fehler beim Ändern der Rolle.", Severity.Error);
-	        }
+            var success = await UpdateRolle(RoleChangeMember, NewRoleToSet);
+            if (success)
+                Snackbar.Add("Rolle erfolgreich geändert.", Severity.Success);
+            else
+                Snackbar.Add("Fehler beim Ändern der Rolle.", Severity.Error);
         }
 
-        // Dialog schließen
         ShowRoleConfirmDialog = false;
         RoleChangeMember = null;
         NewRoleToSet = -1;
@@ -228,31 +412,24 @@
 
     private async Task<bool> UpdateRolle(OrganizationMemberViewModel member, int neueRolle)
     {
-	    if (member.Role == neueRolle) return true;
+        if (member.Role == neueRolle) return true;
 
-	    var token = await SessionStorage.GetItemAsync<string>("authToken");
-	    var domain = await JwtClaimHelper.GetUserDomainAsync(AuthProvider);
+        var token = await SessionStorage.GetItemAsync<string>("authToken");
+        var domain = await JwtClaimHelper.GetUserDomainAsync(AuthProvider);
 
-	    var request = new HttpRequestMessage(
-		    HttpMethod.Put,
-		    $"api/organization/{domain}/members/{member.Email}/role/{neueRolle}");
-	    request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        var request = new HttpRequestMessage(HttpMethod.Put, $"api/organization/{domain}/members/{member.Email}/role/{neueRolle}");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
-	    var response = await Http.SendAsync(request);
+        var response = await Http.SendAsync(request);
 
-	    if (response.IsSuccessStatusCode)
-	    {
-		    member.Role = neueRolle;
-		    return true;
-	    }
-	    Console.WriteLine($"Fehler beim Rollenwechsel: {response.StatusCode}");
-	    return false;
-    }
+        if (response.IsSuccessStatusCode)
+        {
+            member.Role = neueRolle;
+            return true;
+        }
 
-    private void RemoveMember(OrganizationMemberViewModel member)
-    {
-        MemberToDelete = member;
-        ShowConfirmDialog = true;
+        Console.WriteLine($"Fehler beim Rollenwechsel: {response.StatusCode}");
+        return false;
     }
 
     private async Task HandleDeleteConfirm(bool confirmed)
@@ -262,9 +439,7 @@
             var token = await SessionStorage.GetItemAsync<string>("authToken");
             var domain = await JwtClaimHelper.GetUserDomainAsync(AuthProvider);
 
-            var request = new HttpRequestMessage(
-                HttpMethod.Delete,
-                $"api/organization/{domain}/members/{MemberToDelete.Email}");
+            var request = new HttpRequestMessage(HttpMethod.Delete, $"api/organization/{domain}/members/{MemberToDelete.Email}");
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
             var response = await Http.SendAsync(request);
@@ -276,53 +451,12 @@
                 StateHasChanged();
             }
             else
-	            Snackbar.Add("Mitglied konnte nicht entfernt werden.", Severity.Error);
+            {
+                Snackbar.Add("Mitglied konnte nicht entfernt werden.", Severity.Error);
+            }
         }
 
         ShowConfirmDialog = false;
         MemberToDelete = null;
-    }
-
-    private void NavigateToEventCreation()
-    {
-        Navigation.NavigateTo("/EventErstellen");
-    }
-
-    private void NavigateToEventEdit(int eventId)
-    {
-	    Navigation.NavigateTo($"/EventErstellen/{eventId}");
-    }
-
-    private void NavigateToEventDetails(int eventId)
-    {
-        Navigation.NavigateTo($"/EventDetails/{eventId}");
-    }
-
-    private void ChangeOrgaData()
-    {
-        Navigation.NavigateTo("/Organisationsdaten");
-    }
-
-    private async Task ToggleSubscription(EventViewModel ev)
-    {
-	    bool ok = ev.IsSubscribed
-		    ? await EventApi.UnsubscribeAsync(ev.Id)
-		    : await EventApi.SubscribeAsync(ev.Id);
-
-	    if (ok)
-	    {
-		    ev.IsSubscribed = !ev.IsSubscribed;
-		    ev.Participants += ev.IsSubscribed ? +1 : -1;
-		    Snackbar.Add(ev.IsSubscribed ? "Angemeldet!" : "Abgemeldet!", Severity.Success);
-		    StateHasChanged();
-	    }
-	    else
-		    Snackbar.Add("Aktion fehlgeschlagen.", Severity.Error);
-    }
-
-    private async Task HandleDeleteFromGrid()
-    {
-	    await LoadEvents();     
-	    StateHasChanged();     
     }
 }
