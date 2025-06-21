@@ -1,4 +1,4 @@
-﻿namespace ET_Frontend.Models.Enums;
+﻿namespace ET.Shared.DTOs.Enums;
 
 public enum ProcessStepTrigger
 {
@@ -10,7 +10,7 @@ public enum ProcessStepTrigger
 
     ParticipantRegisters,
 
-    StartOfEventLogins,
+    OpenSubscription,
 
-    EndOfEventLogins
+    CloseSubscription
 }

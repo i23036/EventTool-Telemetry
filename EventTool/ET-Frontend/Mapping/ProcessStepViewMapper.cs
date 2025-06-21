@@ -1,6 +1,6 @@
 ﻿using ET.Shared.DTOs;
 using ET_Frontend.Models;
-using ET_Frontend.Models.Enums;
+using ET.Shared.DTOs.Enums;
 
 namespace ET_Frontend.Mapping;
 
@@ -18,12 +18,12 @@ public static class ProcessStepViewMapper
 
         return new ProcessStepViewModel
         {
-            Id = dto.Id,
-            TypeName = dto.TypeName,
-            Type = (ProcessStepType)dto.TypeE,
-            Trigger = (ProcessStepTrigger)dto.TriggerE,
-            Condition = (ProcessStepCondition)dto.ConditionE,
-            OffsetInHours = dto.OffsetInHours
+            Id                = dto.Id,
+            Name              = dto.Name,
+            Trigger           = dto.Trigger,
+            Action            = dto.Action,
+            Offset            = dto.Offset ?? 0,
+            TriggeredByStepId = dto.TriggeredByStepId ?? 0,
         };
     }
 
@@ -34,11 +34,11 @@ public static class ProcessStepViewMapper
     {
         return new ProcessStepDto(
             vm.Id,
-            vm.TypeName,
-            (int)vm.Type,
-            (int)vm.Trigger,
-            (int)vm.Condition,
-            vm.OffsetInHours
+            vm.Name,
+            vm.Trigger,
+            vm.Action,
+            vm.Offset == 0 ? null : vm.Offset,
+            vm.TriggeredByStepId == 0 ? null : vm.TriggeredByStepId
         );
     }
 }

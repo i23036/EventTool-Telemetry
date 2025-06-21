@@ -2,5 +2,6 @@
 
 public record ProcessDto(
     int Id, 
+    int EventId,
     List<ProcessStepDto> ProcessSteps
     );

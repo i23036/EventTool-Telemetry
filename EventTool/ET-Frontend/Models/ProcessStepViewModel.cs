@@ -1,27 +1,25 @@
-﻿namespace ET_Frontend.Models;
-using Models.Enums;
+﻿using ET.Shared.DTOs.Enums;
+
+namespace ET_Frontend.Models;
 
 public class ProcessStepViewModel
 {
     public int Id { get; set; }
-    public string TypeName { get; set; }
-
-    public ProcessStepType Type { get; set; }
-
+    public string Name { get; set; }
     public ProcessStepTrigger Trigger { get; set; }
-
-    public ProcessStepCondition Condition { get; set; }
-    public int OffsetInHours { get; set; }
+    public ProcessStepAction Action { get; set; }
+    public int Offset { get; set; }
+    public int TriggeredByStepId { get; set; }
 
     public ProcessStepViewModel() {}
 
-    public ProcessStepViewModel(int Id, string TypeName, ProcessStepType Type, ProcessStepTrigger Trigger, ProcessStepCondition Condition, int OffsetInHours)
+    public ProcessStepViewModel(int id, string name, ProcessStepTrigger trigger, ProcessStepAction action, int offset, int triggeredByStepId)
     {
-        this.Id = Id;
-        this.TypeName = TypeName;
-        this.Type = Type;
-        this.Trigger = Trigger;
-        this.Condition = Condition;
-        this.OffsetInHours = OffsetInHours;
+        this.Id = id;
+        this.Name = name;
+        this.Action = action;
+        this.Trigger = trigger;
+        this.Offset = offset;
+        this.TriggeredByStepId = triggeredByStepId;
     }
 }

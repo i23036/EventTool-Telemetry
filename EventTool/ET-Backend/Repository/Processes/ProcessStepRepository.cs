@@ -24,7 +24,7 @@ public class ProcessStepRepository : IProcessStepRepository
         try
         {
             var step = await _db.QuerySingleOrDefaultAsync<ProcessStep>(
-                @"SELECT Id, TypeName, Type, Trigger, Condition, OffsetInHours, ProcessId 
+                @"SELECT Id, Name, Trigger, Action, Offset, TriggeredByStepId, ProcessId 
                   FROM ProcessSteps WHERE Id = @Id",
                 new { Id = id });
 
@@ -41,7 +41,7 @@ public class ProcessStepRepository : IProcessStepRepository
         try
         {
             var steps = (await _db.QueryAsync<ProcessStep>(
-                @"SELECT Id, TypeName, Type, Trigger, Condition, OffsetInHours, ProcessId
+                @"SELECT Id, Name, Trigger, Action, Offset, TriggeredByStepId, ProcessId
               FROM ProcessSteps
               WHERE ProcessId = @ProcessId",
                 new { ProcessId = processId })).ToList();
@@ -62,19 +62,19 @@ public class ProcessStepRepository : IProcessStepRepository
         try
         {
             var stepInsert = @"
-                INSERT INTO ProcessSteps (TypeName, Type, Trigger, Condition, OffsetInHours, ProcessId)
-                VALUES (@TypeName, @Type, @Trigger, @Condition, @OffsetInHours, @ProcessId);";
+                INSERT INTO ProcessSteps (Name, Trigger, Action, Offset, TriggeredByStepId, ProcessId)
+                VALUES (@StepName, @Trig, @Act, @Off, @StepIdTrig, @Pid);";
 
             var stepId = await _db.ExecuteScalarAsync<int>(
                 stepInsert,
                 new
                 {
-                    step.TypeName,
-                    Type = (int)step.Type,
-                    Trigger = (int)step.Trigger,
-                    Condition = (int)step.Condition,
-                    step.OffsetInHours,
-                    ProcessId = processId
+                    StepName   = step.Name,
+                    Trig       = (int)step.Trigger,
+                    Act        = (int)step.Action,
+                    Off        = step.Offset,
+                    StepIdTrig = step.TriggeredByStepId,
+                    Pid        = processId
                 });
 
             return await GetProcessStep(stepId);

@@ -17,6 +17,7 @@ public static class ProcessMapper
         return new Process
         {
             Id           = dto.Id,
+            EventId      = dto.EventId,
             ProcessSteps = dto.ProcessSteps
                 .Select(ProcessStepMapper.ToModel)
                 .ToList()
@@ -30,6 +31,7 @@ public static class ProcessMapper
     public static ProcessDto ToDto(Process process)
     {
         return new ProcessDto(
+            process.Id,
             process.EventId,
             process.ProcessSteps
                 .Select(ProcessStepMapper.ToDto)

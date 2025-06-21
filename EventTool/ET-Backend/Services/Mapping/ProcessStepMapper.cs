@@ -1,6 +1,6 @@
 ﻿using ET_Backend.Models;
 using ET.Shared.DTOs;
-using ET_Backend.Models.Enums;
+using ET.Shared.DTOs.Enums;
 
 namespace ET_Backend.Services.Mapping;
 
@@ -18,11 +18,11 @@ public static class ProcessStepMapper
         return new ProcessStep
         {
             Id = dto.Id,
-            TypeName = dto.TypeName,
-            Type = (ProcessStepType)dto.TypeE,
-            Trigger = (ProcessStepTrigger)dto.TriggerE,
-            Condition = (ProcessStepCondition)dto.ConditionE,
-            OffsetInHours = dto.OffsetInHours
+            Name = dto.Name,
+            Trigger = (ProcessStepTrigger)dto.Trigger,
+            Action = (ProcessStepAction)dto.Action,
+            Offset = dto.Offset,
+            TriggeredByStepId = dto.TriggeredByStepId
         };
     }
 
@@ -34,11 +34,11 @@ public static class ProcessStepMapper
     {
         return new ProcessStepDto(
             model.Id,
-            model.TypeName,
-            (int)model.Type,
-            (int)model.Trigger,
-            (int)model.Condition,
-            model.OffsetInHours
+            model.Name,
+            model.Trigger,
+            model.Action,
+            model.Offset,
+            model.TriggeredByStepId
         );
     }
 }

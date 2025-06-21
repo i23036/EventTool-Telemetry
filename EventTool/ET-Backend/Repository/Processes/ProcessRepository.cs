@@ -50,16 +50,16 @@ public class ProcessRepository : IProcessRepository
         {
             await _db.ExecuteAsync(@"
                 INSERT INTO ProcessSteps
-                      (TypeName, Type, Trigger, Condition, OffsetInHours, ProcessId)
-                VALUES (@Name, @Type, @Trig, @Cond, @Off, @Pid);",
+                      (Name, Trigger, Action, Offset, TriggeredByStepId, ProcessId)
+                VALUES (@StepName, @Trig, @Act, @Off, @StepIdTrig, @Pid);",
                 new
                 {
-                    Name = s.TypeName,
-                    Type = (int)s.Type,
-                    Trig = (int)s.Trigger,
-                    Cond = (int)s.Condition,
-                    Off  = s.OffsetInHours,
-                    Pid  = proc.Id
+                    StepName   = s.Name,
+                    Trig       = (int)s.Trigger,
+                    Act        = (int)s.Action,
+                    Off        = s.Offset,
+                    StepIdTrig = s.TriggeredByStepId,
+                    Pid        = proc.Id
                 }, tx);
         }
 

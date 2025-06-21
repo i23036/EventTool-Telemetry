@@ -48,7 +48,7 @@ public class ProcessWorkerService : BackgroundService
         var open   = (int)EventStatus.Offen;
         var closed = (int)EventStatus.Geschlossen;
         var trg    = (int)ProcessStepTrigger.MaxParticipantsReached;
-        var typ    = (int)ProcessStepType.CloseEvent;
+        var act    = (int)ProcessStepAction.CloseEvent;
 
         const string sql = @"
 UPDATE Events
@@ -59,7 +59,7 @@ WHERE  Status = @open
         FROM   Processes     p
         JOIN   ProcessSteps  ps ON ps.ProcessId = p.Id
         WHERE  ps.Trigger = @trg
-          AND  ps.Type    = @typ
+          AND  ps.Action  = @act
       )
   AND  MaxParticipants IS NOT NULL
   AND  (
@@ -72,7 +72,7 @@ WHERE  Status = @open
         int affected;
         try
         {
-            affected = await _db.ExecuteAsync(sql, new { open, closed, trg, typ });
+            affected = await _db.ExecuteAsync(sql, new { open, closed, trg, act });
         }
         catch (SqliteException ex) when (ex.SqliteErrorCode == 1) // Tabelle fehlt
         {

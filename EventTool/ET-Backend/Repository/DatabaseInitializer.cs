@@ -88,11 +88,10 @@ public class DatabaseInitializer(IDbConnection db, ILogger<DatabaseInitializer> 
         _db.Execute(@"
             CREATE TABLE IF NOT EXISTS ProcessSteps (
                 Id             INTEGER PRIMARY KEY AUTOINCREMENT,
-                TypeName       TEXT NOT NULL,
-                Type           INTEGER NOT NULL,
+                Name           TEXT NOT NULL,
                 Trigger        INTEGER NOT NULL,
-                Condition      INTEGER NOT NULL,
-                OffsetInHours  INTEGER NOT NULL,
+                Action         INTEGER NOT NULL,
+                Offset         INTEGER NOT NULL,
                 ProcessId      INTEGER NOT NULL,
                 FOREIGN KEY (ProcessId) REFERENCES Processes(Id)
             );
@@ -163,9 +162,7 @@ public class DatabaseInitializer(IDbConnection db, ILogger<DatabaseInitializer> 
         SeedDemoEvents();
     }
 
-    // -----------------------------------------------------------------------------
 // 1) Organisationen + Logos anlegen
-// -----------------------------------------------------------------------------
 private void SeedOrganizations()
 {
     var orgs = new[]
@@ -193,9 +190,7 @@ private void SeedOrganizations()
     }
 }
 
-// -----------------------------------------------------------------------------
 // 2) Benutzer + Accounts anlegen (Max + Petra + weitere Demo-User)
-// -----------------------------------------------------------------------------
 private void SeedUsersAndAccounts()
 {
     void EnsureUser(string first, string last, string pwd = "demo")
@@ -210,8 +205,8 @@ private void SeedUsersAndAccounts()
     }
 
     // --- Max Mustermann (nur DemoOrg-Owner) ---------------------------
-    EnsureUser("Max", "Mustermann");
-    int maxUid = _db.ExecuteScalar<int>("SELECT Id FROM Users WHERE Firstname='Max' AND Lastname='Mustermann';");
+    EnsureUser("Max", "Owner");
+    int maxUid = _db.ExecuteScalar<int>("SELECT Id FROM Users WHERE Firstname='Max' AND Lastname='Owner';");
     _db.Execute("""
         INSERT OR IGNORE INTO Accounts (Email,IsVerified,UserId)
         VALUES ('owner@demo.org',1,@uid);
@@ -240,7 +235,7 @@ private void SeedUsersAndAccounts()
     var petraAccounts = new[]
     {
         "petra@code.org",   // Owner CodeCompany
-        "petra@musik.org",  // Owner Rohrspatzen
+        "petra@musik.org",  // Organizer Rohrspatzen
         "petra@schule.org"  // Member Bergschule
     };
     foreach (var mail in petraAccounts)
@@ -252,6 +247,7 @@ private void SeedUsersAndAccounts()
     }
 
     // --- Spezifische weitere Nutzer ----------------------------------
+    EnsureUser("Rolf",   "Refrain");      // Owner Rohrspatzen
     EnsureUser("Bernd",  "Rektor");       // Owner Bergschule
     EnsureUser("Sabine", "Sekretärin");   // Organizer Bergschule
     EnsureUser("Chris",  "Code");         // Organizer CodeCompany
@@ -273,6 +269,7 @@ private void SeedUsersAndAccounts()
                     new { email, uId });
     }
         
+    EnsureAccount("dirigent@musik.org",    "Rolf",   "Refrain");
     EnsureAccount("rektor@schule.org",     "Bernd",  "Rektor");
     EnsureAccount("sekretariat@schule.org","Sabine", "Sekretärin");
     EnsureAccount("chris@code.org",        "Chris",  "Code");
@@ -319,7 +316,8 @@ private void SeedOrganizationMembers()
         Add($"mitarbeiter{i}@code.org", "code.org", Member);
 
     // Rohrspatzen
-    Add("petra@musik.org", "musik.org", Owner);
+    Add("dirigent@musik.org", "musik.org", Owner);
+    Add("petra@musik.org",    "musik.org", Organizer);
     for (int i = 1; i <= 5; i++)
         Add($"mitglied{i}@musik.org", "musik.org", Member);
 
@@ -354,7 +352,8 @@ private void SeedDemoEvents()
             case "demo.org":
                 list.Add(("Planung",       EventStatus.Entwurf,     "orga1@demo.org")); // NICHT Owner
                 list.Add(("Workshop",      EventStatus.Offen,       "owner@demo.org"));
-                list.Add(("Jahrestreffen", EventStatus.Geschlossen, "owner@demo.org"));
+                list.Add(("OffenEvent",    EventStatus.Offen,       "orga1@demo.org"));
+                list.Add(("Jahrestreffen", EventStatus.Geschlossen, "orga2@demo.org"));
                 list.Add(("AbsageEvent",   EventStatus.Abgesagt,    "owner@demo.org"));
                 list.Add(("ArchivTest",    EventStatus.Archiviert,  "owner@demo.org"));
                 break;
@@ -387,11 +386,11 @@ private void SeedDemoEvents()
             p.Add("OrgId",            org.Id);
             p.Add("StartDate",        today);
             p.Add("EndDate",          today);
-            p.Add("StartTime",        today.Add(startT.ToTimeSpan()));
-            p.Add("EndTime",          today.Add(endT.ToTimeSpan()));
+            p.Add("StartTime",        today.AddDays(10).Add(startT.ToTimeSpan()));
+            p.Add("EndTime",          today.AddDays(10).Add(endT.ToTimeSpan()));
             p.Add("Location",         "Online");
-            p.Add("MinParticipants",  1);
-            p.Add("MaxParticipants",  100);
+            p.Add("MinParticipants",  3);
+            p.Add("MaxParticipants",  30);
             p.Add("RegStart",         today);
             p.Add("RegEnd",           today.AddDays(7));
             p.Add("Status",           (int)ev.Status);
@@ -425,12 +424,12 @@ private void SeedDemoEvents()
             {
                 _db.Execute(@"
                     INSERT INTO ProcessSteps
-                            (TypeName, Type, Trigger, Condition, OffsetInHours, ProcessId)
-                    VALUES ('Auto-Close when full',
-                            @Type, @Trigger, 0, 0, @Pid);",
+                            (Name, Trigger, Action, Offset, TriggeredByStepId, ProcessId)
+                    VALUES ('Anmeldung schließen, wenn nur noch 3 Plätze frei sind.',
+                            @Trigger, @Action, -3, 0, @Pid);",
                     new {
-                        Type    = (int)ProcessStepType.CloseEvent,
                         Trigger = (int)ProcessStepTrigger.MaxParticipantsReached,
+                        Action  = (int)ProcessStepAction.CloseEvent,
                         Pid     = procId
                     });
             }

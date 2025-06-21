@@ -1,3 +1,12 @@
-﻿namespace ET.Shared.DTOs;
+﻿using ET.Shared.DTOs.Enums;
 
-public record ProcessStepDto(int Id, string TypeName, int TypeE, int TriggerE, int ConditionE, int OffsetInHours);
+namespace ET.Shared.DTOs;
+
+public record ProcessStepDto(
+    int Id,
+    string Name,
+    ProcessStepTrigger Trigger,
+    ProcessStepAction Action,
+    int? Offset,
+    int? TriggeredByStepId
+);
