@@ -97,7 +97,7 @@ public class DatabaseInitializer(IDbConnection db, ILogger<DatabaseInitializer> 
                 Subject           TEXT NULL,
                 Body              TEXT NULL,
                 ProcessId         INTEGER NOT NULL,
-                FOREIGN KEY (ProcessId) REFERENCES Processes(Id)
+                FOREIGN KEY (ProcessId) REFERENCES Processes(Id) ON DELETE CASCADE
             );
         ");
 

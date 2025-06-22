@@ -147,15 +147,30 @@ public class EventRepository : IEventRepository
         using var tx = _db.BeginTransaction();
         try
         {
-            await _db.ExecuteAsync($@"
-            DELETE FROM {_db.Tbl("EventMembers")}
-            WHERE EventId=@Id;",
-                new { Id = eventId }, tx);
+            // 1) Prozess-Schritte → Prozesse
+            await _db.ExecuteAsync("""
+                                       DELETE FROM ProcessSteps
+                                       WHERE ProcessId IN (
+                                           SELECT Id FROM Processes WHERE EventId = @Id
+                                       );
+                                   """, new { Id = eventId }, tx);
 
-            var affected = await _db.ExecuteAsync($@"
-            DELETE FROM {_db.Tbl("Events")}
-            WHERE Id=@Id;",
-                new { Id = eventId }, tx);
+            await _db.ExecuteAsync("""
+                                       DELETE FROM Processes
+                                       WHERE EventId = @Id;
+                                   """, new { Id = eventId }, tx);
+
+            // 2) EventMembers
+            await _db.ExecuteAsync("""
+                                       DELETE FROM EventMembers
+                                       WHERE EventId = @Id;
+                                   """, new { Id = eventId }, tx);
+
+            // 3) Event selbst
+            var affected = await _db.ExecuteAsync("""
+                                                      DELETE FROM Events
+                                                      WHERE Id = @Id;
+                                                  """, new { Id = eventId }, tx);
 
             tx.Commit();
             _logger.LogInformation("Event gelöscht: {EventId}", eventId);
