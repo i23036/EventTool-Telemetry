@@ -1,11 +1,7 @@
 ﻿using System.Data;
 using Dapper;
 using ET.Shared.DTOs.Enums;
-using ET_Backend.Models.Enums;
 using ET_Backend.Services.Helper;          // IEMailService
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 
 namespace ET_Backend.Services.Processes;
 
