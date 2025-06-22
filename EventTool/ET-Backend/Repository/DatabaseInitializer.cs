@@ -93,6 +93,9 @@ public class DatabaseInitializer(IDbConnection db, ILogger<DatabaseInitializer> 
                 Action            INTEGER NOT NULL,
                 Offset            INTEGER DEFAULT 0,
                 TriggeredByStepId INTEGER,
+                ExecutedAt        TEXT NULL,         -- ISO-8601-Zeitstempel
+                Subject           TEXT NULL,
+                Body              TEXT NULL,
                 ProcessId         INTEGER NOT NULL,
                 FOREIGN KEY (ProcessId) REFERENCES Processes(Id)
             );

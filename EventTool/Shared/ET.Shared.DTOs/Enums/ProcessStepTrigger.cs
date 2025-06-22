@@ -12,5 +12,11 @@ public enum ProcessStepTrigger
 
     OpenSubscription,
 
-    CloseSubscription
+    CloseSubscription,
+    
+    /// <summary>
+    /// Wird ausgelöst, sobald der angegebene Vorgänger-Schritt
+    /// erfolgreich abgeschlossen wurde.
+    /// </summary>
+    StepCompleted
 }

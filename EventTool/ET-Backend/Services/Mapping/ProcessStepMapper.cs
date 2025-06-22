@@ -17,12 +17,14 @@ public static class ProcessStepMapper
     {
         return new ProcessStep
         {
-            Id = dto.Id,
-            Name = dto.Name,
-            Trigger = (ProcessStepTrigger)dto.Trigger,
-            Action = (ProcessStepAction)dto.Action,
-            Offset = dto.Offset,
-            TriggeredByStepId = dto.TriggeredByStepId
+            Id                = dto.Id,
+            Name              = dto.Name,
+            Trigger           = dto.Trigger,
+            Action            = dto.Action,
+            Offset            = dto.Offset,
+            TriggeredByStepId = dto.TriggeredByStepId,
+            Subject           = dto.Subject,
+            Body              = dto.Body
         };
     }
 
@@ -38,7 +40,9 @@ public static class ProcessStepMapper
             model.Trigger,
             model.Action,
             model.Offset,
-            model.TriggeredByStepId
+            model.TriggeredByStepId,
+            model.Subject,
+            model.Body
         );
     }
 }

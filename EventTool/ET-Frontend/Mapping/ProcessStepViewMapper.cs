@@ -12,33 +12,29 @@ public static class ProcessStepViewMapper
     /// <summary>
     /// Wandelt einen ProcessStepDto in ein ViewModel zur Anzeige/Bearbeitung um.
     /// </summary>
-    public static ProcessStepViewModel ToViewModel(ProcessStepDto dto)
+    public static ProcessStepViewModel ToViewModel(ProcessStepDto dto) => new()
     {
-        
-
-        return new ProcessStepViewModel
-        {
-            Id                = dto.Id,
-            Name              = dto.Name,
-            Trigger           = dto.Trigger,
-            Action            = dto.Action,
-            Offset            = dto.Offset ?? 0,
-            TriggeredByStepId = dto.TriggeredByStepId ?? 0,
-        };
-    }
+        Id                = dto.Id,
+        Name              = dto.Name,
+        Trigger           = dto.Trigger,
+        Action            = dto.Action,
+        Offset            = dto.Offset ?? 0,
+        TriggeredByStepId = dto.TriggeredByStepId,
+        Subject           = dto.Subject,
+        Body              = dto.Body
+    };
 
     /// <summary>
     /// Wandelt ein ViewModel zurück in einen ProcessStepDto zur API-Übertragung.
     /// </summary>
-    public static ProcessStepDto ToDto(ProcessStepViewModel vm)
-    {
-        return new ProcessStepDto(
-            vm.Id,
-            vm.Name,
-            vm.Trigger,
-            vm.Action,
-            vm.Offset == 0 ? null : vm.Offset,
-            vm.TriggeredByStepId == 0 ? null : vm.TriggeredByStepId
-        );
-    }
+    public static ProcessStepDto ToDto(ProcessStepViewModel vm) => new(
+        vm.Id,
+        vm.Name,
+        vm.Trigger,
+        vm.Action,
+        vm.Offset == 0 ? null : vm.Offset,
+        vm.TriggeredByStepId,
+        vm.Subject,
+        vm.Body
+    );
 }

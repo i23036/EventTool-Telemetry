@@ -9,17 +9,9 @@ public class ProcessStepViewModel
     public ProcessStepTrigger Trigger { get; set; }
     public ProcessStepAction Action { get; set; }
     public int Offset { get; set; }
-    public int TriggeredByStepId { get; set; }
+    public int? TriggeredByStepId { get; set; }
+    public string? Subject { get; set; }
+    public string? Body    { get; set; }
 
     public ProcessStepViewModel() {}
-
-    public ProcessStepViewModel(int id, string name, ProcessStepTrigger trigger, ProcessStepAction action, int offset, int triggeredByStepId)
-    {
-        this.Id = id;
-        this.Name = name;
-        this.Action = action;
-        this.Trigger = trigger;
-        this.Offset = offset;
-        this.TriggeredByStepId = triggeredByStepId;
-    }
 }

@@ -8,5 +8,8 @@ public record ProcessStepDto(
     ProcessStepTrigger Trigger,
     ProcessStepAction Action,
     int? Offset,
-    int? TriggeredByStepId
+    int? TriggeredByStepId,
+    // nur für Action = SendEmail
+    string? Subject,
+    string? Body
 );
