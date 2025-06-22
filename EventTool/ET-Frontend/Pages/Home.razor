@@ -356,27 +356,7 @@
         _toDelete = null;
         _showDelete = false;
     }
-
-    private async Task ToggleSubscription(EventViewModel ev)
-    {
-        bool ok = ev.IsSubscribed
-            ? await EventApi.UnsubscribeAsync(ev.Id)
-            : await EventApi.SubscribeAsync(ev.Id);
-
-        if (ok)
-        {
-            ev.IsSubscribed = !ev.IsSubscribed;
-            ev.Participants += ev.IsSubscribed ? 1 : -1;
-            Snackbar.Add(ev.IsSubscribed ? "Angemeldet!" : "Abgemeldet!", Severity.Success);
-        }
-        else
-        {
-            Snackbar.Add("Aktion fehlgeschlagen.", Severity.Error);
-        }
-
-        ApplyEventFilter();
-    }
-
+    
     private Color GetStatusColor(string status)
     {
         return status switch
@@ -496,26 +476,7 @@
         MemberToDelete = null;
     }
 
-    private void NavigateToEventCreation()
-    {
-        Navigation.NavigateTo("/EventErstellen");
-    }
-
-    private void NavigateToEventEdit(int eventId)
-    {
-	    Navigation.NavigateTo($"/EventErstellen/{eventId}");
-    }
-
-    private void NavigateToEventDetails(int eventId)
-    {
-        Navigation.NavigateTo($"/EventDetails/{eventId}");
-    }
-
-    private void ChangeOrgaData()
-    {
-        Navigation.NavigateTo("/Organisationsdaten");
-    }
-
+   
     private async Task ToggleSubscription(EventViewModel ev)
     {
 	    bool ok = ev.IsSubscribed
