@@ -7,6 +7,7 @@ using ET.Shared.DTOs;
 using FluentResults;
 using Moq;
 using Xunit;
+using ET_Backend.Models.Enums;
 
 namespace ET_UnitTests.Unittests
 {

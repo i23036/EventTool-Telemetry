@@ -1,6 +1,6 @@
 ﻿using ET.Shared.DTOs;
 using ET_Frontend.Models;
-using ET_Frontend.Models.Enums;
+using ET.Shared.DTOs.Enums;
 
 namespace ET_Frontend.Mapping;
 
@@ -12,33 +12,29 @@ public static class ProcessStepViewMapper
     /// <summary>
     /// Wandelt einen ProcessStepDto in ein ViewModel zur Anzeige/Bearbeitung um.
     /// </summary>
-    public static ProcessStepViewModel ToViewModel(ProcessStepDto dto)
+    public static ProcessStepViewModel ToViewModel(ProcessStepDto dto) => new()
     {
-        
-
-        return new ProcessStepViewModel
-        {
-            Id = dto.Id,
-            TypeName = dto.TypeName,
-            Type = (ProcessStepType)dto.TypeE,
-            Trigger = (ProcessStepTrigger)dto.TriggerE,
-            Condition = (ProcessStepCondition)dto.ConditionE,
-            OffsetInHours = dto.OffsetInHours
-        };
-    }
+        Id                = dto.Id,
+        Name              = dto.Name,
+        Trigger           = dto.Trigger,
+        Action            = dto.Action,
+        Offset            = dto.Offset ?? 0,
+        TriggeredByStepId = dto.TriggeredByStepId,
+        Subject           = dto.Subject,
+        Body              = dto.Body
+    };
 
     /// <summary>
     /// Wandelt ein ViewModel zurück in einen ProcessStepDto zur API-Übertragung.
     /// </summary>
-    public static ProcessStepDto ToDto(ProcessStepViewModel vm)
-    {
-        return new ProcessStepDto(
-            vm.Id,
-            vm.TypeName,
-            (int)vm.Type,
-            (int)vm.Trigger,
-            (int)vm.Condition,
-            vm.OffsetInHours
-        );
-    }
+    public static ProcessStepDto ToDto(ProcessStepViewModel vm) => new(
+        vm.Id,
+        vm.Name,
+        vm.Trigger,
+        vm.Action,
+        vm.Offset == 0 ? null : vm.Offset,
+        vm.TriggeredByStepId,
+        vm.Subject,
+        vm.Body
+    );
 }

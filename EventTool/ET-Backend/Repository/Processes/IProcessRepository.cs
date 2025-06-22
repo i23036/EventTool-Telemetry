@@ -3,7 +3,15 @@ using FluentResults;
 
 namespace ET_Backend.Repository.Processes;
 
+/// <summary>
+/// Definiert Zugriffsmethoden auf Prozessdaten in der Datenbank.
+/// </summary>
+
 public interface IProcessRepository
 {
-    Task<Result<Process>> GetProcess(int id);
+    // === Lesen ===
+    Task<Result<Process>> GetByEvent(int eventId);
+    
+    // === Schreiben ===
+    Task<Result>          Upsert(Process proc);
 }

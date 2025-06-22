@@ -1,4 +1,6 @@
-﻿namespace ET_Backend.Models;
+﻿using ET_Backend.Models.Enums;
+
+namespace ET_Backend.Models;
 
 /// <summary>
 /// Repräsentiert ein Benutzerkonto mit zugehöriger Organisation und Rolle.

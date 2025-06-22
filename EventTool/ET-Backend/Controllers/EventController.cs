@@ -6,6 +6,7 @@ using ET_Backend.Services.Helper;
 using ET_Backend.Services.Mapping;
 using ET_Backend.Services.Organization;
 using ET_Backend.Services.Person;
+using ET_Backend.Services.Processes;
 using ET.Shared.DTOs.Enums;
 using FluentResults;
 using Microsoft.AspNetCore.Authorization;
@@ -24,13 +25,15 @@ namespace ET_Backend.Controllers
         private readonly IUserService _userService;
         private readonly IAccountService _accountService;
         private readonly IOrganizationService _organizationService;
+        private readonly IProcessService _processService;
         
-        public EventController(IEventService eventService, IUserService userService,IAccountService accountService, IOrganizationService organizationService)
+        public EventController(IEventService eventService, IUserService userService,IAccountService accountService, IOrganizationService organizationService, IProcessService processService)
         {
             _eventService = eventService;
             _userService = userService;
             _accountService = accountService;
             _organizationService = organizationService;
+            _processService = processService;
         }
 
         [HttpGet("eventList/{domain}")]
@@ -165,6 +168,21 @@ namespace ET_Backend.Controllers
 
             var dto = EventMapper.ToDto(result.Value);
             return Ok(dto);
+        }
+        
+        [HttpGet("{eventId:int}/process")]
+        public async Task<IActionResult> GetProcessForEvent(int eventId)
+        {
+            var dto = await _processService.GetForEvent(eventId);
+            return dto is null ? NotFound() : Ok(dto);
+        }
+
+        [HttpPut("{eventId:int}/process")]
+        public async Task<IActionResult> UpdateProcessForEvent(
+            int eventId, [FromBody] ProcessDto dto)
+        {
+            await _processService.UpdateForEvent(eventId, dto);
+            return NoContent();
         }
     }
 }

@@ -1,6 +1,7 @@
 ﻿using Dapper;
 using ET.Shared.DTOs.Enums;
 using System.Data;
+using ET_Backend.Models.Enums;
 
 namespace ET_Backend.Repository;
 
@@ -54,34 +55,48 @@ public class DatabaseInitializer(IDbConnection db, ILogger<DatabaseInitializer> 
         ");
 
         _db.Execute(@"
-            CREATE TABLE IF NOT EXISTS Processes (
-                Id             INTEGER PRIMARY KEY AUTOINCREMENT,
-                Name           TEXT NOT NULL,
-                OrganizationId INTEGER NOT NULL,
-                FOREIGN KEY (OrganizationId) REFERENCES Organizations(Id)
-            );
-        ");
+    CREATE TABLE IF NOT EXISTS Events (
+        Id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+        Name                TEXT NOT NULL,
+        EventType           TEXT NOT NULL,
+        Description         TEXT,
+        OrganizationId      INTEGER NOT NULL,
+        ProcessId           INTEGER,         
+        StartDate           DATE,
+        EndDate             DATE,
+        StartTime           TIME,
+        EndTime             TIME,
+        Location            TEXT,
+        MinParticipants     INTEGER,
+        MaxParticipants     INTEGER,
+        RegistrationStart   DATE,
+        RegistrationEnd     DATE,
+        Status              INTEGER NOT NULL DEFAULT 0,
+        IsBlueprint         INTEGER DEFAULT 0,
+        FOREIGN KEY (OrganizationId) REFERENCES Organizations(Id)
+    );
+");
 
         _db.Execute(@"
-            CREATE TABLE IF NOT EXISTS Events (
-                Id                  INTEGER PRIMARY KEY AUTOINCREMENT,
-                Name                TEXT NOT NULL,
-                EventType           TEXT NOT NULL,
-                Description         TEXT,
-                OrganizationId      INTEGER NOT NULL,
-                ProcessId           INTEGER,
-                StartDate           DATE,
-                EndDate             DATE,
-                StartTime           TIME,
-                EndTime             TIME,
-                Location            TEXT,
-                MinParticipants     INTEGER,
-                MaxParticipants     INTEGER,
-                RegistrationStart   DATE,
-                RegistrationEnd     DATE,
-                Status              INTEGER NOT NULL DEFAULT 0, -- Enum: EventStatus
-                IsBlueprint         INTEGER DEFAULT 0,
-                FOREIGN KEY (OrganizationId) REFERENCES Organizations(Id),
+    CREATE TABLE IF NOT EXISTS Processes (
+        Id      INTEGER PRIMARY KEY AUTOINCREMENT,
+        EventId INTEGER NOT NULL UNIQUE,
+        FOREIGN KEY (EventId) REFERENCES Events(Id) ON DELETE CASCADE
+    );
+");
+        
+        _db.Execute(@"
+            CREATE TABLE IF NOT EXISTS ProcessSteps (
+                Id                INTEGER PRIMARY KEY AUTOINCREMENT,
+                Name              TEXT NOT NULL,
+                Trigger           INTEGER NOT NULL,
+                Action            INTEGER NOT NULL,
+                Offset            INTEGER DEFAULT 0,
+                TriggeredByStepId INTEGER,
+                ExecutedAt        TEXT NULL,         -- ISO-8601-Zeitstempel
+                Subject           TEXT NULL,
+                Body              TEXT NULL,
+                ProcessId         INTEGER NOT NULL,
                 FOREIGN KEY (ProcessId) REFERENCES Processes(Id)
             );
         ");
@@ -111,24 +126,6 @@ public class DatabaseInitializer(IDbConnection db, ILogger<DatabaseInitializer> 
         ");
 
         _db.Execute(@"
-            CREATE TABLE IF NOT EXISTS Triggers (
-                Id       INTEGER PRIMARY KEY AUTOINCREMENT,
-                Attribut TEXT NOT NULL
-            );
-        ");
-
-        _db.Execute(@"
-            CREATE TABLE IF NOT EXISTS ProcessSteps (
-                Id             INTEGER PRIMARY KEY AUTOINCREMENT,
-                Name           TEXT NOT NULL,
-                OrganizationId INTEGER NOT NULL,
-                TriggerId      INTEGER,
-                FOREIGN KEY (OrganizationId) REFERENCES Organizations(Id),
-                FOREIGN KEY (TriggerId) REFERENCES Triggers(Id)
-            );
-        ");
-
-        _db.Execute(@"
             CREATE TABLE IF NOT EXISTS EmailVerificationTokens (
                  Id         INTEGER PRIMARY KEY AUTOINCREMENT,
                  AccountId  INTEGER NOT NULL,
@@ -143,16 +140,22 @@ public class DatabaseInitializer(IDbConnection db, ILogger<DatabaseInitializer> 
 
     public void DropAllTables()
     {
-        _db.Execute("DROP TABLE IF EXISTS EmailVerificationTokens;");
-        _db.Execute("DROP TABLE IF EXISTS EventMembers;");
-        _db.Execute("DROP TABLE IF EXISTS Events;");
-        _db.Execute("DROP TABLE IF EXISTS OrganizationMembers;");
-        _db.Execute("DROP TABLE IF EXISTS Accounts;");
-        _db.Execute("DROP TABLE IF EXISTS ProcessSteps;");
-        _db.Execute("DROP TABLE IF EXISTS Processes;");
-        _db.Execute("DROP TABLE IF EXISTS Triggers;");
+        // FK-Prüfung ausschalten, damit SQLite nicht meckert
+        _db.Execute("PRAGMA foreign_keys = OFF;");
+
+        // ─ Von den abhängigen zu den Basis-Tabellen ─
+        _db.Execute("DROP TABLE IF EXISTS EventMembers;");            
+        _db.Execute("DROP TABLE IF EXISTS ProcessSteps;");            
+        _db.Execute("DROP TABLE IF EXISTS Processes;");               
+        _db.Execute("DROP TABLE IF EXISTS Events;");                  
+        _db.Execute("DROP TABLE IF EXISTS EmailVerificationTokens;"); 
+        _db.Execute("DROP TABLE IF EXISTS OrganizationMembers;");     
+        _db.Execute("DROP TABLE IF EXISTS Accounts;");                
         _db.Execute("DROP TABLE IF EXISTS Users;");
         _db.Execute("DROP TABLE IF EXISTS Organizations;");
+
+        // FK-Prüfung wieder aktivieren
+        _db.Execute("PRAGMA foreign_keys = ON;");
     }
 
     public void SeedDemoData()
@@ -163,9 +166,7 @@ public class DatabaseInitializer(IDbConnection db, ILogger<DatabaseInitializer> 
         SeedDemoEvents();
     }
 
-    // -----------------------------------------------------------------------------
 // 1) Organisationen + Logos anlegen
-// -----------------------------------------------------------------------------
 private void SeedOrganizations()
 {
     var orgs = new[]
@@ -193,9 +194,7 @@ private void SeedOrganizations()
     }
 }
 
-// -----------------------------------------------------------------------------
 // 2) Benutzer + Accounts anlegen (Max + Petra + weitere Demo-User)
-// -----------------------------------------------------------------------------
 private void SeedUsersAndAccounts()
 {
     void EnsureUser(string first, string last, string pwd = "demo")
@@ -210,8 +209,8 @@ private void SeedUsersAndAccounts()
     }
 
     // --- Max Mustermann (nur DemoOrg-Owner) ---------------------------
-    EnsureUser("Max", "Mustermann");
-    int maxUid = _db.ExecuteScalar<int>("SELECT Id FROM Users WHERE Firstname='Max' AND Lastname='Mustermann';");
+    EnsureUser("Max", "Owner");
+    int maxUid = _db.ExecuteScalar<int>("SELECT Id FROM Users WHERE Firstname='Max' AND Lastname='Owner';");
     _db.Execute("""
         INSERT OR IGNORE INTO Accounts (Email,IsVerified,UserId)
         VALUES ('owner@demo.org',1,@uid);
@@ -240,7 +239,7 @@ private void SeedUsersAndAccounts()
     var petraAccounts = new[]
     {
         "petra@code.org",   // Owner CodeCompany
-        "petra@musik.org",  // Owner Rohrspatzen
+        "petra@musik.org",  // Organizer Rohrspatzen
         "petra@schule.org"  // Member Bergschule
     };
     foreach (var mail in petraAccounts)
@@ -252,6 +251,7 @@ private void SeedUsersAndAccounts()
     }
 
     // --- Spezifische weitere Nutzer ----------------------------------
+    EnsureUser("Rolf",   "Refrain");      // Owner Rohrspatzen
     EnsureUser("Bernd",  "Rektor");       // Owner Bergschule
     EnsureUser("Sabine", "Sekretärin");   // Organizer Bergschule
     EnsureUser("Chris",  "Code");         // Organizer CodeCompany
@@ -272,7 +272,8 @@ private void SeedUsersAndAccounts()
         _db.Execute("INSERT OR IGNORE INTO Accounts (Email,IsVerified,UserId) VALUES (@email,1,@uId);",
                     new { email, uId });
     }
-
+        
+    EnsureAccount("dirigent@musik.org",    "Rolf",   "Refrain");
     EnsureAccount("rektor@schule.org",     "Bernd",  "Rektor");
     EnsureAccount("sekretariat@schule.org","Sabine", "Sekretärin");
     EnsureAccount("chris@code.org",        "Chris",  "Code");
@@ -319,7 +320,8 @@ private void SeedOrganizationMembers()
         Add($"mitarbeiter{i}@code.org", "code.org", Member);
 
     // Rohrspatzen
-    Add("petra@musik.org", "musik.org", Owner);
+    Add("dirigent@musik.org", "musik.org", Owner);
+    Add("petra@musik.org",    "musik.org", Organizer);
     for (int i = 1; i <= 5; i++)
         Add($"mitglied{i}@musik.org", "musik.org", Member);
 
@@ -354,7 +356,8 @@ private void SeedDemoEvents()
             case "demo.org":
                 list.Add(("Planung",       EventStatus.Entwurf,     "orga1@demo.org")); // NICHT Owner
                 list.Add(("Workshop",      EventStatus.Offen,       "owner@demo.org"));
-                list.Add(("Jahrestreffen", EventStatus.Geschlossen, "owner@demo.org"));
+                list.Add(("OffenEvent",    EventStatus.Offen,       "orga1@demo.org"));
+                list.Add(("Jahrestreffen", EventStatus.Geschlossen, "orga2@demo.org"));
                 list.Add(("AbsageEvent",   EventStatus.Abgesagt,    "owner@demo.org"));
                 list.Add(("ArchivTest",    EventStatus.Archiviert,  "owner@demo.org"));
                 break;
@@ -362,6 +365,7 @@ private void SeedDemoEvents()
             case "code.org":
                 list.Add(("Teammeeting",   EventStatus.Offen,   "petra@code.org"));
                 list.Add(("Geheimprojekt", EventStatus.Entwurf, "chris@code.org")); // Entwurf ohne Petra
+                list.Add(("Jahresfeier",   EventStatus.Offen,   "chris@code.org"));
                 break;
 
             case "musik.org":
@@ -377,20 +381,20 @@ private void SeedDemoEvents()
         foreach (var ev in list)
         {
             string evName = $"{org.Domain}-{ev.Title}";
-
+            var orgId = _db.ExecuteScalar<int>("SELECT Id FROM Organizations WHERE Domain = 'demo.org'");
+            
             var p = new DynamicParameters();
             p.Add("Name",             evName);
             p.Add("EventType",        "Standard");
             p.Add("Description",      "Seed-Event");
             p.Add("OrgId",            org.Id);
-            p.Add("ProcessId",        null);
             p.Add("StartDate",        today);
             p.Add("EndDate",          today);
-            p.Add("StartTime",        today.Add(startT.ToTimeSpan()));
-            p.Add("EndTime",          today.Add(endT.ToTimeSpan()));
+            p.Add("StartTime",        today.AddDays(10).Add(startT.ToTimeSpan()));
+            p.Add("EndTime",          today.AddDays(10).Add(endT.ToTimeSpan()));
             p.Add("Location",         "Online");
-            p.Add("MinParticipants",  1);
-            p.Add("MaxParticipants",  100);
+            p.Add("MinParticipants",  3);
+            p.Add("MaxParticipants",  30);
             p.Add("RegStart",         today);
             p.Add("RegEnd",           today.AddDays(7));
             p.Add("Status",           (int)ev.Status);
@@ -398,19 +402,42 @@ private void SeedDemoEvents()
 
             _db.Execute("""
                 INSERT INTO Events (
-                    Name,EventType,Description,OrganizationId,ProcessId,
+                    Name,EventType,Description,OrganizationId,
                     StartDate,EndDate,StartTime,EndTime,Location,
                     MinParticipants,MaxParticipants,
                     RegistrationStart,RegistrationEnd,Status,IsBlueprint)
                 VALUES (
-                    @Name,@EventType,@Description,@OrgId,@ProcessId,
+                    @Name,@EventType,@Description,@OrgId,
                     @StartDate,@EndDate,@StartTime,@EndTime,@Location,
                     @MinParticipants,@MaxParticipants,
                     @RegStart,@RegEnd,@Status,@IsBlueprint);
             """, p);
 
             int evtId = _db.ExecuteScalar<int>("SELECT Id FROM Events WHERE Name=@Name;", new { Name = evName });
+            
+            // 1) Prozess für dieses Event erzeugen
+            int procId = _db.ExecuteScalar<int>(
+                "INSERT INTO Processes (EventId) VALUES (@Evt); SELECT last_insert_rowid();",
+                new { Evt = evtId });
 
+            // Event mit ProcessId verknüpfen
+            _db.Execute("UPDATE Events SET ProcessId=@Pid WHERE Id=@Evt;", new { Pid = procId, Evt = evtId });
+
+            // 2) Nur für demo.org: Auto-Close-Step anlegen
+            if (org.Domain == "demo.org")
+            {
+                _db.Execute(@"
+                    INSERT INTO ProcessSteps
+                            (Name, Trigger, Action, Offset, TriggeredByStepId, ProcessId)
+                    VALUES ('Anmeldung schließen, wenn nur noch 3 Plätze frei sind.',
+                            @Trigger, @Action, -3, 0, @Pid);",
+                    new {
+                        Trigger = (int)ProcessStepTrigger.MaxParticipantsReached,
+                        Action  = (int)ProcessStepAction.CloseEvent,
+                        Pid     = procId
+                    });
+            }
+            
             int? orgAccId = null;
                 
             // Organizer eintragen, sofern Mail vorhanden und Account gefunden

@@ -1,34 +1,39 @@
 ﻿@namespace ET_Frontend.Components
 
 <MudDialog>
-    <TitleContent>
-        E-Mail Prozesschritt konfigurieren
-    </TitleContent>
-    <DialogContent>
-        <MudText>Hier können Sie Betreff und Inhalt der E-Mail bearbeiten.</MudText>
-        <MudTextField Label="Betreff" @bind-Value="test"/>
-        <MudTextField Label="Kontent" @bind-Value="test" Lines="5"/>
-    </DialogContent>
-    <DialogActions>
-        <MudButton OnClick="Cancel">Abbrechen</MudButton>
-        <MudButton Color="Color.Primary" OnClick="SaveProcessStepChanges">Speichern</MudButton>
-    </DialogActions>
+	<TitleContent>E-Mail Prozessschritt konfigurieren</TitleContent>
+
+	<DialogContent>
+		<MudStack Spacing="2">
+			<MudTextField @bind-Value="Subject"
+			              Label="Betreff" Variant="Variant.Outlined" />
+			<MudTextField @bind-Value="Body"
+			              Label="Inhalt (HTML erlaubt)"
+			              Lines="6" Variant="Variant.Outlined" />
+		</MudStack>
+	</DialogContent>
+
+	<DialogActions>
+		<MudButton OnClick="Cancel">Abbrechen</MudButton>
+		<MudButton Color="Color.Primary" OnClick="Save">Speichern</MudButton>
+	</DialogActions>
 </MudDialog>
-@code {
-    private String test;
-    [CascadingParameter]
-    private IMudDialogInstance MudDialog { get; set; }
 
-    protected override async Task OnInitializedAsync(){
-        //TODO Inhalt holen von Betreff und Kontent
-    }
+@code
+{
+	[CascadingParameter] private IMudDialogInstance Mud { get; set; } = default!;
+	[Parameter]          public string? InitSubject { get; set; }
+	[Parameter]          public string? InitBody    { get; set; }
 
-    private async Task SaveProcessStepChanges()
-    {
-        //TODO in DTO packen und speichern
+	public string? Subject { get; set; }
+	public string? Body    { get; set; }
 
-        MudDialog.Close(DialogResult.Ok(true));
-    }
+	protected override void OnInitialized()
+	{
+		Subject = InitSubject;
+		Body    = InitBody;
+	}
 
-    private void Cancel() => MudDialog.Cancel();
+	private void Save()   => Mud.Close(DialogResult.Ok((Subject, Body)));
+	private void Cancel() => Mud.Cancel();
 }

@@ -4,6 +4,7 @@
 
 @using Microsoft.AspNetCore.Authorization
 @using System.Net.Http.Headers
+@using System.Text.Json
 @using ET.Shared.DTOs
 @using ET_Frontend.Models
 @using Blazored.SessionStorage
@@ -11,6 +12,8 @@
 @using ET_Frontend.Mapping
 @using ET_Frontend.Pages.Components
 @using Microsoft.AspNetCore.Components.Authorization
+@using System.Threading
+
 
 @inject HttpClient Http
 @inject ISessionStorageService SessionStorage
@@ -230,12 +233,18 @@
     private readonly List<string> _statusOptions = new() { "", "Offen", "Geschlossen", "Abgesagt", "Archiviert", "Entwurf" };
 
 
+    private PeriodicTimer? _refreshTimer;
+    private CancellationTokenSource _cts = new();
+
     protected override async Task OnInitializedAsync()
     {
         await CheckUserPermissions();
         await LoadEvents();
         await LoadMembers();
         ApplyEventFilter();
+
+        _refreshTimer = new PeriodicTimer(TimeSpan.FromSeconds(10));
+        _ = AutoRefreshAsync();
     }
 
     private async Task CheckUserPermissions()
@@ -453,11 +462,100 @@
             }
             else
             {
-                Snackbar.Add("Mitglied konnte nicht entfernt werden.", Severity.Error);
+	            try
+	            {
+		            var json = await response.Content.ReadAsStringAsync();
+
+		            if (!string.IsNullOrWhiteSpace(json))
+		            {
+			            using var doc = JsonDocument.Parse(json);
+
+			            // JSON ist ein Array mit einem Objekt, das eine "message" enthält
+			            var firstItem = doc.RootElement.EnumerateArray().FirstOrDefault();
+
+			            if (firstItem.TryGetProperty("message", out var messageElement))
+			            {
+				            var msg = messageElement.GetString();
+				            if (!string.IsNullOrWhiteSpace(msg))
+				            {
+					            Snackbar.Add(msg, Severity.Error);
+					            return;
+				            }
+			            }
+		            }
+
+		            Snackbar.Add("Mitglied konnte nicht entfernt werden.", Severity.Error);
+	            }
+	            catch
+	            {
+		            Snackbar.Add("Mitglied konnte nicht entfernt werden.", Severity.Error);
+	            }
             }
         }
-
         ShowConfirmDialog = false;
         MemberToDelete = null;
+    }
+
+    private void NavigateToEventCreation()
+    {
+        Navigation.NavigateTo("/EventErstellen");
+    }
+
+    private void NavigateToEventEdit(int eventId)
+    {
+	    Navigation.NavigateTo($"/EventErstellen/{eventId}");
+    }
+
+    private void NavigateToEventDetails(int eventId)
+    {
+        Navigation.NavigateTo($"/EventDetails/{eventId}");
+    }
+
+    private void ChangeOrgaData()
+    {
+        Navigation.NavigateTo("/Organisationsdaten");
+    }
+
+    private async Task ToggleSubscription(EventViewModel ev)
+    {
+	    bool ok = ev.IsSubscribed
+		    ? await EventApi.UnsubscribeAsync(ev.Id)
+		    : await EventApi.SubscribeAsync(ev.Id);
+
+	    if (ok)
+	    {
+		    ev.IsSubscribed = !ev.IsSubscribed;
+		    ev.Participants += ev.IsSubscribed ? +1 : -1;
+		    Snackbar.Add(ev.IsSubscribed ? "Angemeldet!" : "Abgemeldet!", Severity.Success);
+		    StateHasChanged();
+	    }
+	    else
+		    Snackbar.Add("Aktion fehlgeschlagen.", Severity.Error);
+    }
+
+    private async Task HandleDeleteFromGrid()
+    {
+	    await LoadEvents();     
+	    StateHasChanged();     
+    }
+
+    private async Task AutoRefreshAsync()
+    {
+	    try
+	    {
+		    while (await _refreshTimer!.WaitForNextTickAsync(_cts.Token))
+		    {
+			    await LoadEvents();
+			    await InvokeAsync(StateHasChanged);
+		    }
+	    }
+	    catch (OperationCanceledException) { /* Timer gestoppt */ }
+    }
+
+    public void Dispose()
+    {
+	    _cts.Cancel();
+	    _cts.Dispose();
+	    _refreshTimer?.Dispose();
     }
 }

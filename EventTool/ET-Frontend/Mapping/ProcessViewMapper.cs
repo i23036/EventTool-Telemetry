@@ -13,8 +13,9 @@ public static class ProcessViewMapper
     /// </summary>
     public static ProcessViewModel ToViewModel(ProcessDto dto)
     {
-        List<ProcessStepDto> processStepDtoList = dto.ProcessSteps;
+        List<ProcessStepDto> processStepDtoList             = dto.ProcessSteps;
         List<ProcessStepViewModel> processStepViewModelList = new List<ProcessStepViewModel>();
+        
         foreach (ProcessStepDto processStepDto in processStepDtoList)
         {
             processStepViewModelList.Add(ProcessStepViewMapper.ToViewModel(processStepDto));
@@ -22,7 +23,8 @@ public static class ProcessViewMapper
 
         return new ProcessViewModel
         {
-            Id = dto.Id,
+            Id           = dto.Id,
+            EventId      = dto.EventId,
             ProcessSteps = processStepViewModelList
         };
     }
@@ -41,6 +43,7 @@ public static class ProcessViewMapper
 
         return new ProcessDto(
             vm.Id,
+            vm.EventId,
             processStepDtoList
         );
     }

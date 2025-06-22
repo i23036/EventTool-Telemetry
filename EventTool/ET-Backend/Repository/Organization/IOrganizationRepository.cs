@@ -43,4 +43,5 @@ public interface IOrganizationRepository
 
     Task<Result> DeleteOrganization(string domain);
     Task<Result> DeleteOrganization(int id);
+    Task<Result<List<string>>> GetActiveEventNames(int accountId, int organizationId);
 }

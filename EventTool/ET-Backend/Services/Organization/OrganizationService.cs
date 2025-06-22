@@ -1,8 +1,8 @@
-﻿using ET_Backend.Models;
-using ET_Backend.Repository.Organization;
+﻿using ET_Backend.Repository.Organization;
 using ET_Backend.Repository.Person;
 using ET.Shared.DTOs;
 using FluentResults;
+using ET_Backend.Models.Enums;
 
 namespace ET_Backend.Services.Organization;
 

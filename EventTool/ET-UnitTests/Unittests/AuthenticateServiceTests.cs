@@ -11,6 +11,7 @@ using Microsoft.Extensions.Logging;
 using FluentResults;
 using ET_Backend.Repository.Authentication;
 using ET_Backend.Services.Helper;
+using ET_Backend.Models.Enums;
 
 namespace ET_UnitTests.Unittests
 {

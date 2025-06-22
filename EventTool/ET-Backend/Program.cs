@@ -5,7 +5,6 @@ using ET_Backend.Repository.Person;
 using ET_Backend.Repository.Event;
 using ET_Backend.Repository.Organization;
 using ET_Backend.Repository.Processes;
-using ET_Backend.Services.Administration;
 using ET_Backend.Services.Event;
 using ET_Backend.Services.Helper;
 using ET_Backend.Services.Helper.Authentication;
@@ -84,18 +83,14 @@ builder.Services.AddTransient<DatabaseInitializer>();
 
 
 // Services
-builder.Services.AddScoped<IAdministrationService, AdministrationService>();
-builder.Services.AddScoped<ILogService, LogService>();
 builder.Services.AddScoped<IEventService, EventService>();
-builder.Services.AddScoped<IFileManagementService, FileManagementService>();
 builder.Services.AddScoped<IAuthenticateService, AuthenticateService>();
-builder.Services.AddScoped<IWorkerService, WorkerService>();
 builder.Services.AddScoped<IOrganizationService, OrganizationService>();
-builder.Services.AddScoped<ISearchService, SearchService>();
 builder.Services.AddScoped<IAccountService, AccountService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IProcessService, ProcessService>();
 builder.Services.AddScoped<IProcessStepService, ProcessStepService>();
+builder.Services.AddHostedService<ProcessWorkerService>();
 
 // Email-Service
 builder.Services.Configure<EmailSettings>(
