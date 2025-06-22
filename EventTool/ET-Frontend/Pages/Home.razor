@@ -241,8 +241,7 @@
         await CheckUserPermissions();
         await LoadEvents();
         await LoadMembers();
-        ApplyEventFilter();
-
+      
         _refreshTimer = new PeriodicTimer(TimeSpan.FromSeconds(10));
         _ = AutoRefreshAsync();
     }
@@ -276,6 +275,8 @@
 
         var dtoList = await response.Content.ReadFromJsonAsync<List<EventListDto>>() ?? new();
         Events = dtoList.Select(EventListViewMapper.ToViewModel).ToList();
+
+        ApplyEventFilter();
     }
 
     private async Task LoadMembers()
