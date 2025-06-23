@@ -154,23 +154,32 @@ WHERE   ps.ExecutedAt IS NULL;";
         _log.LogInformation("Step {StepId}: Email-Action – {Cnt} Empfänger gefunden.",
             s.Id, recipients.Count);
 
-        if (recipients.Count == 0) return;
+        if (recipients.Count == 0)
+            return;
 
         var subject = s.Subject ?? "Automatische Info zu deinem Event";
-        var body    = string.IsNullOrWhiteSpace(s.Body)
+        var body = string.IsNullOrWhiteSpace(s.Body)
             ? "<p>Hallo! Dies ist eine automatisierte Nachricht zum Event.</p>"
             : s.Body;
 
-        try
+        int successCount = 0;
+
+        foreach (var addr in recipients)
         {
-            await Task.WhenAll(recipients.Select(addr => mail.SendAsync(addr, subject, body)));
-            _log.LogInformation("Step {StepId}: {Sent} E-Mails verschickt.",
-                s.Id, recipients.Count);
+            try
+            {
+                await mail.SendAsync(addr, subject, body);
+                await Task.Delay(100); // kurze Pause (anpassbar)
+                successCount++;
+            }
+            catch (Exception ex)
+            {
+                _log.LogWarning(ex, "Fehler beim Senden an {Email}", addr);
+            }
         }
-        catch (Exception ex)
-        {
-            _log.LogError(ex, "Step {StepId}: Fehler beim Senden.", s.Id);
-        }
+
+        _log.LogInformation("Step {StepId}: {Sent} von {Total} E-Mails erfolgreich verschickt.",
+            s.Id, successCount, recipients.Count);
     }
 
     // --------------------------------------------------------------------
