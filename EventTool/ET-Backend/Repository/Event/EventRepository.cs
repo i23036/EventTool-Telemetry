@@ -75,7 +75,7 @@ public class EventRepository : IEventRepository
 
     public async Task<Result<Models.Event>> CreateEvent(Models.Event newEvent, int orgId)
     {
-        using var tx = _db.BeginTransaction();
+        using var tx = _db.BeginSafeTransaction();
         try
         {
             var insertSql = $@"
@@ -144,7 +144,7 @@ public class EventRepository : IEventRepository
 
     public async Task<Result> DeleteEvent(int eventId)
     {
-        using var tx = _db.BeginTransaction();
+        using var tx = _db.BeginSafeTransaction();
         try
         {
             // 1) Prozess-Schritte → Prozesse
@@ -367,7 +367,7 @@ public class EventRepository : IEventRepository
 
     public async Task<Result> EditEvent(Models.Event ev)
     {
-        using var tx = _db.BeginTransaction();
+        using var tx = _db.BeginSafeTransaction();
         try
         {
             await _db.ExecuteAsync($@"

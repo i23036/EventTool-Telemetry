@@ -32,7 +32,7 @@ public class ProcessRepository : IProcessRepository
     // ─────────────────────── Schreiben ───────────────────────
     public async Task<Result> Upsert(Process proc)
     {
-        using var tx = _db.BeginTransaction();
+        using var tx = _db.BeginSafeTransaction();
 
         if (proc.Id == 0)
         {
