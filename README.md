@@ -30,14 +30,15 @@ Die Ergebnisse sollen insbesondere .NET-Entwicklern eine **praxisnahe Einführun
 
 ## 📂 Projektstruktur
 
+```plaintext
 source/
 └── EventTool/
-    ├── ET-Backend/               ← Integration OpenTelemetry geplant
-    ├── ET-Frontend/              ← Blazor WebAssembly (optional instrumentierbar)
-    ├── ET-UnitTests/             ← Testbasis für Metrikvalidierung
-    ├── ET-TelemetryPlayground/  ← Eigenes Projekt für isolierte Tests (geplant)
-    └── TelemetrySetup/           ← Gemeinsame Konfig & Erweiterungen
-
+    ├── ET-Backend/              # ASP.NET Core Backend – Telemetrieintegration geplant
+    ├── ET-Frontend/             # Blazor WebAssembly – optional instrumentierbar
+    ├── ET-UnitTests/            # Unittests zur Validierung und Ergänzung
+    ├── ET-TelemetryPlayground/ # Geplantes Projekt für isolierte Telemetrie-Experimente
+    └── TelemetrySetup/          # Gemeinsame OpenTelemetry-Konfiguration & DI-Erweiterungen
+```
 ---
 
 ## 🛠️ Technologiestack
